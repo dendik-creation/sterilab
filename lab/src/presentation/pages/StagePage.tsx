@@ -21,8 +21,7 @@ export function StagePage() {
     // (07-technical-spec.md > Performance targets).
     import('../../game/PhaserGame').then(({ createPhaserGame }) => {
       if (cancelled) return;
-      game = createPhaserGame(el);
-      game.scene.start('MainMenu', { stageId });
+      game = createPhaserGame(el, { stageId });
     });
 
     return () => {

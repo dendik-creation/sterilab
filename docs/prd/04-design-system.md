@@ -42,6 +42,14 @@ Base unit 4px: 4, 8, 12, 16, 20, 24, 32, 40, 48, 64px. Touch target minimum 44x4
 
 Gunakan satu rounded line-icon family sekitar 1.75px. Ilustrasi: APD, LAF, spirit/Bunsen, loop, Petri dish, tabung, alkohol 70%, autoklaf, bin limbah. Hindari visual kontaminasi yang mengganggu. Transisi 180-240ms, hover 120ms, progress 300ms; hormati prefers-reduced-motion baik di CSS maupun tween Phaser.
 
+**Phaser scene bubble transition (in/out).** Berlaku untuk setiap scene yang pakai pola "bubble in/out" (pop scale dari/ke 0 dengan `Back.easeOut`/`Back.easeIn`), contoh: `HomeScene`.
+- Background scene (gambar full-bleed) **tidak pernah** diikutkan ke tween transisi in maupun out — background statis, langsung tampil di posisi/skala final. Hanya elemen di atasnya (logo, kartu, tombol, ikon) yang bubble in/out.
+- Setiap elemen bubble in/out **bertahap (staggered)**, satu per satu dengan delay antar-elemen (mis. ~120ms) — bukan seluruh elemen animasi bersamaan dalam satu tween. Berlaku simetris untuk transisi in dan transisi out.
+
+**Button interaktif (hover & click).** Berlaku untuk setiap button yang dapat diinteraksi, baik DOM maupun objek canvas Phaser (mis. tombol BGM on/off, Mulai Menjelajah, Keluar di `HomeScene`):
+- Hover: scale up ringan (~1.08x resting scale), durasi memakai token hover 120ms di atas.
+- Click: efek "bubble in lalu bubble out" cepat — scale mengecil sesaat (bubble in, ~90ms) lalu membesar kembali ke resting/hover scale dengan overshoot (bubble out, ~90ms) — sebagai tap/press feedback, berjalan sebelum/bersamaan aksi tombol dieksekusi.
+
 ## Accessibility
 
 Target WCAG 2.2 AA, visible focus, keyboard/touch equivalent untuk setiap interaksi canvas Phaser (lihat FR-08 di `02-product-requirements.md`), caption/transcript, live-region feedback, heading hierarchy, landmark bermakna, dan tidak memakai warna sebagai satu-satunya sinyal.
