@@ -4,12 +4,14 @@
 // BGM once that asset lands.
 const STORAGE_KEY = 'sterilab:audioEnabled';
 
+// Sound defaults to off (03-information-architecture.md > Cover: "sound off
+// default"; TASKS.md > Aturan Lintas Screen top bar) until the Analyst opts in.
 function readStored(): boolean {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw === null ? true : raw === 'true';
+    return raw === 'true';
   } catch {
-    return true;
+    return false;
   }
 }
 

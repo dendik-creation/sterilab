@@ -7,6 +7,7 @@ import { LabScene } from './scenes/LabScene';
 import { ResultScene } from './scenes/ResultScene';
 import type { StageId } from '../core/types';
 import { isAudioEnabled, onAudioEnabledChange } from '../core/audio/audioSettings';
+import { isPortrait, onOrientationChange } from '../core/orientation/orientationGate';
 
 export interface PhaserGameData {
   stageId?: StageId;
@@ -33,6 +34,35 @@ function bindAudioMute(game: Phaser.Game): void {
   game.events.once(Phaser.Core.Events.DESTROY, unsubscribe);
 }
 
+// A portrait dip must pause Phaser and mute audio without resetting progress
+// (ADR-0002) - App.tsx only overlays RotatePrompt on top of the DOM, so the
+// scene/input/audio pause must happen here instead of by unmounting the game.
+function bindOrientationGate(game: Phaser.Game): void {
+  let mutedByOrientation = false;
+
+  const apply = (portrait: boolean) => {
+    game.input.enabled = !portrait;
+
+    for (const scene of game.scene.scenes) {
+      const key = scene.sys.settings.key;
+      if (portrait && game.scene.isActive(key)) game.scene.pause(key);
+      if (!portrait && game.scene.isPaused(key)) game.scene.resume(key);
+    }
+
+    if (portrait && !game.sound.mute) {
+      game.sound.mute = true;
+      mutedByOrientation = true;
+    } else if (!portrait && mutedByOrientation) {
+      game.sound.mute = !isAudioEnabled();
+      mutedByOrientation = false;
+    }
+  };
+
+  apply(isPortrait());
+  const unsubscribe = onOrientationChange(apply);
+  game.events.once(Phaser.Core.Events.DESTROY, unsubscribe);
+}
+
 export function createPhaserGame(parent: HTMLElement, data?: PhaserGameData): Phaser.Game {
   const game = new Phaser.Game({
     type: Phaser.AUTO,
@@ -47,6 +77,7 @@ export function createPhaserGame(parent: HTMLElement, data?: PhaserGameData): Ph
   // (Boot -> Preload -> MainMenu) isn't pre-empted before it runs.
   game.registry.set('stageId', data?.stageId);
   bindAudioMute(game);
+  bindOrientationGate(game);
 
   return game;
 }
@@ -65,6 +96,7 @@ export function createSplashGame(parent: HTMLElement, onComplete: () => void): P
 
   game.registry.set('onSplashComplete', onComplete);
   bindAudioMute(game);
+  bindOrientationGate(game);
 
   return game;
 }

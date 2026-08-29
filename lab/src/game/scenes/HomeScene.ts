@@ -6,8 +6,10 @@ import mainLogoUrl from '../../../assets/images/00_identity/main_logo.png';
 import bgmOnBtnUrl from '../../../assets/images/01_reusable/buttons/bgm_on_btn.png';
 import bgmOffBtnUrl from '../../../assets/images/01_reusable/buttons/bgm_off_btn.png';
 import exitBtnUrl from '../../../assets/images/01_reusable/buttons/exit_button.png';
-import clickSfxUrl from '../../../assets/sounds/reusable/short/click.webm';
+import clickSfxUrl from '../../../assets/sounds/01_reusable/short/click.webm';
 import { isAudioEnabled, toggleAudioEnabled } from '../../core/audio/audioSettings';
+import { prefersReducedMotion } from '../../core/a11y/motion';
+import { paletteHex } from '../../core/theme/palette';
 
 // Home scene per Figma "Sterilab-APHP" (node 2:3 "Home") - shown after the
 // Analyst taps through the splash. "Mulai Menjelajah" hands control back to
@@ -44,9 +46,19 @@ const HOVER_DURATION_MS = 120;
 const CLICK_PULSE_SCALE_MULTIPLIER = 0.92;
 const CLICK_PULSE_DURATION_MS = 90;
 
+// Keyboard-equivalent for every pointer/touch button (04-design-system.md >
+// Accessibility): Tab/Shift+Tab cycles a visible focus ring, Enter/Space
+// activates - the exact same pointerdown pipeline pointer/touch users get.
+const FOCUS_RING_PADDING = 12;
+const FOCUS_RING_STROKE_WIDTH = 3;
+
 export class HomeScene extends Phaser.Scene {
   // Every element that bubbles in/out, in stagger order - background excluded (never animated).
   private staggerElements: Phaser.GameObjects.Image[] = [];
+  // Keyboard-focusable buttons, in tab order.
+  private focusables: Phaser.GameObjects.Image[] = [];
+  private focusIndex = -1;
+  private focusRing?: Phaser.GameObjects.Rectangle;
 
   constructor() {
     super('Home');
@@ -96,6 +108,50 @@ export class HomeScene extends Phaser.Scene {
 
     this.staggerElements = [logo, greeting, exploreBtn, exitBtn, soundBtn];
     this.bubbleOutEntrance(this.staggerElements);
+
+    this.focusables = [exploreBtn, exitBtn, soundBtn];
+    this.setupKeyboardFocus();
+  }
+
+  // Tab/Shift+Tab moves a visible focus ring between buttons; Enter/Space
+  // re-emits the button's own pointerdown so keyboard users run the exact
+  // same handler as a click/tap.
+  private setupKeyboardFocus(): void {
+    this.input.keyboard?.on('keydown-TAB', (event: KeyboardEvent) => {
+      event.preventDefault();
+      this.moveFocus(event.shiftKey ? -1 : 1);
+    });
+    this.input.keyboard?.on('keydown-ENTER', () => this.activateFocused());
+    this.input.keyboard?.on('keydown-SPACE', (event: KeyboardEvent) => {
+      event.preventDefault();
+      this.activateFocused();
+    });
+  }
+
+  private moveFocus(delta: number): void {
+    const count = this.focusables.length;
+    if (count === 0) return;
+    this.focusIndex = ((this.focusIndex + delta) % count + count) % count;
+    this.renderFocusRing();
+  }
+
+  private activateFocused(): void {
+    const button = this.focusables[this.focusIndex];
+    button?.emit(Phaser.Input.Events.POINTER_DOWN);
+  }
+
+  private renderFocusRing(): void {
+    const button = this.focusables[this.focusIndex];
+    if (!button) return;
+
+    const bounds = button.getBounds();
+    if (!this.focusRing) {
+      this.focusRing = this.add.rectangle(0, 0, 0, 0).setStrokeStyle(FOCUS_RING_STROKE_WIDTH, paletteHex.skyBlue, 1).setDepth(10);
+    }
+    this.focusRing
+      .setPosition(bounds.centerX, bounds.centerY)
+      .setSize(bounds.width + FOCUS_RING_PADDING, bounds.height + FOCUS_RING_PADDING)
+      .setVisible(true);
   }
 
   private fitToWidth(image: Phaser.GameObjects.Image, maxWidth: number): Phaser.GameObjects.Image {
@@ -110,6 +166,8 @@ export class HomeScene extends Phaser.Scene {
   // the button's current scale as "resting" - must run before bubbleOutEntrance
   // zeroes it, so call this right after sizing the button in create().
   private addButtonInteractionFX(button: Phaser.GameObjects.Image): void {
+    if (prefersReducedMotion()) return;
+
     const restingScaleX = button.scaleX;
     const restingScaleY = button.scaleY;
     const hoverScaleX = restingScaleX * HOVER_SCALE_MULTIPLIER;
@@ -161,6 +219,11 @@ export class HomeScene extends Phaser.Scene {
   private bubbleOutEntrance(targets: Phaser.GameObjects.Image[]): void {
     const resting = targets.map((target) => ({ target, scaleX: target.scaleX, scaleY: target.scaleY }));
 
+    if (prefersReducedMotion()) {
+      resting.forEach(({ target, scaleX, scaleY }) => target.setScale(scaleX, scaleY).setAlpha(1));
+      return;
+    }
+
     for (const target of targets) {
       target.setScale(0).setAlpha(0);
     }
@@ -174,6 +237,12 @@ export class HomeScene extends Phaser.Scene {
 
   private bubbleInExit(onComplete: () => void): void {
     const targets = this.staggerElements;
+
+    if (prefersReducedMotion()) {
+      targets.forEach((target) => target.setScale(0).setAlpha(0));
+      onComplete();
+      return;
+    }
 
     targets.forEach((target, i) => {
       const isLast = i === targets.length - 1;

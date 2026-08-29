@@ -2,8 +2,9 @@ import Phaser from 'phaser';
 import splashBgUrl from '../../../assets/images/02_scenes/splash/splash_bg.png';
 import mainLogoUrl from '../../../assets/images/00_identity/main_logo.png';
 import touchAnythingUrl from '../../../assets/images/02_scenes/splash/touch_anything.png';
-import clickSfxUrl from '../../../assets/sounds/reusable/short/click.webm';
+import clickSfxUrl from '../../../assets/sounds/01_reusable/short/click.webm';
 import { palette, paletteHex } from '../../core/theme/palette';
+import { prefersReducedMotion } from '../../core/a11y/motion';
 
 // Splash scene per Figma "Sterilab-APHP" (node 9:500 Loading / 9:501 After Loading).
 const ASSET_KEYS = {
@@ -56,6 +57,15 @@ export class BootScene extends Phaser.Scene {
   // Pops one or more game objects in from scale 0 with a bubble-style overshoot.
   private bubbleIn(entries: BubbleTarget | BubbleTarget[], delay = 0): void {
     const list = Array.isArray(entries) ? entries : [entries];
+
+    if (prefersReducedMotion()) {
+      for (const { target, scaleX, scaleY } of list) {
+        const t = target as unknown as { setScale: (x: number, y: number) => void; setAlpha: (a: number) => void };
+        t.setScale(scaleX, scaleY);
+        t.setAlpha(1);
+      }
+      return;
+    }
 
     for (const { target } of list) {
       const t = target as unknown as { setScale: (x: number, y: number) => void; setAlpha: (a: number) => void };
@@ -200,15 +210,17 @@ export class BootScene extends Phaser.Scene {
       { target: tapLabel, scaleX: 1, scaleY: 1 },
     ]);
 
-    this.tweens.add({
-      targets: touchIcon,
-      scale: { from: 1, to: 1.08 },
-      duration: 900,
-      delay: BUBBLE_DURATION_MS,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-    });
+    if (!prefersReducedMotion()) {
+      this.tweens.add({
+        targets: touchIcon,
+        scale: { from: 1, to: 1.08 },
+        duration: 900,
+        delay: BUBBLE_DURATION_MS,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    }
 
     // Tap/click only - the Figma prompt says "Ketuk" (tap). A stray keypress
     // (Tab, arrow keys, devtools regaining focus, etc) must not skip the splash.
