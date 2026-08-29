@@ -18,3 +18,68 @@ body,
 body {
   overflow: hidden;
 }
+
+/* Pulse highlight ring behind a clickable CTA (04-design-system.md > hover
+   feedback) - tells the Analyst an element is interactive without relying on
+   color alone. Used by PulseButton; skipped entirely under reduced motion. */
+@keyframes sterilab-pulse-ring {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.55;
+  }
+  70% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+.sterilab-pulse-ring {
+  animation: sterilab-pulse-ring 1.8s ease-out infinite;
+}
+
+/* Berita Terkini card entrance (TASKS.md > Screen 2): slides in from off the
+   left edge of the viewport while fading in. */
+@keyframes sterilab-slide-in-fade {
+  from {
+    transform: translateX(-140%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.sterilab-slide-in-fade {
+  animation: sterilab-slide-in-fade 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sterilab-pulse-ring,
+  .sterilab-slide-in-fade {
+    animation: none !important;
+  }
+}
+
+/* Thin, theme-consistent scrollbar for the long narration column on /case. */
+.sterilab-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sterilab-scroll-thumb, #6dd7fd) transparent;
+}
+
+.sterilab-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sterilab-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sterilab-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--sterilab-scroll-thumb, #6dd7fd);
+  border-radius: 999px;
+}

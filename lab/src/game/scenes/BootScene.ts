@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
-import splashBgUrl from '../../../assets/images/02_scenes/splash/splash_bg.png';
+import splashBgUrl from '../../../assets/images/02_scenes/01_splash/splash_bg.png';
 import mainLogoUrl from '../../../assets/images/00_identity/main_logo.png';
-import touchAnythingUrl from '../../../assets/images/02_scenes/splash/touch_anything.png';
+import touchAnythingUrl from '../../../assets/images/02_scenes/01_splash/touch_anything.png';
 import clickSfxUrl from '../../../assets/sounds/01_reusable/short/click.webm';
 import { palette, paletteHex } from '../../core/theme/palette';
 import { prefersReducedMotion } from '../../core/a11y/motion';
