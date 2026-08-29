@@ -173,9 +173,11 @@ test('leaving runs the exit transition before the Screen swaps, and reaches the 
 
   // The Screen must hold its content for the staggered exit instead of
   // swapping out from under a still-visible UI (same contract as Home's exit).
+  // Misi 1 opens Stage 4's DOM Screen (see StagePage), so the landing marker is
+  // its own heading rather than the Phaser stub's "Instruksi".
   await expect(misi1).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Instruksi' })).not.toBeAttached();
+  await expect(page.getByRole('heading', { name: 'TEKNIK KERJA ASEPTIK' })).not.toBeAttached();
 
-  await expect(page.getByRole('heading', { name: 'Instruksi' })).toBeVisible({ timeout: 4000 });
+  await expect(page.getByRole('heading', { name: 'TEKNIK KERJA ASEPTIK' })).toBeVisible({ timeout: 4000 });
   expect(new URL(page.url()).pathname).toBe('/');
 });

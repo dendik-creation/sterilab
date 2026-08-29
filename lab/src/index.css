@@ -149,6 +149,64 @@ body {
   animation: sterilab-fall-out-fade 600ms cubic-bezier(0.7, 0, 0.84, 0) both;
 }
 
+/* Instruction-pill border trail (Stage 4 > Langkah 1). The pill itself is
+   opaque and sits on top; this is a conic gradient spinning inside a clipped,
+   pill-shaped wrapper, so only the wrapper's padding shows through as a light
+   running along the border. Kept to one sweep per revolution - the point is
+   "look here next", not a light show. The translate has to be repeated in the
+   keyframes: a bare `rotate` would replace the centering transform. */
+@keyframes sterilab-trail-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0turn);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(1turn);
+  }
+}
+
+.sterilab-trail {
+  position: relative;
+  overflow: hidden;
+}
+
+.sterilab-trail::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  /* Square and wider than the pill, so the sweep stays circular and always
+     covers the corners no matter how wide the label makes the pill. */
+  width: 220%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  /* Sweeps light-on-dark: the pill's own border is navy, so a deep-blue trail
+     would be invisible against it - the arc runs sky -> pale blue instead. */
+  background: conic-gradient(
+    from 0deg,
+    rgba(109, 215, 253, 0) 0deg 210deg,
+    #6dd7fd 300deg,
+    #bef0ff 345deg,
+    rgba(109, 215, 253, 0) 360deg
+  );
+  animation: sterilab-trail-spin 2.4s linear infinite;
+}
+
+/* The clickable object a pill points at (soap / hands / tap). Transparent over
+   the art, so the affordance is this expanding ring rather than a box drawn on
+   top of the illustration. */
+@keyframes sterilab-hotspot-pulse {
+  from {
+    box-shadow: 0 0 0 0 rgba(52, 113, 199, 0.55);
+  }
+  to {
+    box-shadow: 0 0 0 16px rgba(52, 113, 199, 0);
+  }
+}
+
+.sterilab-hotspot-pulse {
+  animation: sterilab-hotspot-pulse 1.8s ease-out infinite;
+}
+
 /* "Ketuk di mana saja" touch-anywhere prompt idle pulse (SplashPage). */
 @keyframes sterilab-pulse-scale {
   from {
@@ -163,6 +221,27 @@ body {
   animation: sterilab-pulse-scale 900ms ease-in-out infinite alternate;
 }
 
+/* Correction feedback for a piece of APD dropped on the wrong body part
+   (TeknikAseptikPage, Langkah 2). Deliberately short and small: it marks
+   "not this one" without reading as an error state, and the written reason
+   next to it - not the shake - is what carries the explanation. */
+@keyframes sterilab-nudge {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-0.35cqw);
+  }
+  75% {
+    transform: translateX(0.35cqw);
+  }
+}
+
+.sterilab-nudge {
+  animation: sterilab-nudge 300ms ease-in-out 2;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sterilab-pulse-ring,
   .sterilab-slide-in-fade,
@@ -171,8 +250,18 @@ body {
   .sterilab-bubble-out,
   .sterilab-rise-in-fade,
   .sterilab-fall-out-fade,
-  .sterilab-pulse-scale {
+  .sterilab-trail::before,
+  .sterilab-hotspot-pulse,
+  .sterilab-pulse-scale,
+  .sterilab-nudge {
     animation: none !important;
+  }
+
+  /* With the sweep frozen, a single-arc gradient would read as a random blue
+     smear on one corner - fall back to an even ring so the pill still looks
+     highlighted rather than broken. */
+  .sterilab-trail::before {
+    background: #6dd7fd;
   }
 }
 

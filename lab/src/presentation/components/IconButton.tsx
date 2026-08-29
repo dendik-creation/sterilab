@@ -19,13 +19,29 @@ export interface IconButtonProps {
   // translate, so nothing on `transform` ever conflicts.
   animationClassName?: string;
   animationDelayMs?: number;
+  // Only needed on a Screen that paints a band or card behind the top bar
+  // (Stage 4's header): a positioned sibling with any z-index would otherwise
+  // cover an icon left on `auto`, whatever the DOM order.
+  zIndex?: number;
 }
 
-export function IconButton({ src, alt, label, onClick, top, left, size, animationClassName, animationDelayMs }: IconButtonProps) {
+export function IconButton({
+  src,
+  alt,
+  label,
+  onClick,
+  top,
+  left,
+  size,
+  animationClassName,
+  animationDelayMs,
+  zIndex,
+}: IconButtonProps) {
   const style: CSSProperties = {
     position: 'absolute',
     top,
     left,
+    zIndex,
     width: `max(44px, ${size})`,
     aspectRatio: '1 / 1',
     border: 'none',
