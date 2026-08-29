@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene';
-import { HomeScene } from './scenes/HomeScene';
 import { PreloadScene } from './scenes/PreloadScene';
 import { MainMenuScene } from './scenes/MainMenuScene';
 import { LabScene } from './scenes/LabScene';
@@ -76,25 +75,6 @@ export function createPhaserGame(parent: HTMLElement, data?: PhaserGameData): Ph
   // registry instead of an explicit scene.start() so the real splash/preloader
   // (Boot -> Preload -> MainMenu) isn't pre-empted before it runs.
   game.registry.set('stageId', data?.stageId);
-  bindAudioMute(game);
-  bindOrientationGate(game);
-
-  return game;
-}
-
-// Standalone splash for the app's first paint (CoverPage) - just Boot, no
-// Stage chain behind it. onComplete fires once the Analyst taps through the
-// "After Loading" prompt; the host page destroys this game and shows content.
-export function createSplashGame(parent: HTMLElement, onComplete: () => void): Phaser.Game {
-  const game = new Phaser.Game({
-    type: Phaser.AUTO,
-    parent,
-    backgroundColor: '#0a0e17',
-    scale: SCALE_CONFIG,
-    scene: [BootScene, HomeScene],
-  });
-
-  game.registry.set('onSplashComplete', onComplete);
   bindAudioMute(game);
   bindOrientationGate(game);
 

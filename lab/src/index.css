@@ -58,9 +58,63 @@ body {
   animation: sterilab-slide-in-fade 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Splash/Cover element entrance (SplashPage): pops from scale 0 with a
+   slight overshoot - the CSS equivalent of BootScene/HomeScene's old Phaser
+   "bubble out" tween. Stagger via inline animationDelay per element. */
+@keyframes sterilab-bubble-in {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.sterilab-bubble-in {
+  animation: sterilab-bubble-in 550ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Reverse of the above - Cover's exit transition (SplashPage's "Mulai
+   Menjelajah"): every element collapses back to scale 0 before the Screen
+   actually switches, staggered the same way the entrance was, instead of
+   the scene changing out from under a still-visible UI. */
+@keyframes sterilab-bubble-out {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+.sterilab-bubble-out {
+  animation: sterilab-bubble-out 550ms cubic-bezier(0.36, 0, 0.66, -0.56) both;
+}
+
+/* "Ketuk di mana saja" touch-anywhere prompt idle pulse (SplashPage). */
+@keyframes sterilab-pulse-scale {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.08);
+  }
+}
+
+.sterilab-pulse-scale {
+  animation: sterilab-pulse-scale 900ms ease-in-out infinite alternate;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sterilab-pulse-ring,
-  .sterilab-slide-in-fade {
+  .sterilab-slide-in-fade,
+  .sterilab-bubble-in,
+  .sterilab-bubble-out,
+  .sterilab-pulse-scale {
     animation: none !important;
   }
 }

@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
 import type Phaser from 'phaser';
-import type { StageId } from '../../core/types';
+import { useNavigation } from '../../app/navigation';
 
 // Stage workspace 2/3 canvas + instruction panel 1/3 DOM (03-information-architecture.md).
 // Instruction panel must carry the parallel DOM control layer per Stage (FR-08) -
 // added alongside each Stage's real content, not stubbed here.
 export function StagePage() {
-  const { stageId } = useParams<{ stageId: StageId }>();
+  const { params } = useNavigation();
+  const stageId = params.stageId;
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

@@ -1,19 +1,16 @@
-import { RouterProvider } from 'react-router-dom';
-import { router } from './routes';
-import { useOrientationLock } from './useOrientationLock';
-import { RotatePrompt } from '../presentation/components/RotatePrompt';
+import { NavigationProvider } from './navigation';
+import { ScreenRouter } from './ScreenRouter';
+import { OrientationGuard } from '../presentation/components/OrientationGuard';
 
-// RotatePrompt only overlays the page during a portrait dip - it must never
-// unmount RouterProvider, or any Cover/Stage Phaser game underneath would be
-// destroyed (losing progress) instead of paused (ADR-0002). The actual
-// pause/mute of Phaser + input happens in PhaserGame.ts's orientation gate.
+// Single-path SPA shell (docs/adr/0005-single-path-spa-navigation.md): no
+// router, no URL ever changes from "/". OrientationGuard wraps every Screen
+// so the portrait block is enforced app-wide, not per-Screen.
 export function App() {
-  const isPortrait = useOrientationLock();
-
   return (
-    <>
-      <RouterProvider router={router} />
-      {isPortrait && <RotatePrompt />}
-    </>
+    <NavigationProvider>
+      <OrientationGuard>
+        <ScreenRouter />
+      </OrientationGuard>
+    </NavigationProvider>
   );
 }

@@ -6,7 +6,12 @@ import clickSfxUrl from '../../../assets/sounds/01_reusable/short/click.webm';
 import { palette, paletteHex } from '../../core/theme/palette';
 import { prefersReducedMotion } from '../../core/a11y/motion';
 
-// Splash scene per Figma "Sterilab-APHP" (node 9:500 Loading / 9:501 After Loading).
+// Per-Stage Phaser loading gate - preloads this Stage's own game assets and
+// waits for a tap (needed to unlock this Phaser.Game's own AudioContext)
+// before handing off to Preload -> MainMenu -> Lab. The app's actual first-run
+// splash/cover is React's SplashPage now (ADR-0001/0005); visuals here still
+// follow the same Figma "Sterilab-APHP" frames (node 9:500 Loading / 9:501
+// After Loading) so a Stage load looks consistent with it.
 const ASSET_KEYS = {
   splashBg: 'splash-bg',
   mainLogo: 'main-logo',
@@ -16,11 +21,6 @@ const ASSET_KEYS = {
 
 const TEXT_COLOR = palette.deepBlue;
 const FONT_FAMILY = "'Plus Jakarta Sans Variable', system-ui, 'Segoe UI', Roboto, sans-serif";
-
-// Set on the game registry by createSplashGame() for the standalone (non-Stage)
-// splash shown on first load; when present, Boot hands control back to the host
-// page instead of falling into the Boot -> Preload -> MainMenu -> Lab chain.
-const ON_COMPLETE_REGISTRY_KEY = 'onSplashComplete';
 
 // These local identity/splash assets are tiny and load near-instantly, which made
 // the Loading frame's progress bar flash or skip entirely before it could ever be
@@ -230,17 +230,15 @@ export class BootScene extends Phaser.Scene {
   private goNext(): void {
     this.sound.play(ASSET_KEYS.clickSfx);
     this.requestFullscreen();
-    const onComplete = this.registry.get(ON_COMPLETE_REGISTRY_KEY) as (() => void) | undefined;
-    if (onComplete) {
-      // Standalone splash flow (CoverPage): Home scene comes next, not the host page directly.
-      this.scene.start('Home');
-      return;
-    }
     this.scene.start('Preload');
   }
 
   // Must run synchronously inside the tap's pointerdown handler - browsers only
-  // grant the Fullscreen API within a real user-gesture call stack.
+  // grant the Fullscreen API within a real user-gesture call stack. SplashPage
+  // (React) already requests fullscreen once before any Stage is reachable;
+  // this is a no-op then, and only does real work if the Analyst dropped out
+  // of fullscreen (e.g. pressed Escape) since - the per-Stage tap gesture that
+  // unlocks this Phaser game's own AudioContext doubles as recovery for that.
   private requestFullscreen(): void {
     if (this.scale.fullscreen.available && !this.scale.isFullscreen) {
       this.scale.startFullscreen();

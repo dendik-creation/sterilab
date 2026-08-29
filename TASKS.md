@@ -10,6 +10,15 @@ Dokumen ini adalah pedoman kerja AI/implementor berdasarkan `docs/prd/`, ADR, `C
 - Hanya butir checklist yang implementasinya lengkap dan dapat dibuktikan diberi tanda selesai. Halaman selain Cover, kelima Stage, domain/application layer, progres pembelajaran, persistence sesi, PWA, dan pengujian otomatis masih belum selesai.
 - Update sesi ini: `HomeScene`/`BootScene` diverifikasi pixel-match terhadap Figma "Sterilab-APHP" (node `9:500`/`9:501`/`2:3`) lewat `get_design_context`; ditemukan dan diperbaiki bug nyata — portrait dip sebelumnya men-destroy game Phaser (`RouterProvider` di-unmount total oleh `App.tsx`) alih-alih pause, dan default suara tersimpan `true` padahal PRD mensyaratkan default mati. Lihat perubahan di `App.tsx`, `PhaserGame.ts`, `audioSettings.ts`, `orientationGate.ts` (baru), `core/a11y/motion.ts` (baru).
 
+## Audit & Perbaikan Besar (29 Agustus 2026)
+
+- `react-router-dom` dihapus sepenuhnya. Seluruh app kini berjalan di satu path (`/`), navigasi antar Screen memakai in-memory stack (`src/app/navigation.tsx` — `NavigationProvider`/`useNavigation`, `ScreenRouter`), bukan URL. Lihat `docs/adr/0005-single-path-spa-navigation.md`.
+- Screen 1 (Splash & Cover) dan Screen 2 (Case) dikonfirmasi sebagai dua Screen berurutan pada state machine yang sama (bukan dua route terpisah). Splash+Cover yang sebelumnya dua Phaser scene (`BootScene` → `HomeScene`) di-porting jadi satu komponen React (`SplashPage.tsx`) — memperbaiki deviasi dari ADR-0001 (Phaser seharusnya hanya untuk 5 Stage) dan mengeluarkan Phaser dari initial bundle sepenuhnya (`vite build` sekarang menaruh Phaser di chunk lazy terpisah, hanya diambil saat Stage dibuka).
+- Fullscreen di-request sekali di gesture "Ketuk di mana saja" pada `SplashPage`, dan bertahan lintas Screen karena navigasi tidak pernah unmount `<html>`/`<body>`.
+- Target sentuh ikon top-bar (home/back/sound) sebelumnya bisa mengecil sampai ~21px pada viewport landscape terkecil (568×320) karena memakai persentase mentah dari kanvas Figma 1920×1080 — diperbaiki lewat `IconButton` (`presentation/components/IconButton.tsx`, dipakai `SplashPage` dan `CasePage`) yang memakai `max(44px, …)` sehingga tidak pernah di bawah target WCAG 2.2 AA 44×44px.
+- Portrait block diperketat: `OrientationGuard` (`presentation/components/OrientationGuard.tsx`) menambahkan atribut `inert` pada konten app saat portrait (di atas overlay `RotatePrompt` yang sudah ada), sehingga screen reader/focus keyboard tidak bisa lagi menjangkau konten di baliknya; copy `RotatePrompt` diperjelas dengan nama app dan jaminan progres tersimpan.
+- Item lintas-Screen yang masih belum diverifikasi lewat pengujian nyata di berbagai device (lihat Aturan Lintas Screen dan QA/Release) tetap dibiarkan checklist kosong sampai ada bukti Playwright/manual.
+
 ## Aturan Lintas Screen
 
 - [x] Gunakan React + Vite + TypeScript untuk app shell dan seluruh Screen non-simulasi; gunakan Phaser 3 hanya pada lima Stage praktik.
@@ -30,7 +39,7 @@ Dokumen ini adalah pedoman kerja AI/implementor berdasarkan `docs/prd/`, ADR, `C
 - [ ] Jadikan skor aktivitas dan kredit retry configurable; refleksi completion-based dan tidak dihitung sebagai jawaban benar/salah.
 - [ ] Lazy-load Phaser dan aset tiap Stage ketika Stage dibuka; kompres gambar/audio dan siapkan PWA offline shell agar perjalanan inti bisa berjalan setelah load pertama.
 
-## Screen 1 - Splash & Cover (`/`)
+## Screen 1 - Splash & Cover (Screen awal, satu-satunya path `/`)
 - [x] splash scene dengan loading progressbar asset (`BootScene`: preload asli dengan `this.load.*`, progress bar + label `X% Memuat Konten`, tidak lanjut sebelum asset benar-benar termuat — diverifikasi cocok pixel-akurat dengan Figma node `9:500` "Loading").
 - [ ] Buat hero split landscape dengan copy SteriLab, hook kasus, CTA **Mulai Menjelajah**, Petunjuk, Profil, dan kontrol audio. Catatan: frame Figma final "Home" (node `2:3`) tidak menyertakan tombol Petunjuk maupun Profil — hanya Mulai Menjelajah, Keluar, dan kontrol suara. Butir ini perlu konfirmasi PM/desain: apakah Petunjuk/Profil masih diperlukan (berarti frame Figma perlu ditambah) atau baris ini disesuaikan mengikuti Figma final.
 - [x] Gunakan visual laboratorium mikrobiologi pangan modern: analis ber-APD, mikroskop, Laminar Air Flow, logo/cawan petri/tabung reaksi (`splash_bg.png`/`home_bg.png`, diverifikasi cocok dengan Figma).
@@ -39,7 +48,7 @@ Dokumen ini adalah pedoman kerja AI/implementor berdasarkan `docs/prd/`, ADR, `C
 - [x] Tambahkan hover dan press feedback pada CTA/ikon sesuai token motion; dukung keyboard dan touch. (Hover/press sudah ada; sesi ini menambah dukungan keyboard — Tab/Shift+Tab memindah focus ring di antara tombol, Enter/Space menjalankan aksi yang sama dengan pointerdown. Tween hover/bubble juga kini menghormati `prefers-reduced-motion`.)
 - [x] Arahkan CTA utama ke `/case`; pastikan aset Cover tidak memuat aset Stage resolusi penuh.
 
-## Screen 2 - Case: Briefing Kasus (`/case`)
+## Screen 2 - Case: Briefing Kasus (Screen kedua, `goTo('case')`)
 
 - [ ] Sajikan dugaan keracunan pangan pada kegiatan sekolah, penerimaan sampel, peran Analyst, serta konsekuensi hasil uji yang tidak akurat.
 - [ ] Tampilkan ilustrasi ruang briefing dan monitor berita; sediakan narasi bertahap, caption/transcript, dan area narasi yang dapat discroll bila diperlukan.
