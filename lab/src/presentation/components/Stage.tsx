@@ -13,11 +13,19 @@ import { palette } from '../../core/theme/palette';
 //   would risk being cropped off the visible viewport if placed here.
 // - `children` (the "safe" layer) is sized the other way - CSS `contain`,
 //   never larger than the viewport - so every button, card and label stays
-//   fully on-screen at any window aspect. Both boxes share the same center
-//   and the same 16:9 ratio, so a percentage position means the exact same
-//   point on either one: a design's inset-[top_right_bottom_left] percentages
-//   can be copied straight into a child's style regardless of which layer
-//   it's in.
+//   fully on-screen at any window aspect. A design's
+//   inset-[top_right_bottom_left] percentages can be copied straight into a
+//   child's style: both boxes are 16:9 and share a center, so on a 16:9
+//   viewport (568x320, 667x375, 1366x768) a percentage lands on exactly the
+//   same point in either layer.
+//
+// The two boxes are only the *same size* at 16:9, though. On 1024x768 the
+// cover box is 1365x768 while the safe box is 1024x576, so a child at 89% of
+// the safe layer sits ~75px above the background feature it was drawn over in
+// Figma. That drift is the deliberate trade: art placed in `background` may be
+// cropped, content placed in `children` may not, and there is no single box
+// that can promise both. Anything that has to stay glued to a background
+// feature at every aspect belongs in the same layer as that feature.
 //
 // `containerType: inline-size` on the safe layer turns it into a CSS
 // container query context so descendants can size text with `cqw` units (1cqw

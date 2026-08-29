@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForMotionSettled } from './settle';
 
 // Single-path SPA (docs/adr/0005-single-path-spa-navigation.md): every
 // assertion below runs against "/" and never expects the URL to change.
@@ -40,6 +41,25 @@ test('splash loads, advances to home, and Mulai Menjelajah reaches Case - all on
   expect(new URL(page.url()).pathname).toBe('/');
 });
 
+test('Case holds its content for the staggered exit before Missions mounts', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Ketuk di mana saja untuk melanjutkan' }).click({ timeout: 15_000 });
+  await page.getByRole('button', { name: 'Mulai Menjelajah' }).click();
+
+  await page.getByRole('button', { name: 'Baca Selengkapnya' }).click({ timeout: 5000 });
+
+  const lanjut = page.getByRole('button', { name: 'Lanjut Briefing' });
+  await lanjut.click();
+
+  // Exit ladder runs first: the CTA is still on screen and the next Screen
+  // has not mounted yet.
+  await expect(lanjut).toBeVisible();
+  await expect(page.getByAltText(/Dashboard SteriLab/)).not.toBeAttached();
+
+  await expect(page.getByAltText(/Dashboard SteriLab/)).toBeVisible({ timeout: 4000 });
+  expect(new URL(page.url()).pathname).toBe('/');
+});
+
 test('top-bar icon buttons meet the 44x44 CSS px touch target minimum on Splash and Case', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Ketuk di mana saja untuk melanjutkan' }).click();
@@ -49,6 +69,11 @@ test('top-bar icon buttons meet the 44x44 CSS px touch target minimum on Splash 
   expect(homeSoundBox?.height).toBeGreaterThanOrEqual(44);
 
   await page.getByRole('button', { name: 'Mulai Menjelajah' }).click();
+
+  // Case's top bar now bubbles in on a stagger, so these have to be measured
+  // after the entrance lands or the boundingBox is a mid-scale snapshot.
+  await expect(page.getByAltText(/Ruang laboratorium/)).toBeVisible({ timeout: 5000 });
+  await waitForMotionSettled(page);
 
   for (const name of ['Menu Utama', 'Kembali', /suara/]) {
     const box = await page.getByRole('button', { name }).boundingBox();

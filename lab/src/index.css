@@ -58,6 +58,24 @@ body {
   animation: sterilab-slide-in-fade 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Reverse of the above - the Berita Terkini card slides back off the left
+   edge as part of Case's staggered exit, so it doesn't sit frozen on screen
+   while every button around it bubbles away. */
+@keyframes sterilab-slide-out-fade {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-140%);
+    opacity: 0;
+  }
+}
+
+.sterilab-slide-out-fade {
+  animation: sterilab-slide-out-fade 520ms cubic-bezier(0.7, 0, 0.84, 0) both;
+}
+
 /* Splash/Cover element entrance (SplashPage): pops from scale 0 with a
    slight overshoot - the CSS equivalent of BootScene/HomeScene's old Phaser
    "bubble out" tween. Stagger via inline animationDelay per element. */
@@ -95,6 +113,42 @@ body {
   animation: sterilab-bubble-out 550ms cubic-bezier(0.36, 0, 0.66, -0.56) both;
 }
 
+/* Missions note card entrance: starts fully below the viewport edge (its own
+   height is only ~8.6% of the stage, so the offset has to be several multiples
+   of it to clear the bottom) and rises into place while fading in. Last beat
+   of the Screen's staggered entrance, after all five menu cards. */
+@keyframes sterilab-rise-in-fade {
+  from {
+    transform: translateY(220%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.sterilab-rise-in-fade {
+  animation: sterilab-rise-in-fade 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Reverse of the above - the note card drops back off the bottom edge as the
+   first beat of the Missions exit transition. */
+@keyframes sterilab-fall-out-fade {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(220%);
+    opacity: 0;
+  }
+}
+
+.sterilab-fall-out-fade {
+  animation: sterilab-fall-out-fade 600ms cubic-bezier(0.7, 0, 0.84, 0) both;
+}
+
 /* "Ketuk di mana saja" touch-anywhere prompt idle pulse (SplashPage). */
 @keyframes sterilab-pulse-scale {
   from {
@@ -112,8 +166,11 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .sterilab-pulse-ring,
   .sterilab-slide-in-fade,
+  .sterilab-slide-out-fade,
   .sterilab-bubble-in,
   .sterilab-bubble-out,
+  .sterilab-rise-in-fade,
+  .sterilab-fall-out-fade,
   .sterilab-pulse-scale {
     animation: none !important;
   }

@@ -10,9 +10,25 @@ interface PulseButtonProps {
   onClick: () => void;
   style: CSSProperties;
   ringColor?: string;
+  // Optional entrance/exit animation (e.g. "sterilab-bubble-in" /
+  // "sterilab-bubble-out"), same contract as IconButton. It lands on the
+  // positioned wrapper, never on the <button>: the wrapper places itself with
+  // top/left so nothing there competes for `transform`, while the button's own
+  // hover/press transform would otherwise lose to a filled animation on the
+  // same element.
+  animationClassName?: string;
+  animationDelayMs?: number;
 }
 
-export function PulseButton({ src, alt, onClick, style, ringColor = '#357EC1' }: PulseButtonProps) {
+export function PulseButton({
+  src,
+  alt,
+  onClick,
+  style,
+  ringColor = '#357EC1',
+  animationClassName,
+  animationDelayMs,
+}: PulseButtonProps) {
   const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
@@ -21,7 +37,14 @@ export function PulseButton({ src, alt, onClick, style, ringColor = '#357EC1' }:
   };
 
   return (
-    <div style={{ position: 'absolute', ...style }}>
+    <div
+      className={animationClassName}
+      style={{
+        position: 'absolute',
+        ...style,
+        ...(animationDelayMs === undefined ? null : { animationDelay: `${animationDelayMs}ms` }),
+      }}
+    >
       <span
         aria-hidden="true"
         className="sterilab-pulse-ring"
