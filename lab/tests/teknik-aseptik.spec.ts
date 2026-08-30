@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { waitForMotionSettled } from './settle';
+import { skipCaseNarration } from './case';
 
 // Stage 4 - Teknik Kerja Aseptik, Langkah 1 "Cuci tangan". Figma "Sterilab-APHP"
 // canvas 42:678, frame 42:679 "LANGKAH 1" (1920x1080). Landscape-only app
@@ -17,7 +18,7 @@ async function gotoStage(page: Page): Promise<void> {
   await page.goto('/');
   await page.getByRole('button', { name: 'Ketuk di mana saja untuk melanjutkan' }).click({ timeout: 15_000 });
   await page.getByRole('button', { name: 'Mulai Menjelajah' }).click();
-  await page.getByRole('button', { name: 'Baca Selengkapnya' }).click({ timeout: 5000 });
+  await skipCaseNarration(page);
   await page.getByRole('button', { name: 'Lanjut Briefing' }).click();
   await page.getByRole('button', { name: /^Mulai Misi 1:/ }).click({ timeout: 5000 });
   await expect(page.getByRole('heading', { name: 'TEKNIK KERJA ASEPTIK' })).toBeVisible({ timeout: 5000 });

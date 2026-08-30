@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { waitForMotionSettled } from './settle';
+import { skipCaseNarration } from './case';
 
 // Single-path SPA (docs/adr/0005-single-path-spa-navigation.md): every
 // assertion below runs against "/" and never expects the URL to change.
@@ -46,7 +47,7 @@ test('Case holds its content for the staggered exit before Missions mounts', asy
   await page.getByRole('button', { name: 'Ketuk di mana saja untuk melanjutkan' }).click({ timeout: 15_000 });
   await page.getByRole('button', { name: 'Mulai Menjelajah' }).click();
 
-  await page.getByRole('button', { name: 'Baca Selengkapnya' }).click({ timeout: 5000 });
+  await skipCaseNarration(page);
 
   const lanjut = page.getByRole('button', { name: 'Lanjut Briefing' });
   await lanjut.click();

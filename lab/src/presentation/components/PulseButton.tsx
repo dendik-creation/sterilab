@@ -1,7 +1,7 @@
 import type { CSSProperties, KeyboardEvent } from 'react';
 
-// Wraps a sliced button image (Figma-provided PNG, e.g. baca_selengkapnya_btn
-// / lanjut_briefing_btn) with a soft pulsing ring behind it, so the Analyst
+// Wraps a sliced button image (Figma-provided PNG, e.g. lanjut_briefing_btn
+// / the Missions MULAI pills) with a soft pulsing ring behind it, so the Analyst
 // reads it as clickable even though it's just an <img> otherwise (04-design-system.md
 // > hover feedback). Keyboard-operable (Enter/Space) in addition to click/tap.
 interface PulseButtonProps {
