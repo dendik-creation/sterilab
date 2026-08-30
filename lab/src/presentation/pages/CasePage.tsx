@@ -337,7 +337,7 @@ function ListeningBadge({
           />
         ))}
       </span>
-      <span>{muted ? 'Dengarkan sampai selesai — suara sedang mati' : 'Dengarkan sampai selesai'}</span>
+      <span>{muted ? 'Suara sedang dimatikan' : 'Dengarkan sampai selesai'}</span>
     </div>
   );
 }

@@ -34,6 +34,18 @@ const HOME_EXIT_STAGGER_MS = 120;
 const HOME_EXIT_DURATION_MS = 550;
 const HOME_EXIT_TOTAL_MS = (HOME_ELEMENT_COUNT - 1) * HOME_EXIT_STAGGER_MS + HOME_EXIT_DURATION_MS;
 
+// Loading phase exit (progress bar bubbling out right before the phase
+// flips to "touch"), same bubble-out timing as the Home exit above.
+const LOADING_EXIT_DURATION_MS = 550;
+
+// Touch phase exit ("ketuk di mana saja" tap advancing to Home): logo,
+// touch icon, and touch text bubble back out before the phase switches,
+// mirroring Home's exit pattern.
+const ADVANCE_ELEMENT_COUNT = 3; // logo, touch icon, touch text
+const ADVANCE_EXIT_STAGGER_MS = 120;
+const ADVANCE_EXIT_DURATION_MS = 550;
+const ADVANCE_EXIT_TOTAL_MS = (ADVANCE_ELEMENT_COUNT - 1) * ADVANCE_EXIT_STAGGER_MS + ADVANCE_EXIT_DURATION_MS;
+
 // Preloaded so the Home phase (shown immediately after the touch-anywhere
 // tap, no further wait) never pops its art in mid-decode.
 const PRELOAD_IMAGE_URLS = [
@@ -93,18 +105,40 @@ export function SplashPage() {
   const [percent, setPercent] = useState(0);
   const [audioOn, setAudioOn] = useState(isAudioEnabled());
   const [homeExiting, setHomeExiting] = useState(false);
+  const [loadingExiting, setLoadingExiting] = useState(false);
+  const [advancing, setAdvancing] = useState(false);
   const clickAudioRef = useRef<HTMLAudioElement | null>(null);
   const assetsReadyRef = useRef(false);
   const minDisplayElapsedRef = useRef(false);
+  const loadingExitStartedRef = useRef(false);
   const exitTimeoutRef = useRef(0);
+  const loadingExitTimeoutRef = useRef(0);
+  const advanceTimeoutRef = useRef(0);
 
-  useEffect(() => () => window.clearTimeout(exitTimeoutRef.current), []);
+  useEffect(
+    () => () => {
+      window.clearTimeout(exitTimeoutRef.current);
+      window.clearTimeout(loadingExitTimeoutRef.current);
+      window.clearTimeout(advanceTimeoutRef.current);
+    },
+    [],
+  );
 
   // Called from whichever of the two independent gates below (real asset
   // preload, floored display timer) finishes second - not a synchronizing
   // effect watching both, since that would fire an extra render for no reason.
+  // Mirrors the Home exit below: the progress bar bubbles out first, then
+  // the phase actually flips to "touch" once the animation has played.
   const tryProceedToTouch = () => {
-    if (assetsReadyRef.current && minDisplayElapsedRef.current) setPhase('touch');
+    if (!assetsReadyRef.current || !minDisplayElapsedRef.current) return;
+    if (loadingExitStartedRef.current) return;
+    loadingExitStartedRef.current = true;
+    if (prefersReducedMotion()) {
+      setPhase('touch');
+      return;
+    }
+    setLoadingExiting(true);
+    loadingExitTimeoutRef.current = window.setTimeout(() => setPhase('touch'), LOADING_EXIT_DURATION_MS);
   };
 
   useEffect(() => {
@@ -167,9 +201,15 @@ export function SplashPage() {
   }, []);
 
   const handleAdvance = () => {
+    if (advancing) return;
     playClick();
     requestFullscreenOnce();
-    setPhase('home');
+    if (prefersReducedMotion()) {
+      setPhase('home');
+      return;
+    }
+    setAdvancing(true);
+    advanceTimeoutRef.current = window.setTimeout(() => setPhase('home'), ADVANCE_EXIT_TOTAL_MS);
   };
 
   const handleAdvanceKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -245,8 +285,8 @@ export function SplashPage() {
           top="3.53%"
           left="93.93%"
           size="3.79%"
-          animationClassName={homeExiting ? 'sterilab-bubble-out' : undefined}
-          animationDelayMs={homeExiting ? 480 : undefined}
+          animationClassName={homeExiting ? 'sterilab-bubble-out' : 'sterilab-bubble-in'}
+          animationDelayMs={480}
           onClick={handleToggleSound}
         />
       </Stage>
@@ -264,12 +304,20 @@ export function SplashPage() {
       }
     >
       <Centered top="32%" left="50%" width="60%">
-        <img src={mainLogoUrl} alt="SteriLab" className="sterilab-bubble-in" style={{ width: '100%', display: 'block', animationDelay: '150ms' }} />
+        <img
+          src={mainLogoUrl}
+          alt="SteriLab"
+          className={advancing ? 'sterilab-bubble-out' : 'sterilab-bubble-in'}
+          style={{ width: '100%', display: 'block', animationDelay: advancing ? '0ms' : '150ms' }}
+        />
       </Centered>
 
       {phase === 'loading' && (
         <Centered top="62%" left="50%" width="37.5%">
-          <div className="sterilab-bubble-in" style={{ animationDelay: '300ms' }}>
+          <div
+            className={loadingExiting ? 'sterilab-bubble-out' : 'sterilab-bubble-in'}
+            style={{ animationDelay: loadingExiting ? '0ms' : '300ms' }}
+          >
             <div
               role="progressbar"
               aria-valuenow={percent}
@@ -302,20 +350,25 @@ export function SplashPage() {
           aria-label="Ketuk di mana saja untuk melanjutkan"
           onPointerDown={handleAdvance}
           onKeyDown={handleAdvanceKeyDown}
-          style={{ position: 'absolute', inset: 0, cursor: 'pointer' }}
+          style={{ position: 'absolute', inset: 0, cursor: 'pointer', pointerEvents: advancing ? 'none' : 'auto' }}
         >
           <Centered top="62%" left="50%" width="4%">
-            <img
-              src={touchAnythingUrl}
-              alt=""
-              aria-hidden="true"
-              className="sterilab-bubble-in sterilab-pulse-scale"
-              style={{ width: '100%', display: 'block' }}
-            />
+            <div
+              className={advancing ? 'sterilab-bubble-out' : 'sterilab-bubble-in'}
+              style={{ animationDelay: advancing ? '120ms' : '0ms' }}
+            >
+              <img
+                src={touchAnythingUrl}
+                alt=""
+                aria-hidden="true"
+                className="sterilab-pulse-scale"
+                style={{ width: '100%', display: 'block' }}
+              />
+            </div>
           </Centered>
           <Centered top="75%" left="50%">
             <p
-              className="sterilab-bubble-in"
+              className={advancing ? 'sterilab-bubble-out' : 'sterilab-bubble-in'}
               style={{
                 margin: 0,
                 fontSize: 'max(14px, 1.41cqw)',
@@ -323,6 +376,7 @@ export function SplashPage() {
                 fontWeight: 600,
                 textAlign: 'center',
                 whiteSpace: 'nowrap',
+                animationDelay: advancing ? '240ms' : '0ms',
               }}
             >
               Ketuk di mana saja untuk melanjutkan
