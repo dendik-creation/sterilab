@@ -210,19 +210,26 @@ test('progress is announced, not only shown in the artwork', async ({ page }) =>
 // Langkah 2 "Memakai APD" - Figma frame 58:2.
 //
 // The frame itself only specifies a checklist (tick six boxes, press Selesai).
-// That is what a phone gets, because six 44px sockets will not fit on an
-// analyst who is ~67 CSS px wide at 568x320. From 1024px up the same six tiles
-// are also draggable onto sockets on the body, so the assertions below fork on
-// viewport width rather than pretending one interaction serves both.
+// The Screen is a drag onto the analyst instead, on *every* viewport: a phone
+// gets the same six sockets a desktop does. So no assertion about the
+// *interaction* below forks on viewport width - the same drag is expected to
+// work at 568x320 and at 1440x900 alike.
+//
+// The socket *layout* does fork, because a 44px-floored circle on a 568px stage
+// is nearly twice its designed size. Both sets of centres are repeated here in
+// the frame's own 1920x1080 coordinates, deliberately duplicated from
+// data/stages/teknikAseptik.ts: this is the spec that says a drop target lands
+// on the body part it claims, so it has to fail when the data drifts rather
+// than move with it.
 // ---------------------------------------------------------------------------
 
 const APD = [
-  { name: 'Jas laboratorium', part: 'badan' },
-  { name: 'Kacamata pelindung', part: 'mata' },
-  { name: 'Sarung tangan', part: 'tangan' },
-  { name: 'Masker wajah', part: 'wajah' },
-  { name: 'Sepatu keselamatan', part: 'kaki' },
-  { name: 'Penutup kepala', part: 'kepala' },
+  { name: 'Jas laboratorium', part: 'badan', wide: { x: 934, y: 500 }, compact: { x: 934, y: 520 } },
+  { name: 'Kacamata pelindung', part: 'mata', wide: { x: 934, y: 348 }, compact: { x: 770, y: 342 } },
+  { name: 'Sarung tangan', part: 'tangan', wide: { x: 842, y: 682 }, compact: { x: 842, y: 682 } },
+  { name: 'Masker wajah', part: 'wajah', wide: { x: 1052, y: 392 }, compact: { x: 1098, y: 392 } },
+  { name: 'Sepatu keselamatan', part: 'kaki', wide: { x: 934, y: 1002 }, compact: { x: 934, y: 1000 } },
+  { name: 'Penutup kepala', part: 'kepala', wide: { x: 934, y: 252 }, compact: { x: 934, y: 276 } },
 ] as const;
 
 type Apd = (typeof APD)[number];
@@ -232,8 +239,7 @@ function isPhone(page: Page): boolean {
 }
 
 function tile(page: Page, item: Apd) {
-  const suffix = isPhone(page) ? `pasang pada ${item.part}` : `seret ke ${item.part} analis`;
-  return page.getByRole('button', { name: `${item.name}, ${suffix}`, exact: true });
+  return page.getByRole('button', { name: `${item.name}, seret ke ${item.part} analis`, exact: true });
 }
 
 function placedTile(page: Page, item: Apd) {
@@ -261,11 +267,52 @@ async function gotoStep2(page: Page): Promise<void> {
   await waitForMotionSettled(page);
 }
 
-// Puts one item on the analyst through whichever path this viewport supports.
+// Puts one item on the analyst through the tap path (pick up, then tap the body
+// part) - the one that also serves the keyboard. `dragOnto` below covers the
+// pointer path.
 async function wear(page: Page, item: Apd): Promise<void> {
   await tile(page, item).click();
-  if (!isPhone(page)) await socket(page, item).click();
+  await socket(page, item).click();
   await expect(placedTile(page, item)).toBeVisible();
+}
+
+async function center(locator: ReturnType<Page['getByRole']>) {
+  const box = (await locator.boundingBox())!;
+  expect(box).not.toBeNull();
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
+
+// Mouse drag: press on the tile, travel to the target, release.
+async function dragOnto(page: Page, item: Apd, target: Apd): Promise<void> {
+  const from = await center(tile(page, item));
+  const to = await center(socket(page, target));
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(to.x, to.y, { steps: 16 });
+  await page.mouse.up();
+}
+
+// The same drag as a finger. Playwright's touchscreen can only tap, so the
+// touch points go through CDP - which is what makes these real touch events
+// (pointerType "touch", browser-managed pointer capture) rather than synthetic
+// PointerEvents that would never exercise the capture path a finger takes when
+// it slides off the tile it started on.
+async function touchDragOnto(page: Page, item: Apd, target: Apd): Promise<void> {
+  const session = await page.context().newCDPSession(page);
+  const from = await center(tile(page, item));
+  const to = await center(socket(page, target));
+  const touch = (x: number, y: number) => [{ x, y, radiusX: 12, radiusY: 12, force: 1 }];
+
+  await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: touch(from.x, from.y) });
+  for (let i = 1; i <= 12; i += 1) {
+    const t = i / 12;
+    await session.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: touch(from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t),
+    });
+  }
+  await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await session.detach();
 }
 
 test('Langkah 2 opens with nothing worn, the first frame, and Selesai locked', async ({ page }) => {
@@ -275,9 +322,18 @@ test('Langkah 2 opens with nothing worn, the first frame, and Selesai locked', a
   await expect(
     page.getByText('Kenakan seluruh alat pelindung diri sebelum memasuki area kerja aseptik.', { exact: true }),
   ).toBeVisible();
-  await expect(page.getByText('Pilih semua APD secara lengkap :', { exact: true })).toBeVisible();
+  await expect(page.getByText('Seret setiap APD ke tubuh analis :', { exact: true })).toBeVisible();
 
-  for (const item of APD) await expect(tile(page, item)).toBeVisible();
+  for (const item of APD) {
+    await expect(tile(page, item)).toBeVisible();
+    // Every unworn tile carries the grip badge that says it can be dragged -
+    // the affordance that replaced the empty checkbox when the step stopped
+    // being a checklist.
+    await expect(tile(page, item).locator('svg')).toHaveCount(1);
+    // And every body part it can go to is on screen, on a phone as much as on
+    // a desktop.
+    await expect(socket(page, item)).toBeVisible();
+  }
 
   // Selesai is the confirm, not a shortcut: it cannot fire until all six land.
   await expect(page.getByRole('button', { name: 'Selesai', exact: true })).toBeDisabled();
@@ -285,8 +341,22 @@ test('Langkah 2 opens with nothing worn, the first frame, and Selesai locked', a
   await expect(page.getByRole('group', { name: 'Seluruh APD telah dipakai!' })).not.toBeAttached();
 });
 
+test('every drop target sits on the body part it is named after', async ({ page }) => {
+  await gotoStep2(page);
+
+  for (const item of APD) {
+    const expected = isPhone(page) ? item.compact : item.wide;
+    const box = await designBox(page, socket(page, item));
+    expect(Math.abs(box.x + box.w / 2 - expected.x), `${item.part} socket centre x`).toBeLessThan(6);
+    expect(Math.abs(box.y + box.h / 2 - expected.y), `${item.part} socket centre y`).toBeLessThan(6);
+    // The floored circle has to stay inside the stage - kepala is the one that
+    // used to float above the analyst's head, kaki the one nearest the bottom.
+    expect(box.y, `${item.part} socket above the stage`).toBeGreaterThan(0);
+    expect(box.y + box.h, `${item.part} socket below the stage`).toBeLessThan(1080);
+  }
+});
+
 test('an item dropped on the wrong body part is refused with a written reason', async ({ page }) => {
-  test.skip(isPhone(page), 'sockets only exist from 1024px up');
   await gotoStep2(page);
 
   const goggles = APD[1];
@@ -308,20 +378,54 @@ test('an item dropped on the wrong body part is refused with a written reason', 
   await expect(page.getByRole('button', { name: 'Kacamata pelindung terpasang di mata. Lepas.' })).toBeVisible();
 });
 
-test('dragging a tile onto its socket equips it', async ({ page }) => {
-  test.skip(isPhone(page), 'drag needs sockets, which only exist from 1024px up');
+test('dragging a tile onto its socket equips it, and onto the wrong one does not', async ({ page }) => {
   await gotoStep2(page);
 
   const coat = APD[0];
-  const from = (await tile(page, coat).boundingBox())!;
-  const to = (await socket(page, coat).boundingBox())!;
+  const shoes = APD[4];
 
-  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 16 });
-  await page.mouse.up();
-
+  await dragOnto(page, coat, coat);
   await expect(placedTile(page, coat)).toBeVisible();
+
+  // A drag is refused by the same rule a tap is, and says why.
+  await dragOnto(page, shoes, APD[5]);
+  await expect(page.locator('[aria-live="polite"]')).toHaveText(
+    'Sepatu keselamatan dipakai di kaki, bukan di kepala.',
+  );
+  await expect(tile(page, shoes)).toBeVisible();
+
+  // A drag that ends nowhere near a socket is simply dropped, not scored.
+  const stage = await stageBox(page);
+  const from = await center(tile(page, shoes));
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(stage.left + stage.w * 0.4, stage.top + stage.h * 0.9, { steps: 12 });
+  await page.mouse.up();
+  await expect(tile(page, shoes)).toBeVisible();
+});
+
+// The drag has to work with a finger, not only a mouse: this is the path that
+// silently did nothing before, because the tile refused to start a drag below
+// the 1024px breakpoint and there were no sockets to aim at anyway.
+test.describe('touch', () => {
+  test.use({ hasTouch: true });
+
+  test('a finger can drag a tile onto its socket', async ({ page }) => {
+    await gotoStep2(page);
+
+    const goggles = APD[1];
+    await touchDragOnto(page, goggles, goggles);
+    await expect(placedTile(page, goggles)).toBeVisible();
+
+    // Including onto a socket that had to step off the head to fit - the leader
+    // line is the only thing saying where it points, so it had better be
+    // droppable.
+    const mask = APD[3];
+    await touchDragOnto(page, mask, mask);
+    await expect(placedTile(page, mask)).toBeVisible();
+
+    await expect(page.locator('[aria-live="polite"]')).toHaveText('2 dari 6 APD terpasang.');
+  });
 });
 
 test('a worn item can be taken off again', async ({ page }) => {
@@ -383,7 +487,7 @@ test('Langkah 2 controls keep a 44x44 touch target and never overlap each other'
   await gotoStep2(page);
 
   const stage = await stageBox(page);
-  const card = (await page.getByText('Pilih semua APD secara lengkap :', { exact: true }).boundingBox())!;
+  const card = (await page.getByText('Seret setiap APD ke tubuh analis :', { exact: true }).boundingBox())!;
 
   for (const item of APD) {
     const box = (await tile(page, item).boundingBox())!;
@@ -396,8 +500,6 @@ test('Langkah 2 controls keep a 44x44 touch target and never overlap each other'
   // The card grows downwards from a fixed top edge; on the smallest viewport
   // the floored button and copy must still land inside the stage.
   expect(selesai.y + selesai.height, 'Selesai below the stage').toBeLessThanOrEqual(stage.top + stage.h + 1);
-
-  if (isPhone(page)) return;
 
   const procedure = (await page
     .getByText('Kenakan seluruh alat pelindung diri sebelum memasuki area kerja aseptik.', { exact: true })

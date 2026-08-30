@@ -24,6 +24,12 @@ import swimCapUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_asep
 // remaining steps are deliberately left unauthored rather than invented here.
 export const TOTAL_STEPS = 12;
 
+// Which procedure a step is, independent of its position in the list. The
+// Screen picks a workspace component by this id (see
+// presentation/pages/stages/teknik-aseptik/steps/index.tsx), so authoring
+// LANGKAH 3 is a new id here, a new entry there, and nothing else.
+export type ProcedureId = 'cuci-tangan' | 'memakai-apd';
+
 export interface Rect {
   x: number;
   y: number;
@@ -58,12 +64,30 @@ export interface StepAction {
   background: string;
 }
 
+// Where one item's drop target sits. `anchor` is the point the socket is
+// *about* - only set when the socket had to step off the body part to keep two
+// sockets from overlapping, and the Screen draws a leader line to it so the
+// offset still reads as "this spot".
+export interface ApdPlacement {
+  socket: { x: number; y: number };
+  anchor?: { x: number; y: number };
+}
+
+// The same six targets, laid out twice. A socket is `max(44px, 84 design px)`,
+// so on a 568px-wide stage the 44px touch floor blows it up to 149 design px -
+// nearly twice its designed size - and a layout that packs six of them onto the
+// analyst at desktop sizes would have them overlapping into one unaimable blob.
+// `wide` is the layout for >=1024px (five of the six sit directly on the body
+// part they name); `compact` is the same set pulled apart far enough that two
+// floored circles cannot touch.
+export interface ApdPlacements {
+  wide: ApdPlacement;
+  compact: ApdPlacement;
+}
+
 // One piece of protective equipment in Langkah 2. It lives in two places at
 // once: a cell of the 3x2 grid inside the floating card (row/col), and a socket
-// on the analyst's body that it has to be dropped onto. `anchor` is the point
-// the socket is *about* - only set when the socket had to be nudged off the
-// body part to keep two sockets from overlapping, and a leader line is drawn to
-// it so the offset still reads as "this spot".
+// on the analyst's body that it has to be dragged onto.
 export interface ApdItem {
   id: string;
   name: string;
@@ -78,11 +102,11 @@ export interface ApdItem {
   height: number;
   row: 0 | 1;
   col: 0 | 1 | 2;
-  socket: { x: number; y: number };
-  anchor?: { x: number; y: number };
+  placement: ApdPlacements;
 }
 
 interface BaseStep {
+  id: ProcedureId;
   n: number;
   // Blue eyebrow above the title inside the PROSEDUR card.
   eyebrow: string;
@@ -126,6 +150,7 @@ export type ProcedureStep = SequenceStep | EquipStep;
 // of actions completed so far.
 export const HAND_WASH_STEP: SequenceStep = {
   kind: 'sequence',
+  id: 'cuci-tangan',
   n: 1,
   eyebrow: 'Langkah 1',
   title: 'Cuci tangan',
@@ -174,21 +199,40 @@ export const SOAP_ART = { src: soapUrl, rect: HAND_WASH_STEP.actions[0].hotspot 
 
 // Socket centres were measured off backgrounds/1.png (1920x975) and shifted by
 // the art's own y offset (105.184), so they land on the analyst rather than on
-// a percentage that happens to look right at 16:9.
+// a percentage that happens to look right at 16:9. The landmarks that matter,
+// in frame coordinates: crown 258, eyes 342, mouth 381, chest 495, left hand
+// (842, 680), sandals 1005.
 //
-// A socket is an 84x84 design-px square at every viewport that shows one
-// (>=1024px, where 84 design px is already past the 44px floor), so every pair
-// of centres has to differ by >=84 in x or in y - and the head carries three of
-// them within ~140px. Kepala is lifted just above the crown and Wajah pushed
-// clear of the jaw, which is far enough off the mouth to need an `anchor` the
-// Screen draws a leader line to; Mata still covers the eyes directly.
+// A socket is `max(44px, 84 design px)` square, and that floor is what sets the
+// layout - twice, because it bites at completely different scales:
+//
+// `wide` (>=1024px): the circle is its designed 84 design px, so two centres
+// only have to differ by 84 in x or in y. That is enough room to sit Kepala on
+// the crown, Mata on the eyes, Badan on the chest, Tangan on the left hand and
+// Kaki on the sandals. Only Wajah cannot fit - the mouth is 39 design px below
+// the eyes - so it steps out to the analyst's right and carries an `anchor`
+// back to the cheek, which the Screen draws a leader line to. Closest pair is
+// Kepala/Mata at 96.
+//
+// `compact` (<1024px): on a 568px-wide stage 44 CSS px *is* 149 design px, so
+// the whole head group has to come apart. Kepala keeps the crown, Mata steps
+// left and Wajah steps right, both with leader lines; Badan drops to the belt
+// line to clear them. Closest pair is 164, which holds down to a 515px-wide
+// stage - below the 568px floor the app supports at all.
+//
+// Landmarks both layouts are measured against, in frame coordinates: crown 258,
+// eyes 342, mouth 381, chest 495, left hand (842, 680), sandals 1005.
 export const WEAR_PPE_STEP: EquipStep = {
   kind: 'equip',
+  id: 'memakai-apd',
   n: 2,
   eyebrow: 'Langkah 2',
   title: 'Memakai APD',
   description: 'Kenakan seluruh alat pelindung diri sebelum memasuki area kerja aseptik.',
-  prompt: 'Pilih semua APD secara lengkap :',
+  // Figma writes this as "Pilih semua APD secara lengkap :", which describes a
+  // checklist. The step is a drag onto the analyst on every viewport now, so
+  // the prompt has to say what the Analyst is actually being asked to do.
+  prompt: 'Seret setiap APD ke tubuh analis :',
   confirmLabel: 'Selesai',
   initialBackground: lockerPlainUrl,
   initialBackgroundAlt:
@@ -209,7 +253,13 @@ export const WEAR_PPE_STEP: EquipStep = {
       height: 186,
       row: 0,
       col: 0,
-      socket: { x: 935, y: 530 },
+      placement: {
+        // Centre of the shirt, between the collar and the belt.
+        wide: { socket: { x: 934, y: 500 } },
+        // Dropped to the belt line, to clear the two head sockets that have
+        // stepped out sideways at this size.
+        compact: { socket: { x: 934, y: 520 } },
+      },
     },
     {
       id: 'goggles',
@@ -220,7 +270,14 @@ export const WEAR_PPE_STEP: EquipStep = {
       height: 96,
       row: 0,
       col: 1,
-      socket: { x: 900, y: 330 },
+      placement: {
+        // Over the eyes, a touch low so the circle keeps 96 design px from
+        // Kepala's on the crown.
+        wide: { socket: { x: 934, y: 348 } },
+        // Left of the head, level with the eyes; the leader line lands on the
+        // analyst's left temple.
+        compact: { socket: { x: 770, y: 342 }, anchor: { x: 900, y: 342 } },
+      },
     },
     {
       id: 'gloves',
@@ -231,7 +288,8 @@ export const WEAR_PPE_STEP: EquipStep = {
       height: 145,
       row: 0,
       col: 2,
-      socket: { x: 843, y: 673 },
+      // Directly on the analyst's left hand at either size.
+      placement: { wide: { socket: { x: 842, y: 682 } }, compact: { socket: { x: 842, y: 682 } } },
     },
     {
       id: 'face-mask',
@@ -242,8 +300,13 @@ export const WEAR_PPE_STEP: EquipStep = {
       height: 93,
       row: 1,
       col: 0,
-      socket: { x: 1020, y: 400 },
-      anchor: { x: 938, y: 396 },
+      // The one socket that cannot sit on its body part at any size: the mouth
+      // is 39 design px below the eyes, and no two circles fit that close. It
+      // steps out to the analyst's right and the leader line lands on the cheek.
+      placement: {
+        wide: { socket: { x: 1052, y: 392 }, anchor: { x: 968, y: 383 } },
+        compact: { socket: { x: 1098, y: 392 }, anchor: { x: 966, y: 381 } },
+      },
     },
     {
       id: 'safety-shoes',
@@ -254,7 +317,9 @@ export const WEAR_PPE_STEP: EquipStep = {
       height: 117,
       row: 1,
       col: 1,
-      socket: { x: 930, y: 1005 },
+      // On the sandals, a touch above their centre so the floored circle still
+      // clears the bottom edge of the stage at 568x320.
+      placement: { wide: { socket: { x: 934, y: 1002 } }, compact: { socket: { x: 934, y: 1000 } } },
     },
     {
       id: 'swim-cap',
@@ -265,7 +330,9 @@ export const WEAR_PPE_STEP: EquipStep = {
       height: 102,
       row: 1,
       col: 2,
-      socket: { x: 925, y: 215 },
+      // On the crown - the circle straddles the hairline (frame y 258) rather
+      // than floating clear of it in the empty space above the head.
+      placement: { wide: { socket: { x: 934, y: 252 } }, compact: { socket: { x: 934, y: 276 } } },
     },
   ],
 };
