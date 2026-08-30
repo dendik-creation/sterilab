@@ -12,6 +12,7 @@ import exitBtnUrl from '../../../assets/images/01_reusable/buttons/exit_button.p
 import clickSfxUrl from '../../../assets/sounds/01_reusable/short/click.webm';
 import { useNavigation } from '../../app/navigation';
 import { isAudioEnabled, toggleAudioEnabled } from '../../core/audio/audioSettings';
+import { startGlobalBgm } from '../../core/audio/bgmPlayer';
 import { prefersReducedMotion } from '../../core/a11y/motion';
 import { Stage } from '../components/Stage';
 import { IconButton } from '../components/IconButton';
@@ -126,6 +127,7 @@ export function SplashPage() {
     preloadImages(PRELOAD_IMAGE_URLS).then(() => {
       if (cancelled) return;
       assetsReadyRef.current = true;
+      startGlobalBgm();
       tryProceedToTouch();
     });
     return () => {
