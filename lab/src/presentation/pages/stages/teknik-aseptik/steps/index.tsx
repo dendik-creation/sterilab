@@ -4,7 +4,7 @@ import type { ProcedureProps } from '../types';
 import { Prosedur01CuciTangan } from './Prosedur01CuciTangan';
 import { Prosedur02MemakaiApd } from './Prosedur02MemakaiApd';
 
-// Which component runs which of Stage 4's 12 procedures.
+// Which component runs which of Stage 4's procedures.
 //
 // Keyed by the step's own id rather than by its position, so reordering the
 // list in data/stages/teknikAseptik.ts cannot silently hand a procedure the

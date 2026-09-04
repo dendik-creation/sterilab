@@ -62,7 +62,7 @@ test('opens on Langkah 1 with only the first instruction pill and the first fram
   await gotoStage(page);
 
   await expect(page.getByText('PROSEDUR', { exact: true })).toBeVisible();
-  await expect(page.getByText('Langkah 1 / 12', { exact: true })).toBeVisible();
+  await expect(page.getByText('Langkah 1 / 6', { exact: true })).toBeVisible();
   await expect(page.getByText('Cuci tangan', { exact: true })).toBeVisible();
   await expect(page.getByText('Cuci tangan dengan sabun hingga bersih sebelum memulai pekerjaan.', { exact: true })).toBeVisible();
   await expect(page.getByText('Klik sabun, lalu tangan, kemudian air untuk mencuci tangan dengan benar.', { exact: true })).toBeVisible();
@@ -127,7 +127,7 @@ test('finishing the step raises the note card, and LANJUT advances to Langkah 2'
 
   // Steps advance in place - the Screen is one workspace walking through
   // PROCEDURE_STEPS, not a navigation per step.
-  await expect(page.getByText('Langkah 2 / 12', { exact: true })).toBeVisible();
+  await expect(page.getByText('Langkah 2 / 6', { exact: true })).toBeVisible();
   await expect(page.getByText('Memakai APD', { exact: true })).toBeVisible();
   await expect(page.getByRole('group', { name: 'Tangan telah dibersihkan!' })).not.toBeAttached();
 });
@@ -149,6 +149,38 @@ test('chrome and instruction pills land on their Figma coordinates at every supp
   const hintTab = await designBox(page, page.getByText('Langkah 1', { exact: true }).last());
   expect(Math.abs(hintTab.x - 1535.317), 'hint tab x').toBeLessThan(6);
   expect(Math.abs(hintTab.y - 221.17), 'hint tab y').toBeLessThan(6);
+});
+
+test('the step marker row carries one dot per step, centred under the counter pill', async ({ page }) => {
+  await gotoStage(page);
+
+  const dots = page.getByTestId('step-dots');
+  // Dropped below 1024px on purpose: each dot is ~8.8 CSS px there, and the
+  // pill above already carries the same fact as real text.
+  if (isPhone(page)) {
+    await expect(dots).toHaveCount(0);
+    return;
+  }
+
+  const markers = dots.locator('> span');
+  await expect(markers, 'one marker per step').toHaveCount(6);
+
+  const first = await designBox(page, markers.first());
+  const last = await designBox(page, markers.last());
+
+  // The dot holds its authored 29.814 rather than growing to fill the rule.
+  expect(Math.abs(first.w - 29.814), 'dot keeps its authored size').toBeLessThan(3);
+
+  // Six dots on the authored 39.744 pitch span 228.6 design px. Pushed to the
+  // ends of the 467.068 rule instead - which is what `space-between` did once
+  // the count dropped below twelve - the span would be the rule itself.
+  const span = last.x + last.w - first.x;
+  expect(span, 'six dots keep their authored pitch').toBeLessThan(260);
+
+  // And the shortened group sits under the counter pill, not hard left.
+  const pill = await designBox(page, page.getByText('Langkah 1 / 6', { exact: true }));
+  const rowCentre = (first.x + last.x + last.w) / 2;
+  expect(Math.abs(rowCentre - (pill.x + pill.w / 2)), 'row centred on the pill').toBeLessThan(6);
 });
 
 test('top-bar icons keep a 44x44 touch target and never collide with the title', async ({ page }) => {
@@ -263,7 +295,7 @@ async function gotoStep2(page: Page): Promise<void> {
   await gotoStage(page);
   for (const name of [SOAP, HANDS, TAP]) await page.getByRole('button', { name }).click();
   await page.getByRole('button', { name: 'Lanjut ke langkah berikutnya' }).click({ timeout: 5000 });
-  await expect(page.getByText('Langkah 2 / 12', { exact: true })).toBeVisible();
+  await expect(page.getByText('Langkah 2 / 6', { exact: true })).toBeVisible();
   await waitForMotionSettled(page);
 }
 

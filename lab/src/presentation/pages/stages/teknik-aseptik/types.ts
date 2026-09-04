@@ -4,7 +4,7 @@ import type { Animation } from './geometry';
 // The contract between TeknikAseptikPage (the shell: chrome, PROSEDUR card,
 // success note, navigation) and one procedure (the interactive workspace).
 //
-// Stage 4 ships 12 procedures on one Screen. Only the workspace differs between
+// Stage 4 ships six procedures on one Screen. Only the workspace differs between
 // them - the chrome around it never does - so a procedure is a component that
 // owns its own state and interaction and reports three things back up: which
 // frame of art is showing, what a screen reader should hear, and whether it is

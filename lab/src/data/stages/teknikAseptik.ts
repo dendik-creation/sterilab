@@ -18,11 +18,17 @@ import swimCapUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_asep
 // with a single design-px -> stage-length helper instead of hand-tuned
 // percentages per element.
 //
-// Langkah 1 (frame 42:679) and Langkah 2 (frame 58:2) are authored. The
-// counter/dot row reads "N / 12" because the canvas ships frames LANGKAH 1..12 -
-// but the 11-step list in TASKS.md > Screen 9 disagrees with that 12, so the
-// remaining steps are deliberately left unauthored rather than invented here.
-export const TOTAL_STEPS = 12;
+// Langkah 1 (frame 42:679) and Langkah 2 (frame 58:2) are authored.
+//
+// The counter/dot row reads "N / 6" because Stage 4 is being cut to six
+// procedures. Three sources disagreed on the count: the Figma canvas ships
+// frames LANGKAH 1..12, ADR-0004 and the PRD specify 11 linear steps, and the
+// product decision is 6 - the nine PRD steps after "pakai APD" fold into four.
+// Six is the number the Screen is built for; the remaining four are left
+// unauthored here rather than invented, because *which* PRD steps fold
+// together is a content decision, not a layout one. ADR-0004 still says 11 and
+// has to be superseded before Langkah 3 is written.
+export const TOTAL_STEPS = 6;
 
 // Which procedure a step is, independent of its position in the list. The
 // Screen picks a workspace component by this id (see

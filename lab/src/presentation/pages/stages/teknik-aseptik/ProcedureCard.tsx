@@ -10,11 +10,16 @@ const PROCEDURE_CARD = { x: 49.917, y: 219.623, width: 506.572, bannerHeight: 42
 const PROCEDURE_HEAD_HEIGHT = 289.581 - 219.623; // visible blue band above the white card
 const PROCEDURE_BODY_MIN_HEIGHT = 390.613;
 const COUNTER_PILL = { width: 262.468, height: 44.936 };
+// Figma draws the marker row for twelve steps: 29.814 dots on a 39.744 pitch.
+// That is not an arbitrary pair - twelve of them plus their eleven gaps come to
+// 466.998, which is the 467.068 rule above and below them to within 0.07 design
+// px. The row is therefore *designed* to span the rule exactly at twelve, and
+// the dot keeps its authored size at any other count (see StepDots).
 const DOT_SIZE = 29.814;
 const DOT_GAP = 39.744 - DOT_SIZE;
 const RULE_WIDTH = 467.068;
 
-// The one piece of chrome every one of the 12 procedures shares: which step
+// The one piece of chrome every one of Stage 4's procedures shares: which step
 // this is, what it is called, and what it asks for. Nothing in here is
 // procedure-specific, which is why it lives beside the shell rather than inside
 // any single procedure.
@@ -139,10 +144,18 @@ function Rule({ marginTop }: { marginTop: number }) {
   );
 }
 
-// The 12 step markers (Figma group 60:249). Decorative: the same "Langkah N /
-// 12" fact is already in the pill above as real text, which is why the row can
+// One marker per step (Figma group 60:249). Decorative: the same "Langkah N /
+// 6" fact is already in the pill above as real text, which is why the row can
 // be dropped wholesale below the mobile breakpoint - at 568px wide each dot
 // would be ~8.8 CSS px, too small to read the number inside it.
+//
+// Centred rather than spread across the rule: the dots hold their authored size
+// and pitch, and the group sits under the counter pill. At twelve steps that is
+// the Figma row unchanged (the group is the rule width to within 0.07 design
+// px, so there is nothing left for `space-between` to distribute). Below twelve
+// it is the whole point - six dots pushed to the ends of the rule would sit
+// 57.6 design px apart, nearly six times their authored gap, reading as six
+// stray dots instead of one progress row.
 function StepDots({ current }: { current: number }) {
   return (
     <span
@@ -152,8 +165,10 @@ function StepDots({ current }: { current: number }) {
         display: 'flex',
         gap: S(DOT_GAP),
         width: S(RULE_WIDTH),
-        justifyContent: 'space-between',
+        maxWidth: '100%',
+        justifyContent: 'center',
       }}
+      data-testid="step-dots"
     >
       {Array.from({ length: TOTAL_STEPS }, (_, index) => {
         const n = index + 1;
