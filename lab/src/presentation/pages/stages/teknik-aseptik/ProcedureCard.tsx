@@ -9,15 +9,24 @@ import type { ProcedureStep } from '../../../../data/stages/teknikAseptik';
 const PROCEDURE_CARD = { x: 49.917, y: 219.623, width: 506.572, bannerHeight: 425.848 };
 const PROCEDURE_HEAD_HEIGHT = 289.581 - 219.623; // visible blue band above the white card
 const PROCEDURE_BODY_MIN_HEIGHT = 390.613;
-const COUNTER_PILL = { width: 262.468, height: 44.936 };
-// Figma draws the marker row for twelve steps: 29.814 dots on a 39.744 pitch.
-// That is not an arbitrary pair - twelve of them plus their eleven gaps come to
-// 466.998, which is the 467.068 rule above and below them to within 0.07 design
-// px. The row is therefore *designed* to span the rule exactly at twelve, and
-// the dot keeps its authored size at any other count (see StepDots).
-const DOT_SIZE = 29.814;
-const DOT_GAP = 39.744 - DOT_SIZE;
+const COUNTER_PILL_HEIGHT = 44.936;
+const COUNTER_PILL = { width: 262.468, height: COUNTER_PILL_HEIGHT };
+// Marker row, authored twice by design. The twelve-step frame drew 29.814 dots
+// on a 39.744 pitch - twelve of those plus their eleven gaps come to 466.998,
+// filling the 467.068 rule to within 0.07 design px. The six-step frame
+// (61:541 "LANGKAH 3 NEW") redraws the row rather than thinning it: 41.16 dots
+// at x = 122.665 / 189 / 253 / 315.914 / 380.331 / 444.747, a 64.4165 pitch,
+// spanning 363.24 - and its midpoint, 304.286, is the card's own centre to
+// three decimals. So the row is centred at both counts; only its size and
+// pitch are per-count, and these are the six-step numbers the Stage ships.
+const DOT_SIZE = 41.16;
+const DOT_GAP = 64.4165 - DOT_SIZE;
+const DOT_ROW_SPAN = TOTAL_STEPS * DOT_SIZE + (TOTAL_STEPS - 1) * DOT_GAP; // 363.24 at six
 const RULE_WIDTH = 467.068;
+// Counter pill bottom (313 + 44.936) to the dot row (382.395), and the dot row
+// to the first rule (452.401).
+const DOT_ROW_MARGIN = 382.395 - (313 + COUNTER_PILL_HEIGHT);
+const RULE_AFTER_DOTS = 452.401 - (382.395 + DOT_SIZE);
 
 // The one piece of chrome every one of Stage 4's procedures shares: which step
 // this is, what it is called, and what it asks for. Nothing in here is
@@ -98,7 +107,7 @@ export function ProcedureCard({
 
         {showDots ? <StepDots current={step.n} /> : null}
 
-        <Rule marginTop={showDots ? 25.944 : 24} />
+        <Rule marginTop={showDots ? RULE_AFTER_DOTS : 24} />
 
         <span style={{ ...textBase, marginTop: S(26), fontSize: T(24, 10), fontWeight: 700, color: COLOR.pillBlue }}>
           {step.eyebrow}
@@ -149,22 +158,21 @@ function Rule({ marginTop }: { marginTop: number }) {
 // be dropped wholesale below the mobile breakpoint - at 568px wide each dot
 // would be ~8.8 CSS px, too small to read the number inside it.
 //
-// Centred rather than spread across the rule: the dots hold their authored size
-// and pitch, and the group sits under the counter pill. At twelve steps that is
-// the Figma row unchanged (the group is the rule width to within 0.07 design
-// px, so there is nothing left for `space-between` to distribute). Below twelve
-// it is the whole point - six dots pushed to the ends of the rule would sit
-// 57.6 design px apart, nearly six times their authored gap, reading as six
-// stray dots instead of one progress row.
+// Centred, not spread: the six markers span 363.24 of the 467.068 rule, and the
+// frame centres that group on the card. `space-between` would push them to the
+// rule's ends - a 104 design px stretch the design does not draw - so the row
+// is laid out at its authored pitch and centred, which also reproduces the
+// twelve-step row exactly (there, span and rule are the same length, so
+// centring and spreading agree).
 function StepDots({ current }: { current: number }) {
   return (
     <span
       aria-hidden="true"
       style={{
-        marginTop: S(18.796),
+        marginTop: S(DOT_ROW_MARGIN),
         display: 'flex',
         gap: S(DOT_GAP),
-        width: S(RULE_WIDTH),
+        width: S(DOT_ROW_SPAN),
         maxWidth: '100%',
         justifyContent: 'center',
       }}
@@ -188,7 +196,9 @@ function StepDots({ current }: { current: number }) {
               background: active ? COLOR.navy : COLOR.dotIdleFill,
               border: active ? 'none' : `max(1px, 0.078cqw) solid ${COLOR.dotIdleRing}`,
               color: active ? '#FFFFFF' : COLOR.dotIdleText,
-              fontSize: T(20, 7),
+              // 18px on a 41.16 circle in the six-step frame (the twelve-step
+              // one set 20 on a 29.814 circle - a much tighter fit).
+              fontSize: T(18, 8),
               fontWeight: 700,
             }}
           >

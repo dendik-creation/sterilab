@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="166" height="136" viewBox="0 0 166 136">
+  <defs>
+    <linearGradient id="clothA" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#8FD3F4"/><stop offset="1" stop-color="#4FA9DC"/>
+    </linearGradient>
+    <linearGradient id="clothB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#BEE6FA"/><stop offset="1" stop-color="#7FC7EC"/>
+    </linearGradient>
+  </defs>
+  <!-- 8px transparent padding on every side, like the step_2 exports -->
+  <g transform="translate(8 8)">
+    <path d="M14 46 q28 -26 62 -22 q34 4 66 -12 q10 -4 8 8 l-6 34 q-2 12 -14 16 q-40 12 -76 26 q-12 5 -20 -4 l-22 -30 q-6 -8 2 -16 z" fill="url(#clothB)" stroke="#3E8FC4" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M6 66 q30 -22 68 -16 q36 6 68 -10 q10 -5 8 8 l-8 36 q-3 13 -16 17 q-42 12 -78 24 q-12 4 -19 -6 l-22 -33 q-6 -9 -1 -20 z" fill="url(#clothA)" stroke="#2F7BAE" stroke-width="4" stroke-linejoin="round"/>
+    <g stroke="#FFFFFF" stroke-width="3" opacity="0.6" fill="none">
+      <path d="M22 74 q34 -16 68 -12"/><path d="M28 92 q38 -18 76 -14"/><path d="M36 108 q38 -18 76 -16"/>
+    </g>
+  </g>
+</svg>
