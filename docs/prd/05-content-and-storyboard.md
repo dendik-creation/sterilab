@@ -46,7 +46,9 @@ _Disebut "Simulasi Teknik Kerja Aseptik" pada storyboard proposal._
 
 **Interaksi**: Hover memperbesar & mengubah warna menu; Hit memilih alat; show memunculkan feedback; drag/drop menempatkan alat sesuai prosedur. Dirender di canvas Phaser dengan kontrol DOM paralel wajib (lihat `06-learning-interactions.md`).
 
-**Alur (11 step linear)**: lihat rationale pemilihan alur di `../adr/0004-stage4-eleven-step-linear-sequence.md`. Urutan dan visual per step:
+**Alur (6 step linear)**: Stage ini berjalan dalam **6 langkah** — Cuci tangan; Memakai APD; Membersihkan Meja Kerja; Menyalakan Bunsen; Sterilisasi Jarum Ose; Mengambil dan Menginokulasi Kultur — lihat `../adr/0006-stage4-six-step-sequence.md` untuk keputusan dan pemetaannya (ADR-0004 yang menetapkan 11 langkah sudah di-*supersede*).
+
+Sebelas butir di bawah **tetap berlaku sebagai isi**: masing-masing menjelaskan aksi yang terjadi di dalam salah satu dari enam langkah itu, bukan daftar langkahnya sendiri. Yang dilipat: butir 3 dan 11 masuk ke "Membersihkan Meja Kerja", butir 5 dan 6 ke "Sterilisasi Jarum Ose", dan butir 7-10 ke "Mengambil dan Menginokulasi Kultur". Urutan dan visual per aksi:
 
 1. **Cuci tangan** — Analyst mencuci tangan di wastafel; SFX air mengalir; feedback benar/salah durasi & teknik cuci tangan.
 2. **Pakai APD** — konfirmasi checklist APD sudah terpasang (bukan minigame pemilihan APD Stage 1 — di sini murni konfirmasi kesiapan sebelum kerja aseptik dimulai).
@@ -60,7 +62,7 @@ _Disebut "Simulasi Teknik Kerja Aseptik" pada storyboard proposal._
 10. **Inkubasi** — media dimasukkan ke inkubator; indikator suhu/waktu simulasi.
 11. **Bersihkan area kerja** — LAF dan meja kerja dibersihkan/didisinfeksi, alat dirapikan, Bunsen dimatikan; menutup siklus aseptik.
 
-Tiap step: Hit untuk memilih/menjalankan aksi step aktif; step di luar urutan ditolak dengan feedback correction (lihat `06-learning-interactions.md` → Stage 4). Step ini granular secara sengaja dan dapat direuse langsung sebagai item soal Evaluation (urutkan prosedur, deteksi langkah yang salah/hilang) — lihat `06-learning-interactions.md` → Evaluasi.
+Tiap step: Hit untuk memilih/menjalankan aksi step aktif; step di luar urutan ditolak dengan feedback correction (lihat `06-learning-interactions.md` → Stage 4). Enam langkahnya granular secara sengaja dan dapat direuse langsung sebagai item soal Evaluation (urutkan prosedur, deteksi langkah yang salah/hilang) — lihat `06-learning-interactions.md` → Evaluasi. Aksi yang dilipat ke dalam satu langkah tetap punya urutan internal yang bisa divalidasi di dalam langkah itu (mis. semprot sebelum usap; panaskan sebelum dinginkan).
 
 ## Stage 3 — Pembuatan Media Kultur
 

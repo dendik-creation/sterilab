@@ -62,7 +62,7 @@ test('opens on Langkah 1 with only the first instruction pill and the first fram
   await gotoStage(page);
 
   await expect(page.getByText('PROSEDUR', { exact: true })).toBeVisible();
-  await expect(page.getByText('Langkah 1 / 12', { exact: true })).toBeVisible();
+  await expect(page.getByText('Langkah 1 / 6', { exact: true })).toBeVisible();
   await expect(page.getByText('Cuci tangan', { exact: true })).toBeVisible();
   await expect(page.getByText('Cuci tangan dengan sabun hingga bersih sebelum memulai pekerjaan.', { exact: true })).toBeVisible();
   await expect(page.getByText('Klik sabun, lalu tangan, kemudian air untuk mencuci tangan dengan benar.', { exact: true })).toBeVisible();
@@ -127,7 +127,7 @@ test('finishing the step raises the note card, and LANJUT advances to Langkah 2'
 
   // Steps advance in place - the Screen is one workspace walking through
   // PROCEDURE_STEPS, not a navigation per step.
-  await expect(page.getByText('Langkah 2 / 12', { exact: true })).toBeVisible();
+  await expect(page.getByText('Langkah 2 / 6', { exact: true })).toBeVisible();
   await expect(page.getByText('Memakai APD', { exact: true })).toBeVisible();
   await expect(page.getByRole('group', { name: 'Tangan telah dibersihkan!' })).not.toBeAttached();
 });
@@ -149,6 +149,40 @@ test('chrome and instruction pills land on their Figma coordinates at every supp
   const hintTab = await designBox(page, page.getByText('Langkah 1', { exact: true }).last());
   expect(Math.abs(hintTab.x - 1535.317), 'hint tab x').toBeLessThan(6);
   expect(Math.abs(hintTab.y - 221.17), 'hint tab y').toBeLessThan(6);
+});
+
+test('the step marker row carries one dot per step, centred under the counter pill', async ({ page }) => {
+  await gotoStage(page);
+
+  const dots = page.getByTestId('step-dots');
+  // Dropped below 1024px on purpose: each dot is ~8.8 CSS px there, and the
+  // pill above already carries the same fact as real text.
+  if (isPhone(page)) {
+    await expect(dots).toHaveCount(0);
+    return;
+  }
+
+  const markers = dots.locator('> span');
+  await expect(markers, 'one marker per step').toHaveCount(6);
+
+  const first = await designBox(page, markers.first());
+  const last = await designBox(page, markers.last());
+
+  // Figma's six-step frame draws 41.16 dots, not the 29.814 of the twelve-step
+  // one (61:541, vectors 242:278 / 295 / 300 / 280 / 281 / 282).
+  expect(Math.abs(first.w - 41.16), 'dot keeps its authored size').toBeLessThan(3);
+
+  // Those six on their 64.4165 pitch span 363.24 design px: x runs 122.665 to
+  // 444.747 + 41.16. Spreading them across the 467.068 rule instead - which is
+  // what `space-between` does once the count drops below twelve - would make
+  // the span the rule itself.
+  const span = last.x + last.w - first.x;
+  expect(Math.abs(span - 363.24), 'six dots keep their authored pitch').toBeLessThan(8);
+
+  // And the shortened group sits under the counter pill, not hard left.
+  const pill = await designBox(page, page.getByText('Langkah 1 / 6', { exact: true }));
+  const rowCentre = (first.x + last.x + last.w) / 2;
+  expect(Math.abs(rowCentre - (pill.x + pill.w / 2)), 'row centred on the pill').toBeLessThan(6);
 });
 
 test('top-bar icons keep a 44x44 touch target and never collide with the title', async ({ page }) => {
@@ -263,7 +297,7 @@ async function gotoStep2(page: Page): Promise<void> {
   await gotoStage(page);
   for (const name of [SOAP, HANDS, TAP]) await page.getByRole('button', { name }).click();
   await page.getByRole('button', { name: 'Lanjut ke langkah berikutnya' }).click({ timeout: 5000 });
-  await expect(page.getByText('Langkah 2 / 12', { exact: true })).toBeVisible();
+  await expect(page.getByText('Langkah 2 / 6', { exact: true })).toBeVisible();
   await waitForMotionSettled(page);
 }
 
@@ -438,7 +472,7 @@ test('a worn item can be taken off again', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Selesai', exact: true })).toBeDisabled();
 });
 
-test('wearing every item unlocks Selesai, switches the art, and LANJUT returns to Missions', async ({ page }) => {
+test('wearing every item unlocks Selesai, switches the art, and LANJUT advances to Langkah 3', async ({ page }) => {
   await gotoStep2(page);
   for (const item of APD) await wear(page, item);
 
@@ -459,10 +493,10 @@ test('wearing every item unlocks Selesai, switches the art, and LANJUT returns t
   expect(Math.abs(box.y + box.h - 1001.159)).toBeLessThan(4);
 
   await page.getByRole('button', { name: 'Lanjut ke langkah berikutnya' }).click();
-  // Langkah 2 is the last authored step, so LANJUT falls through to Missions
-  // rather than dead-ending on an empty workspace.
-  await expect(page.getByRole('heading', { name: 'TEKNIK KERJA ASEPTIK' })).toBeVisible();
-  await expect(page.getByAltText(/Dashboard SteriLab/)).toBeVisible({ timeout: 4000 });
+  // Steps advance in place: Langkah 3 is authored now, so LANJUT walks
+  // PROCEDURE_STEPS rather than falling through to Missions.
+  await expect(page.getByText('Langkah 3 / 6', { exact: true })).toBeVisible();
+  await expect(page.getByText('Membersihkan Meja Kerja', { exact: true })).toBeVisible();
 });
 
 test('Langkah 2 card and grid land on their Figma coordinates', async ({ page }) => {
@@ -541,4 +575,241 @@ test('Langkah 2 progress is announced, not only shown in the checkboxes', async 
 
   await page.getByRole('button', { name: 'Selesai', exact: true }).click();
   await expect(live).toHaveText(/Seluruh APD telah dipakai!/);
+});
+
+// ---------------------------------------------------------------------------
+// Langkah 3 "Membersihkan Meja Kerja" - Figma frame 61:541 "LANGKAH 3 NEW".
+// Spray the bench, then wipe it; both are sweeps across the same strip.
+
+const SEGMENTS = 5;
+const WIPE_PASSES = 2;
+
+function segment(page: Page, n: number) {
+  return page.getByRole('button', { name: new RegExp(`^Bagian meja ${n} dari ${SEGMENTS}`) });
+}
+
+function benchArt(page: Page) {
+  return page.getByAltText(/Meja kerja laboratorium di tengah ruangan/);
+}
+
+async function gotoStep3(page: Page): Promise<void> {
+  await gotoStep2(page);
+  for (const item of APD) await wear(page, item);
+  await page.getByRole('button', { name: 'Selesai', exact: true }).click();
+  await page.getByRole('button', { name: 'Lanjut ke langkah berikutnya' }).click({ timeout: 5000 });
+  await expect(page.getByText('Langkah 3 / 6', { exact: true })).toBeVisible();
+  await waitForMotionSettled(page);
+}
+
+// One sweep across the whole strip. Sampled finely on purpose: a sweep is
+// applied while the pointer moves, so a spec that jumped the pointer in three
+// hops would be testing the sampling rate rather than the interaction.
+async function sweep(page: Page, direction: 'ltr' | 'rtl' = 'ltr'): Promise<void> {
+  const first = (await segment(page, 1).boundingBox())!;
+  const last = (await segment(page, SEGMENTS).boundingBox())!;
+  const y = first.y + first.height / 2;
+  const from = direction === 'ltr' ? first.x + 4 : last.x + last.width - 4;
+  const to = direction === 'ltr' ? last.x + last.width - 4 : first.x + 4;
+
+  await page.mouse.move(from, y);
+  await page.mouse.down();
+  for (let i = 1; i <= 30; i += 1) await page.mouse.move(from + (to - from) * (i / 30), y);
+  await page.mouse.up();
+}
+
+async function touchSweep(page: Page): Promise<void> {
+  const session = await page.context().newCDPSession(page);
+  const first = (await segment(page, 1).boundingBox())!;
+  const last = (await segment(page, SEGMENTS).boundingBox())!;
+  const y = first.y + first.height / 2;
+  const from = first.x + 4;
+  const to = last.x + last.width - 4;
+  const touch = (x: number) => [{ x, y, radiusX: 12, radiusY: 12, force: 1 }];
+
+  await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: touch(from) });
+  for (let i = 1; i <= 24; i += 1) {
+    await session.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: touch(from + (to - from) * (i / 24)),
+    });
+  }
+  await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+}
+
+test('Langkah 3 opens dirty, on the spray phase, with the bottle in the card', async ({ page }) => {
+  await gotoStep3(page);
+
+  await expect(page.getByText('Membersihkan Meja Kerja', { exact: true })).toBeVisible();
+  await expect(benchArt(page)).toBeVisible();
+  await expect(page.getByTestId('tool-spray')).toBeVisible();
+  await expect(page.getByTestId('tool-cloth')).toHaveCount(0);
+  await expect(page.getByText(/^Semprot Permukaan Meja:/)).toBeVisible();
+
+  // Every segment starts un-sprayed, and says so.
+  for (let n = 1; n <= SEGMENTS; n += 1) {
+    await expect(segment(page, n)).toHaveAccessibleName(new RegExp('semprot dengan alkohol 70%$'));
+  }
+  await expect(page.locator('[aria-live="polite"]')).toHaveText(
+    `0 dari ${SEGMENTS} bagian meja tersemprot alkohol.`,
+  );
+});
+
+test('one sweep sprays the whole bench and hands the card over to the cloth', async ({ page }) => {
+  await gotoStep3(page);
+  await sweep(page);
+
+  await expect(page.locator('[aria-live="polite"]')).toHaveText(`0 dari ${SEGMENTS} bagian meja selesai diusap.`);
+  await expect(page.getByTestId('tool-cloth')).toBeVisible();
+  await expect(page.getByTestId('tool-spray')).toHaveCount(0);
+  await expect(page.getByText(/^Usap Permukaan Meja:/)).toBeVisible();
+  // Wet is not clean: the step is not finished by spraying alone.
+  await expect(page.getByRole('group', { name: 'Meja kerja telah dibersihkan!' })).not.toBeAttached();
+});
+
+test('wiping takes a pass and a return pass, and finishing raises the note', async ({ page }) => {
+  await gotoStep3(page);
+  await sweep(page);
+
+  // One sweep is one pass: every segment is half wiped, none of them done.
+  await sweep(page);
+  await expect(page.locator('[aria-live="polite"]')).toHaveText(`0 dari ${SEGMENTS} bagian meja selesai diusap.`);
+  await expect(segment(page, 1)).toHaveAccessibleName(new RegExp(`1 dari ${WIPE_PASSES} usapan$`));
+
+  await sweep(page, 'rtl');
+  const note = page.getByRole('group', { name: 'Meja kerja telah dibersihkan!' });
+  await expect(note).toBeVisible({ timeout: 4000 });
+  await waitForMotionSettled(page);
+
+  // Same note card geometry as every other step's (Figma bottom edge 1001.159).
+  const box = await designBox(page, note);
+  expect(box.raw.y + box.raw.height).toBeLessThanOrEqual(box.stage.top + box.stage.h + 1);
+  expect(Math.abs(box.y + box.h - 1001.159)).toBeLessThan(4);
+
+  await page.getByRole('button', { name: 'Lanjut ke langkah berikutnya' }).click();
+  // Langkah 3 is the last authored step, so LANJUT falls through to Missions
+  // rather than dead-ending on an empty workspace.
+  await expect(page.getByAltText(/Dashboard SteriLab/)).toBeVisible({ timeout: 4000 });
+});
+
+test('a reversal inside one press counts as a second pass', async ({ page }) => {
+  await gotoStep3(page);
+  await sweep(page);
+
+  // Out and back without lifting: the same stroke, two passes.
+  const first = (await segment(page, 1).boundingBox())!;
+  const last = (await segment(page, SEGMENTS).boundingBox())!;
+  const y = first.y + first.height / 2;
+  const from = first.x + 4;
+  const to = last.x + last.width - 4;
+
+  await page.mouse.move(from, y);
+  await page.mouse.down();
+  for (let i = 1; i <= 30; i += 1) await page.mouse.move(from + (to - from) * (i / 30), y);
+  for (let i = 1; i <= 30; i += 1) await page.mouse.move(to + (from - to) * (i / 30), y);
+  await page.mouse.up();
+
+  await expect(page.getByRole('group', { name: 'Meja kerja telah dibersihkan!' })).toBeVisible({ timeout: 4000 });
+});
+
+test('the step is completable from the keyboard, with no sweep at all', async ({ page }) => {
+  await gotoStep3(page);
+
+  for (let n = 1; n <= SEGMENTS; n += 1) {
+    await segment(page, n).focus();
+    await page.keyboard.press('Enter');
+  }
+  await expect(page.locator('[aria-live="polite"]')).toHaveText(`0 dari ${SEGMENTS} bagian meja selesai diusap.`);
+
+  for (let pass = 0; pass < WIPE_PASSES; pass += 1) {
+    for (let n = 1; n <= SEGMENTS; n += 1) {
+      await segment(page, n).focus();
+      await page.keyboard.press('Enter');
+    }
+  }
+  await expect(page.getByRole('group', { name: 'Meja kerja telah dibersihkan!' })).toBeVisible({ timeout: 4000 });
+});
+
+test.describe('touch', () => {
+  test.use({ hasTouch: true });
+
+  test('a finger can sweep the bench clean', async ({ page }) => {
+    await gotoStep3(page);
+
+    await touchSweep(page);
+    await expect(page.locator('[aria-live="polite"]')).toHaveText(`0 dari ${SEGMENTS} bagian meja selesai diusap.`);
+
+    await touchSweep(page);
+    await touchSweep(page);
+    await expect(page.getByRole('group', { name: 'Meja kerja telah dibersihkan!' })).toBeVisible({ timeout: 4000 });
+  });
+});
+
+test('a press that never reaches the bench is refused with a written reason', async ({ page }) => {
+  await gotoStep3(page);
+
+  const panel = (await page.getByTestId('tool-spray').boundingBox())!;
+  const y = panel.y + panel.height / 2;
+  await page.mouse.move(panel.x + panel.width / 2, y);
+  await page.mouse.down();
+  for (let i = 1; i <= 12; i += 1) await page.mouse.move(panel.x + panel.width / 2 + i * 4, y);
+  await page.mouse.up();
+
+  await expect(page.locator('[aria-live="polite"]')).toHaveText(
+    'Arahkan ke permukaan meja kerja - hanya meja yang perlu dibersihkan.',
+  );
+  await expect(page.getByTestId('tool-spray')).toBeVisible();
+
+  // And the refused sweep must not have armed the "this was a drag, not a
+  // click" flag against the next real tap: a sweep that starts on the tool
+  // never lands a click of its own to spend it on.
+  await segment(page, 1).click();
+  await expect(page.locator('[aria-live="polite"]')).toHaveText(
+    `1 dari ${SEGMENTS} bagian meja tersemprot alkohol.`,
+  );
+});
+
+test('Langkah 3 card and tool panel land on their Figma coordinates', async ({ page }) => {
+  await gotoStep3(page);
+
+  // Card tab (Figma group 229:462) at x=1535.317, y=220.129 - the same tab
+  // position Langkah 1 uses.
+  const tab = await designBox(page, page.getByText('Langkah 3', { exact: true }).last());
+  expect(Math.abs(tab.x - 1535.317), 'card tab x').toBeLessThan(6);
+  expect(Math.abs(tab.y - 220.129), 'card tab y').toBeLessThan(6);
+
+  // The instruction paragraph (229:474) starts at y=287.823.
+  const hint = await designBox(page, page.getByText(/^Semprot Permukaan Meja:/));
+  expect(Math.abs(hint.y - 287.823), 'hint y').toBeLessThan(8);
+
+  // The bench strip the interaction targets, measured off the frame's own art.
+  const first = await designBox(page, segment(page, 1));
+  const last = await designBox(page, segment(page, SEGMENTS));
+  expect(first.x + first.w / 2, 'strip starts on the painted bench').toBeGreaterThan(566);
+  expect(last.x + last.w / 2, 'strip stops before the floating card').toBeLessThan(1428);
+});
+
+test('bench segments keep a 44x44 touch target, tile the strip, and clear both cards', async ({ page }) => {
+  await gotoStep3(page);
+
+  const procedure = (await page
+    .getByText('Bersihkan permukaan meja menggunakan alkohol 70% untuk mengurangi risiko kontaminasi sebelum memulai pekerjaan.', { exact: true })
+    .boundingBox())!;
+  const card = (await page.getByText(/^Semprot Permukaan Meja:/).boundingBox())!;
+
+  const boxes = [];
+  for (let n = 1; n <= SEGMENTS; n += 1) {
+    const box = (await segment(page, n).boundingBox())!;
+    expect(box.width, `segment ${n} width`).toBeGreaterThanOrEqual(44);
+    expect(box.height, `segment ${n} height`).toBeGreaterThanOrEqual(44);
+    // A segment under either card could not be swept.
+    expect(box.x, `segment ${n} behind the procedure card`).toBeGreaterThan(procedure.x + procedure.width);
+    expect(box.x + box.width, `segment ${n} behind the floating card`).toBeLessThan(card.x);
+    boxes.push(box);
+  }
+
+  // No gaps: a sweep must not fall between two segments. Each one starts where
+  // the previous ended (a floored segment may overlap, never leave a hole).
+  for (let i = 1; i < boxes.length; i += 1) {
+    expect(boxes[i].x, `segment ${i + 1} leaves a gap`).toBeLessThanOrEqual(boxes[i - 1].x + boxes[i - 1].width + 0.5);
+  }
 });

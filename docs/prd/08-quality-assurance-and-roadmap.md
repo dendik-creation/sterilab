@@ -27,7 +27,7 @@ Alpha: internal navigation, interaction (canvas + DOM fallback), copy, rendering
 | 1 | Analisis/perencanaan | PRD, learning map, flow, content inventory |
 | 2 | Konten/aset | copy reviewed, rencana ilustrasi/audio, storyboard lengkap termasuk Stage 1-2 (lihat gap di `05-content-and-storyboard.md`) |
 | 3 | Website foundation | shell React/Vite, routes, tokens, orientation lock, layout landscape |
-| 4 | Core interaction | Phaser Stage engine (5 Stage), kontrol DOM paralel, sorting, drag-drop fallback, feedback, Stage 4 11-step data-driven config (lihat `07-technical-spec.md` dan ADR-0004) |
+| 4 | Core interaction | Phaser Stage engine (5 Stage), kontrol DOM paralel, sorting, drag-drop fallback, feedback, Stage 4 6-step data-driven config (lihat `07-technical-spec.md` dan ADR-0006) |
 | 5 | Assessment/result | Evidence Decision, branching, Evaluation, Reflection |
 | 6 | Alpha | expert review dan prioritas perbaikan |
 | 7 | Beta | temuan siswa dan issue log |

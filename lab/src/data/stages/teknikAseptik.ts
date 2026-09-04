@@ -11,6 +11,9 @@ import glovesUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_asept
 import faceMaskUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_2/face_mask.png';
 import safetyShoesUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_2/safety_shoes.png';
 import swimCapUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_2/swim_cap.png';
+import benchUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_3/backgrounds/1.png';
+import alcoholSprayUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_3/alcohol_spray.png';
+import clothUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_3/cloth.png';
 
 // Data for Stage 4 "Teknik Kerja Aseptik" (Figma "Sterilab-APHP" canvas 42:678
 // "Scene 04: Prosedur Panjang Teknik Kerja Aseptik"). Every number here is a
@@ -18,17 +21,23 @@ import swimCapUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_asep
 // with a single design-px -> stage-length helper instead of hand-tuned
 // percentages per element.
 //
-// Langkah 1 (frame 42:679) and Langkah 2 (frame 58:2) are authored. The
-// counter/dot row reads "N / 12" because the canvas ships frames LANGKAH 1..12 -
-// but the 11-step list in TASKS.md > Screen 9 disagrees with that 12, so the
-// remaining steps are deliberately left unauthored rather than invented here.
-export const TOTAL_STEPS = 12;
+// Langkah 1 (frame 42:679) and Langkah 2 (frame 58:2) are authored.
+//
+// The counter/dot row reads "N / 6" because Stage 4 is being cut to six
+// procedures. Three sources disagreed on the count: the Figma canvas ships
+// frames LANGKAH 1..12, ADR-0004 and the PRD specify 11 linear steps, and the
+// product decision is 6 - the nine PRD steps after "pakai APD" fold into four.
+// Six is the number the Screen is built for; the remaining four are left
+// unauthored here rather than invented, because *which* PRD steps fold
+// together is a content decision, not a layout one. ADR-0004 still says 11 and
+// has to be superseded before Langkah 3 is written.
+export const TOTAL_STEPS = 6;
 
 // Which procedure a step is, independent of its position in the list. The
 // Screen picks a workspace component by this id (see
 // presentation/pages/stages/teknik-aseptik/steps/index.tsx), so authoring
 // LANGKAH 3 is a new id here, a new entry there, and nothing else.
-export type ProcedureId = 'cuci-tangan' | 'memakai-apd';
+export type ProcedureId = 'cuci-tangan' | 'memakai-apd' | 'bersihkan-meja';
 
 export interface Rect {
   x: number;
@@ -143,7 +152,46 @@ export interface EquipStep extends BaseStep {
   completedBackgroundAlt: string;
 }
 
-export type ProcedureStep = SequenceStep | EquipStep;
+// Langkah 3's shape: two passes over one surface with two different tools -
+// spray every segment of the bench, then scrub each segment clean.
+export interface CleanStep extends BaseStep {
+  kind: 'clean';
+  // Copy inside the floating card, one line per phase. The frame only writes
+  // the spray line (it draws a single illustration); the wipe line is the
+  // second half of the procedure the Analyst is actually asked to do.
+  sprayHint: string;
+  wipeHint: string;
+  // Announced when a tool is dropped somewhere that is not the bench.
+  offSurfaceCorrection: string;
+  // The bench top the Analyst works on. Measured off a render of frame 61:541
+  // rather than taken from a Figma node: the bench is painted into
+  // BG_LANGKAH_3, so it has no node of its own. The painted slab runs
+  // x 562..1472, y 632..689; the interactive strip stops at 1428 because the
+  // floating card's bottom-left corner covers the last 44 design px of it.
+  surface: Rect;
+  // How many segments the strip is divided into. Five, because the strip is
+  // 862 design px wide and the 44px touch floor at 568px viewport works out at
+  // 148.7 design px - six segments would each be 143.7 and miss the floor.
+  segments: number;
+  // Scrubs per segment. Two, so "usap berulang" is literally true: one sweep
+  // across and one back.
+  wipePasses: number;
+  tools: { spray: CleanTool; cloth: CleanTool };
+}
+
+// One draggable tool, sized from its own export (each carries 8 design px of
+// transparent padding per side, like the Langkah 2 items).
+export interface CleanTool {
+  id: 'spray' | 'cloth';
+  name: string;
+  // Spoken form for the tool's own control in the card.
+  accessibleName: string;
+  src: string;
+  width: number;
+  height: number;
+}
+
+export type ProcedureStep = SequenceStep | EquipStep | CleanStep;
 
 // Wash-hands sequence: the four backgrounds are used in file order (1 dirty ->
 // 2 lathered -> 3 rinsing -> 4 clean), so the frame index is simply the number
@@ -337,5 +385,53 @@ export const WEAR_PPE_STEP: EquipStep = {
   ],
 };
 
-// The LANJUT button walks this array, so authoring LANGKAH 3 is a data change.
-export const PROCEDURE_STEPS: ProcedureStep[] = [HAND_WASH_STEP, WEAR_PPE_STEP];
+// Bench-cleaning: spray the whole bench with 70% alcohol, then wipe it down.
+// Figma frame 61:541 "LANGKAH 3 NEW" - the card copy is verbatim from its text
+// nodes (242:292 / 242:294 / 242:293 and the hint at 229:474).
+export const CLEAN_BENCH_STEP: CleanStep = {
+  kind: 'clean',
+  id: 'bersihkan-meja',
+  n: 3,
+  eyebrow: 'Langkah 3',
+  title: 'Membersihkan Meja Kerja',
+  description:
+    'Bersihkan permukaan meja menggunakan alkohol 70% untuk mengurangi risiko kontaminasi sebelum memulai pekerjaan.',
+  sprayHint:
+    'Semprot Permukaan Meja: Tarik (drag) botol spray alkohol 70% ke arah meja kerja, lalu sapukan ke kiri dan ke kanan hingga seluruh permukaan tersemprot.',
+  wipeHint:
+    'Usap Permukaan Meja: Tarik (drag) lap ke meja kerja, lalu usap bolak-balik hingga seluruh area kerja bersih.',
+  offSurfaceCorrection: 'Arahkan ke permukaan meja kerja - hanya meja yang perlu dibersihkan.',
+  initialBackground: benchUrl,
+  initialBackgroundAlt:
+    // Deliberately not opening with "Ruang laboratorium": Case's own artwork
+    // already carries that phrase, and tests/case.ts matches it to know it has
+    // landed on Case.
+    'Meja kerja laboratorium di tengah ruangan, dengan lemari alat gelas di dinding kanan dan jendela di dinding kiri',
+  backgroundRect: FULL_FRAME,
+  surface: { x: 566, y: 632, width: 862, height: 57 },
+  segments: 5,
+  wipePasses: 2,
+  successTitle: 'Meja kerja telah dibersihkan!',
+  successBody: 'Anda siap melanjutkan ke langkah berikutnya.',
+  tools: {
+    spray: {
+      id: 'spray',
+      name: 'Botol spray alkohol 70%',
+      accessibleName: 'Botol spray alkohol 70%, seret ke meja kerja',
+      src: alcoholSprayUrl,
+      width: 132,
+      height: 190,
+    },
+    cloth: {
+      id: 'cloth',
+      name: 'Lap pembersih',
+      accessibleName: 'Lap pembersih, seret ke meja kerja',
+      src: clothUrl,
+      width: 150,
+      height: 120,
+    },
+  },
+};
+
+// The LANJUT button walks this array, so authoring LANGKAH 4 is a data change.
+export const PROCEDURE_STEPS: ProcedureStep[] = [HAND_WASH_STEP, WEAR_PPE_STEP, CLEAN_BENCH_STEP];

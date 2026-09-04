@@ -1,8 +1,17 @@
 ---
-status: accepted
+status: superseded
+superseded-by: 0006-stage4-six-step-sequence.md
 ---
 
 # Stage 4 (Teknik Kerja Aseptik): 11-step linear sequence, not 3 broad categories
+
+> **Superseded by [ADR-0006](0006-stage4-six-step-sequence.md).** The Stage ships
+> **6** steps, not 11. What this ADR decided about *granularity* still holds -
+> linear, individually-validated steps rather than 3 broad categories, authored
+> as data, reused as Evaluation items - and ADR-0006 keeps all of it. Only the
+> count changed, once the design authored a frame per step at six. The 11-step
+> list below is still the content inventory of what happens inside those six;
+> ADR-0006 carries the mapping.
 
 Two alternatives were considered for Stage 4's internal structure: Alternatif 1 grouped the SOP into 3 broad categories (persiapan, pelaksanaan, penutupan), each a coarse multi-action block; Alternatif 2 breaks the same SOP into 11 granular, individually-validated linear steps: cuci tangan → pakai APD → nyalakan LAF + semprot alkohol → nyalakan Bunsen → sterilisasi jarum ose → dinginkan jarum ose → ambil sampel → inokulasi ke media → tutup tabung + label → inkubasi → bersihkan area kerja.
 

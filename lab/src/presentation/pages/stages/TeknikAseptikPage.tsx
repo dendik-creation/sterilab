@@ -29,13 +29,14 @@ import { SuccessNote } from './teknik-aseptik/SuccessNote';
 import { PROCEDURES } from './teknik-aseptik/steps';
 import type { ProcedureFrame, ProcedureRuntime } from './teknik-aseptik/types';
 
-// Stage 4 - Teknik Kerja Aseptik. Figma "Sterilab-APHP" canvas 42:678, twelve
-// LANGKAH frames, all 1920x1080.
+// Stage 4 - Teknik Kerja Aseptik. Figma "Sterilab-APHP" canvas 42:678, whose
+// LANGKAH frames are all 1920x1080. The canvas draws twelve of them; the Stage
+// ships six (see TOTAL_STEPS in data/stages/teknikAseptik.ts).
 //
 // This file is the *shell*, and only the shell: the top bar, the PROSEDUR
 // tracking card, the success note, the live region and the walk through
 // PROCEDURE_STEPS. The workspace in the middle - the part that differs between
-// all 12 procedures - is a component of its own under teknik-aseptik/steps/,
+// every procedure - is a component of its own under teknik-aseptik/steps/,
 // picked by the step's id. See teknik-aseptik/types.ts for the contract between
 // the two halves and teknik-aseptik/steps/index.tsx for the registry.
 //

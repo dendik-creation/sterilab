@@ -72,29 +72,28 @@ Stages are data/config consumed by `LabScene`, not hardcoded scenes:
 
 Reusable step types to design toward (implement only as needed, not all at once): Selection, Measurement, DragDrop, Connection, Drawing, Ordering, Assembly, Identification, Calculation, Observation. New Stage content should be addable as new data, without rewriting `LabScene`.
 
-Stage 4 (Teknik Kerja Aseptik) is the concrete case for this pattern: an 11-step linear SOP (see `06-learning-interactions.md` → Stage 4, rationale in `../adr/0004-stage4-eleven-step-linear-sequence.md`) is 11 config entries on the same shared `LabScene`, not 11 scenes or 11 hardcoded states:
+Stage 4 (Teknik Kerja Aseptik) is the concrete case for this pattern: a 6-step linear SOP (see `06-learning-interactions.md` → Stage 4, rationale in `../adr/0006-stage4-six-step-sequence.md`, which supersedes the 11-step ADR-0004) is 6 config entries, not 6 scenes or 6 hardcoded states. Adding a step is data; adding a step *mechanic* is not — each mechanic gets its own workspace component, keyed by the step's id:
 
 ```json
 {
   "id": "teknik-kerja-aseptik",
   "title": "Teknik Kerja Aseptik",
   "steps": [
-    { "id": "cuci-tangan", "type": "identification" },
-    { "id": "pakai-apd", "type": "identification" },
-    { "id": "nyalakan-laf-semprot-alkohol", "type": "selection" },
+    { "id": "cuci-tangan", "type": "sequence" },
+    { "id": "memakai-apd", "type": "equip" },
+    { "id": "bersihkan-meja", "type": "clean" },
     { "id": "nyalakan-bunsen", "type": "selection" },
     { "id": "sterilisasi-jarum-ose", "type": "selection" },
-    { "id": "dinginkan-jarum-ose", "type": "selection" },
-    { "id": "ambil-sampel", "type": "dragdrop" },
-    { "id": "inokulasi-media", "type": "dragdrop" },
-    { "id": "tutup-tabung-label", "type": "assembly" },
-    { "id": "inkubasi", "type": "selection" },
-    { "id": "bersihkan-area-kerja", "type": "selection" }
+    { "id": "inokulasi-kultur", "type": "dragdrop" }
   ]
 }
 ```
 
-Adding, reordering, or removing a step here is a data change only — `ExperimentRunner`/`LabScene` code does not change per step. The same `steps` array is also the source for Stage 4's Evaluation items (ordering, error-detection) per `06-learning-interactions.md` → Evaluasi, so step granularity is chosen for pedagogy (procedural precision) without an engineering cost tradeoff.
+Adding, reordering, or removing a step here is a data change only — no per-step code. That has held in practice: Langkah 2 and Langkah 3 were each added as one config entry plus one registry line, and the Screen shell did not change. What is *not* free is a new step **type**: `sequence`, `equip` and `clean` each own a workspace component, so the config is data-driven per step, not per mechanic. The three later entries above name types that do not exist yet.
+
+The same `steps` array is also the source for Stage 4's Evaluation items (ordering, error-detection) per `06-learning-interactions.md` → Evaluasi, so step granularity is chosen for pedagogy (procedural precision) without an engineering cost tradeoff.
+
+Note that Stage 4 as built is a DOM Screen rather than a `LabScene`; the data-driven property above is what carried over, not the Phaser hosting. See `TASKS.md` → Screen 9.
 
 `ExperimentRunner` coordinates the current step (`MeasurementStep`, `SelectionStep`, `DragDropStep`, ...) but does not itself contain the rules — those live in `domain`/`application`.
 

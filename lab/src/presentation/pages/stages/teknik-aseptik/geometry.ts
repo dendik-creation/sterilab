@@ -1,10 +1,10 @@
 import type { CSSProperties } from 'react';
 import type { Rect } from '../../../../data/stages/teknikAseptik';
 
-// Shared measuring tape for Stage 4's procedure Screens. Every one of the 12
-// procedures is drawn on the same Figma frame ("Sterilab-APHP" canvas 42:678,
-// 1920x1080), so each one converts its own coordinates with the two helpers
-// below rather than inventing percentages of its own.
+// Shared measuring tape for Stage 4's procedure Screens. Every procedure is
+// drawn on the same Figma frame ("Sterilab-APHP" canvas 42:678, 1920x1080), so
+// each one converts its own coordinates with the two helpers below rather than
+// inventing percentages of its own.
 
 // Design px on the 1920x1080 frame -> a length on the stage. Stage's safe
 // layer is a container (`containerType: inline-size`), so 1cqw is 1% of its

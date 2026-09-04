@@ -18,21 +18,16 @@ Urutan: timbang media → tambah aquades → panaskan/larutkan → homogenkan �
 
 ## Stage 4 - Teknik Kerja Aseptik
 
-11 step linear (bukan 3 kategori besar) — keputusan dan rationale di `../adr/0004-stage4-eleven-step-linear-sequence.md`, naskah per step di `05-content-and-storyboard.md` → Stage 4:
+6 step linear (bukan 3 kategori besar) — keputusan dan rationale di `../adr/0006-stage4-six-step-sequence.md` (men-*supersede* ADR-0004 yang menetapkan 11), naskah per aksi di `05-content-and-storyboard.md` → Stage 4:
 
 1. Cuci tangan
-2. Pakai APD
-3. Nyalakan LAF + semprot alkohol
-4. Nyalakan Bunsen
-5. Sterilisasi jarum ose
-6. Dinginkan jarum ose
-7. Ambil sampel
-8. Inokulasi ke media
-9. Tutup tabung + label
-10. Inkubasi
-11. Bersihkan area kerja
+2. Memakai APD
+3. Membersihkan Meja Kerja — menyalakan LAF + menyemprot alkohol 70% dan merapikan/mendisinfeksi area kerja
+4. Menyalakan Bunsen
+5. Sterilisasi Jarum Ose — memanaskan hingga membara **dan** mendinginkan di area steril sebelum dipakai
+6. Mengambil dan Menginokulasi Kultur — ambil sampel, goresan ke media, tutup + label, lalu inkubasi
 
-Analyst menjalankan step aktif via Hit pada objek/aksi yang sesuai; melakukan aksi di luar urutan memicu feedback correction (bukan hard block) yang menjelaskan risiko kontaminasi dari lompat urutan tanpa visual grafis eksplisit. Kontrol DOM paralel: daftar 11 step bernomor, Analyst memilih/menjalankan step sesuai urutan lewat keyboard/tap — jalur fungsional setara dengan canvas (FR-08). Implementasi: data-driven step config di `LabScene` (lihat `07-technical-spec.md` → Data-driven Stage/step configuration), bukan hardcode per state — menambah/mengubah step berarti mengubah config, bukan menulis scene baru.
+Analyst menjalankan step aktif via Hit pada objek/aksi yang sesuai; melakukan aksi di luar urutan memicu feedback correction (bukan hard block) yang menjelaskan risiko kontaminasi dari lompat urutan tanpa visual grafis eksplisit. Validasi jarum ose panas (tidak langsung dipakai, tidak menyentuh permukaan non-steril) kini berada **di dalam** step 5, bukan sebagai step tersendiri — lihat konsekuensi di ADR-0006. Kontrol DOM paralel: daftar 6 step bernomor, Analyst memilih/menjalankan step sesuai urutan lewat keyboard/tap — jalur fungsional setara dengan canvas (FR-08). Implementasi: data-driven step config di `LabScene` (lihat `07-technical-spec.md` → Data-driven Stage/step configuration), bukan hardcode per state — menambah/mengubah step berarti mengubah config, bukan menulis scene baru.
 
 ## Stage 5 - Pengelolaan Limbah
 
@@ -51,7 +46,7 @@ Sampel SM-025, Roti Isi Cokelat, asal kegiatan sekolah, analis peserta. Evidence
 | Limbah | matching/drag-drop | 3 | 25% |
 | Evidence decision | branching | 2 branch | 25% |
 
-Evaluation Screen sepenuhnya DOM (tidak memakai canvas Phaser). Item teknik aseptik direuse langsung dari 11 step Stage 4 (mis. "urutkan 11 langkah teknik aseptik", "identifikasi langkah yang salah/hilang dari urutan yang ditampilkan") — tidak perlu konten baru, hanya konfigurasi ordering/error-detection di atas step data yang sama.
+Evaluation Screen sepenuhnya DOM (tidak memakai canvas Phaser). Item teknik aseptik direuse langsung dari 6 step Stage 4 (mis. "urutkan 6 langkah teknik aseptik", "identifikasi langkah yang salah/hilang dari urutan yang ditampilkan") — tidak perlu konten baru, hanya konfigurasi ordering/error-detection di atas step data yang sama. Soal ordering jadi 6 item, bukan 11; trade-off itu dicatat di ADR-0006.
 
 ## Feedback dan refleksi
 
