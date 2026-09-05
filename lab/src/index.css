@@ -263,6 +263,99 @@ body {
   animation: sterilab-nudge 300ms ease-in-out 2;
 }
 
+/* Bunsen flame (Stage 4 > Langkah 4). Two elements: an outer one that owns the
+   anchor and the size, and this inner one, which only ever scales - so the
+   flame can grow (a transition on the outer box) and flicker (this animation)
+   without the two fighting over the same transform.
+
+   Two rhythms, because they mean different things. A flame that has just caught
+   wavers hard and fast; a flame that is drawing properly breathes. That
+   difference is the "belum stabil" / "menyala stabil" the copy asks the Analyst
+   to wait for, so it is deliberately readable rather than decorative. */
+@keyframes sterilab-flame-waver {
+  0%,
+  100% {
+    transform: scale(1, 1) rotate(-2.5deg);
+  }
+  30% {
+    transform: scale(0.88, 1.14) rotate(2deg);
+  }
+  55% {
+    transform: scale(1.1, 0.92) rotate(-1.5deg);
+  }
+  80% {
+    transform: scale(0.94, 1.08) rotate(2.5deg);
+  }
+}
+
+.sterilab-flame-waver {
+  animation: sterilab-flame-waver 260ms ease-in-out infinite;
+}
+
+@keyframes sterilab-flame {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  50% {
+    transform: scale(0.97, 1.04);
+  }
+}
+
+.sterilab-flame {
+  animation: sterilab-flame 1100ms ease-in-out infinite;
+}
+
+/* Used by the strip of coat that covers the flame painted into the lit plate:
+   it comes up over the cap's descent, so the fire dims as the cap reaches it. */
+@keyframes sterilab-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.sterilab-fade-in {
+  animation: sterilab-fade-in 420ms ease-out both;
+}
+
+/* The cap coming down onto the burner. Travels from above the flame, so the
+   gesture that put the fire out is visible even when it was a keypress. */
+@keyframes sterilab-cap-drop {
+  from {
+    transform: translateY(-4cqw);
+    opacity: 0.85;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.sterilab-cap-drop {
+  animation: sterilab-cap-drop 520ms cubic-bezier(0.33, 1, 0.68, 1) both;
+}
+
+/* The wisp left behind once the cap is on. Rises once and clears: the cap hides
+   the flame rather than the flame shrinking away, so this is what says the
+   burner was alight a moment ago. */
+@keyframes sterilab-smoke {
+  from {
+    opacity: 0.85;
+    transform: translate(-50%, -100%) translateY(0.4cqw) scale(0.55);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -100%) translateY(-2.4cqw) scale(1.3);
+  }
+}
+
+.sterilab-smoke {
+  animation: sterilab-smoke 1500ms ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sterilab-pulse-ring,
   .sterilab-rise-in-offscreen,
@@ -275,8 +368,19 @@ body {
   .sterilab-trail::before,
   .sterilab-hotspot-pulse,
   .sterilab-pulse-scale,
-  .sterilab-nudge {
+  .sterilab-nudge,
+  .sterilab-flame,
+  .sterilab-flame-waver,
+  .sterilab-fade-in,
+  .sterilab-cap-drop,
+  .sterilab-smoke {
     animation: none !important;
+  }
+
+  /* The smoke only exists as a movement - frozen, it would sit over the capped
+     burner as a permanent grey smudge. */
+  .sterilab-smoke {
+    opacity: 0 !important;
   }
 
   /* With the sweep frozen, a single-arc gradient would read as a random blue

@@ -49,6 +49,25 @@ async function designBox(page: Page, locator: ReturnType<Page['getByRole']>) {
   };
 }
 
+// A box expressed in the coordinates of the currently rendered artwork. Use
+// this when checking that an overlay covers a feature painted into a raster:
+// the relationship to that raster is the contract, even while the 16:9 Stage
+// is letterboxed inside a taller viewport.
+async function designBoxInArtwork(
+  locator: ReturnType<Page['getByRole']>,
+  artwork: ReturnType<Page['getByRole']>,
+) {
+  const [box, art] = await Promise.all([locator.boundingBox(), artwork.boundingBox()]);
+  expect(box).not.toBeNull();
+  expect(art).not.toBeNull();
+  return {
+    x: ((box!.x - art!.x) / art!.width) * 1920,
+    y: ((box!.y - art!.y) / art!.height) * 1080,
+    w: (box!.width / art!.width) * 1920,
+    h: (box!.height / art!.height) * 1080,
+  };
+}
+
 function workspace(page: Page) {
   return page.getByAltText(/Wastafel laboratorium/);
 }
@@ -146,7 +165,7 @@ test('chrome and instruction pills land on their Figma coordinates at every supp
   expect(Math.abs(banner.y - 241.749), 'PROSEDUR y').toBeLessThan(6);
 
   // Floating hint card's tab (Figma group 60:308) at x=1535.317, y=221.17.
-  const hintTab = await designBox(page, page.getByText('Langkah 1', { exact: true }).last());
+  const hintTab = await designBox(page, page.getByTestId('floating-step-tab'));
   expect(Math.abs(hintTab.x - 1535.317), 'hint tab x').toBeLessThan(6);
   expect(Math.abs(hintTab.y - 221.17), 'hint tab y').toBeLessThan(6);
 });
@@ -503,7 +522,7 @@ test('Langkah 2 card and grid land on their Figma coordinates', async ({ page })
   await gotoStep2(page);
 
   // Floating card's tab (Figma group 62:802) at x=1494.754, y=221.17.
-  const tab = await designBox(page, page.getByText('Langkah 2', { exact: true }).last());
+  const tab = await designBox(page, page.getByTestId('floating-step-tab'));
   expect(Math.abs(tab.x - 1494.754), 'APD tab x').toBeLessThan(6);
   expect(Math.abs(tab.y - 221.17), 'APD tab y').toBeLessThan(6);
 
@@ -704,9 +723,9 @@ test('wiping takes a pass and a return pass, and finishing raises the note', asy
   expect(Math.abs(box.y + box.h - 1001.159)).toBeLessThan(4);
 
   await page.getByRole('button', { name: 'Lanjut ke langkah berikutnya' }).click();
-  // Langkah 3 is the last authored step, so LANJUT falls through to Missions
-  // rather than dead-ending on an empty workspace.
-  await expect(page.getByAltText(/Dashboard SteriLab/)).toBeVisible({ timeout: 4000 });
+  // Steps advance in place: Langkah 4 is authored now, so LANJUT walks the
+  // Screen on rather than leaving Stage 4.
+  await expect(page.getByText('Langkah 4 / 6', { exact: true })).toBeVisible({ timeout: 4000 });
 });
 
 test('a reversal inside one press counts as a second pass', async ({ page }) => {
@@ -791,7 +810,7 @@ test('Langkah 3 card and tool panel land on their Figma coordinates', async ({ p
 
   // Card tab (Figma group 229:462) at x=1535.317, y=220.129 - the same tab
   // position Langkah 1 uses.
-  const tab = await designBox(page, page.getByText('Langkah 3', { exact: true }).last());
+  const tab = await designBox(page, page.getByTestId('floating-step-tab'));
   expect(Math.abs(tab.x - 1535.317), 'card tab x').toBeLessThan(6);
   expect(Math.abs(tab.y - 220.129), 'card tab y').toBeLessThan(6);
 
@@ -830,4 +849,189 @@ test('bench segments keep a 44x44 touch target, tile the strip, and clear both c
   for (let i = 1; i < boxes.length; i += 1) {
     expect(boxes[i].x, `segment ${i + 1} leaves a gap`).toBeLessThanOrEqual(boxes[i - 1].x + boxes[i - 1].width + 0.5);
   }
+});
+
+// Langkah 4 "Menyalakan Bunsen" - Figma frame 61:542 "LANGKAH 4 NEW". Light the
+// burner, wait for the flame to steady, then put it out with the cap.
+
+const IGNITE = 'Nyalakan bunsen spirtus dengan korek api';
+const EXTINGUISH = 'Tutup bunsen spirtus dengan penutup untuk memadamkan api';
+const STABLE_MESSAGE =
+  'Api menyala stabil dengan warna biru kekuningan. Gunakan penutup untuk memadamkannya setelah selesai digunakan.';
+
+// One locator per plate of BG_LANGKAH_5. Which plate is showing is a fact about
+// progress: the lit one lands exactly when the flame stops growing.
+function burnerUnlitArt(page: Page) {
+  return page.getByAltText(/korek api yang menyala di atas sumbu bunsen/);
+}
+
+function burnerLitArt(page: Page) {
+  return page.getByAltText(/Bunsen spirtus menyala dengan api biru kekuningan/);
+}
+
+function tube(page: Page) {
+  return page.getByRole('button', {
+    name: /^(Nyalakan bunsen|Tutup bunsen|Api bunsen sedang|Bunsen spirtus sudah)/,
+  });
+}
+
+async function gotoStep4(page: Page): Promise<void> {
+  await gotoStep3(page);
+  await sweep(page);
+  await sweep(page);
+  await sweep(page, 'rtl');
+  await page.getByRole('button', { name: 'Lanjut ke langkah berikutnya' }).click({ timeout: 5000 });
+  await expect(page.getByText('Langkah 4 / 6', { exact: true })).toBeVisible();
+  await waitForMotionSettled(page);
+}
+
+// Lights the burner and waits out the two growth stages, which is what "menyala
+// stabil" means: the flame is only steady once it stops changing size.
+async function lightBurner(page: Page): Promise<void> {
+  await page.getByRole('button', { name: IGNITE }).click();
+  await expect(page.getByTestId('bunsen-flame')).toHaveAttribute('data-steady', 'true', { timeout: 5000 });
+  await expect(burnerLitArt(page)).toBeVisible();
+}
+
+test('Langkah 4 opens unlit, with the cap held back until the flame is steady', async ({ page }) => {
+  await gotoStep4(page);
+
+  await expect(page.getByText('Menyalakan Bunsen', { exact: true })).toBeVisible();
+  await expect(burnerUnlitArt(page)).toBeVisible();
+  await expect(burnerLitArt(page)).toHaveCount(0);
+  await expect(page.getByTestId('bunsen-flame')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: IGNITE })).toBeEnabled();
+  // The cap is on screen from the start - it is part of the procedure the card
+  // describes - but it says it is not usable yet rather than silently refusing.
+  await expect(page.getByTestId('tool-cap')).toHaveAttribute(
+    'aria-label',
+    'Penutup bunsen, tersedia setelah api menyala stabil',
+  );
+  await expect(page.locator('[aria-live="polite"]')).toHaveText(
+    'Bunsen spirtus belum menyala. Klik tabung bunsen untuk menyalakannya.',
+  );
+});
+
+test('clicking the tube lights the burner, and the flame settles before the plate advances', async ({ page }) => {
+  await gotoStep4(page);
+  await page.getByRole('button', { name: IGNITE }).click();
+
+  // It catches small and unsteady, on the plate where the analyst is still
+  // holding the match.
+  await expect(page.getByTestId('bunsen-flame')).toHaveAttribute('data-steady', 'false');
+  await expect(burnerUnlitArt(page)).toBeVisible();
+
+  await expect(page.getByTestId('bunsen-flame')).toHaveAttribute('data-steady', 'true', { timeout: 5000 });
+  await expect(burnerLitArt(page)).toBeVisible();
+  await expect(page.locator('[aria-live="polite"]')).toHaveText(STABLE_MESSAGE);
+  await expect(page.getByTestId('tool-cap')).toHaveAttribute('aria-label', 'Penutup bunsen, seret ke tabung bunsen');
+  // A burner that is merely alight is not a finished step.
+  await expect(page.getByRole('group', { name: 'Bunsen telah menyala!' })).not.toBeAttached();
+});
+
+test('capping the burner puts the flame out, raises the note, and LANJUT leaves the Stage', async ({ page }) => {
+  await gotoStep4(page);
+  await lightBurner(page);
+
+  await page.getByRole('button', { name: EXTINGUISH }).click();
+  await expect(page.getByTestId('bunsen-cap-placed')).toBeVisible();
+  await expect(page.getByTestId('bunsen-flame')).toHaveCount(0);
+
+  const note = page.getByRole('group', { name: 'Bunsen telah menyala!' });
+  await expect(note).toBeVisible({ timeout: 4000 });
+  await waitForMotionSettled(page);
+
+  // Same note card geometry as every other step's (Figma bottom edge 1001.159).
+  const box = await designBox(page, note);
+  expect(box.raw.y + box.raw.height).toBeLessThanOrEqual(box.stage.top + box.stage.h + 1);
+  expect(Math.abs(box.y + box.h - 1001.159)).toBeLessThan(4);
+
+  await page.getByRole('button', { name: 'Lanjut ke langkah berikutnya' }).click();
+  // Langkah 4 is the last authored step, so LANJUT falls through to Missions
+  // rather than dead-ending on an empty workspace.
+  await expect(page.getByAltText(/Dashboard SteriLab/)).toBeVisible({ timeout: 4000 });
+});
+
+test('the cap can be dragged out of the card onto the burner', async ({ page }) => {
+  await gotoStep4(page);
+  await lightBurner(page);
+
+  const from = await center(page.getByTestId('tool-cap'));
+  const to = await center(tube(page));
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(to.x, to.y, { steps: 16 });
+  await page.mouse.up();
+
+  await expect(page.getByTestId('bunsen-cap-placed')).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Bunsen telah menyala!' })).toBeVisible({ timeout: 4000 });
+});
+
+test('a cap released away from the burner is refused with a written reason', async ({ page }) => {
+  await gotoStep4(page);
+  await lightBurner(page);
+
+  const from = await center(page.getByTestId('tool-cap'));
+  const stage = await stageBox(page);
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  // The empty floor in front of the bench, well away from the burner.
+  await page.mouse.move(stage.left + stage.w * 0.2, stage.top + stage.h * 0.85, { steps: 16 });
+  await page.mouse.up();
+
+  await expect(page.locator('[aria-live="polite"]')).toHaveText(
+    'Arahkan penutup ke tabung bunsen - hanya bunsen yang perlu ditutup.',
+  );
+  // Still burning, and still finishable.
+  await expect(page.getByTestId('bunsen-flame')).toHaveAttribute('data-steady', 'true');
+  await expect(page.getByTestId('bunsen-cap-placed')).toHaveCount(0);
+});
+
+test('the patch and cap cover the flame painted into the lit plate', async ({ page }) => {
+  await gotoStep4(page);
+  await lightBurner(page);
+  await page.getByRole('button', { name: EXTINGUISH }).click();
+  await waitForMotionSettled(page);
+
+  // The lit plate paints its flame at x 932..949, y 447..497, and the wick under
+  // it runs down to the collar at 518. A raster flame cannot be faded out: the
+  // coat patch hides the exposed upper flame while the cap covers its base and
+  // reaches the collar.
+  const art = burnerLitArt(page);
+  const patch = await designBoxInArtwork(page.getByTestId('bunsen-flame-patch'), art);
+  const cap = await designBoxInArtwork(page.getByTestId('bunsen-cap-placed'), art);
+  expect(patch.x, 'patch left of the painted flame').toBeLessThanOrEqual(932);
+  expect(patch.x + patch.w, 'patch right of the painted flame').toBeGreaterThanOrEqual(949);
+  expect(patch.y, 'patch above the painted flame').toBeLessThanOrEqual(447);
+  expect(patch.y + patch.h, 'patch below the painted flame').toBeGreaterThanOrEqual(497);
+  expect(cap.x, 'cap left of the painted flame').toBeLessThan(932);
+  expect(cap.x + cap.w, 'cap right of the painted flame').toBeGreaterThan(949);
+  expect(cap.y, 'cap overlaps the painted flame base').toBeLessThan(497);
+  expect(cap.y + cap.h, 'cap down to the collar').toBeGreaterThan(514);
+});
+
+test('Langkah 4 card and burner control land on their Figma coordinates', async ({ page }) => {
+  await gotoStep4(page);
+
+  // Same tab as every other procedure's floating card (Figma group 231:1064).
+  const tab = await designBox(page, page.getByTestId('floating-step-tab'));
+  expect(Math.abs(tab.x - 1535.317), 'card tab x').toBeLessThan(6);
+  expect(Math.abs(tab.y - 221.17), 'card tab y').toBeLessThan(6);
+
+  // The burner control sits on the lamp painted at x 905..1000 of the unlit
+  // plate, and clear of both cards.
+  const control = await designBox(page, tube(page));
+  const cx = control.x + control.w / 2;
+  expect(cx, 'control on the lamp').toBeGreaterThan(905);
+  expect(cx, 'control on the lamp').toBeLessThan(1000);
+  expect(control.x, 'control clear of the procedure card').toBeGreaterThan(556.489);
+  expect(control.x + control.w, 'control clear of the floating card').toBeLessThan(1428.649);
+});
+
+test('the burner control keeps a 44x44 touch target', async ({ page }) => {
+  await gotoStep4(page);
+
+  const box = (await tube(page).boundingBox())!;
+  expect(box.width, 'control width').toBeGreaterThanOrEqual(44);
+  expect(box.height, 'control height').toBeGreaterThanOrEqual(44);
 });

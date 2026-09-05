@@ -36,7 +36,10 @@ test('the shipped narration is the ~50s file the CTA gate is sized against', asy
 test('narration plays on mount, badge marks the wait, and the CTA only arrives when it ends', async ({ page }) => {
   await reachCase(page);
 
-  const badge = page.getByText(/Dengarkan sampai selesai/);
+  // Sound defaults off, so the badge copy truthfully reflects either the
+  // muted default or the opted-in listening state. Both identify the same
+  // narration gate.
+  const badge = page.getByText(/Dengarkan sampai selesai|Suara sedang dimatikan/);
   const lanjut = page.getByRole('button', { name: 'Lanjut Briefing' });
 
   await expect(badge).toBeVisible();
@@ -83,7 +86,7 @@ test('badge and CTA stay inside the stage and clear of the top bar at every land
     return { top: r.top, left: r.left, right: r.right, bottom: r.bottom };
   });
 
-  const badgeBox = await page.getByText(/Dengarkan sampai selesai/).boundingBox();
+  const badgeBox = await page.getByText(/Dengarkan sampai selesai|Suara sedang dimatikan/).boundingBox();
   expect(badgeBox).not.toBeNull();
   expect(badgeBox!.x).toBeGreaterThanOrEqual(stage.left - 1);
   expect(badgeBox!.x + badgeBox!.width).toBeLessThanOrEqual(stage.right + 1);

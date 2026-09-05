@@ -64,8 +64,14 @@ test('Case holds its content for the staggered exit before Missions mounts', asy
 test('top-bar icon buttons meet the 44x44 CSS px touch target minimum on Splash and Case', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Ketuk di mana saja untuk melanjutkan' }).click();
+  const homeSound = page.getByRole('button', { name: /suara/ });
+  // The touch gate exits before the Home controls mount. Waiting for the old
+  // exit animations alone can therefore finish one frame before the new sound
+  // button registers its own bubble-in animation.
+  await expect(homeSound).toBeVisible();
+  await waitForMotionSettled(page);
 
-  const homeSoundBox = await page.getByRole('button', { name: /suara/ }).boundingBox();
+  const homeSoundBox = await homeSound.boundingBox();
   expect(homeSoundBox?.width).toBeGreaterThanOrEqual(44);
   expect(homeSoundBox?.height).toBeGreaterThanOrEqual(44);
 

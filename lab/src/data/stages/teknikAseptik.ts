@@ -16,6 +16,8 @@ import benchCleaningUrl from '../../../assets/images/02_scenes/04_01_teknik_kerj
 import benchCleanUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_3/backgrounds/3.png';
 import alcoholSprayUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_3/alcohol_spray.png';
 import clothUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_3/cloth.png';
+import burnerUnlitUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_4/backgrounds/1.png';
+import burnerLitUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_4/backgrounds/2.png';
 
 // Data for Stage 4 "Teknik Kerja Aseptik" (Figma "Sterilab-APHP" canvas 42:678
 // "Scene 04: Prosedur Panjang Teknik Kerja Aseptik"). Every number here is a
@@ -23,23 +25,23 @@ import clothUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_asepti
 // with a single design-px -> stage-length helper instead of hand-tuned
 // percentages per element.
 //
-// Langkah 1 (frame 42:679) and Langkah 2 (frame 58:2) are authored.
+// Langkah 1 (frame 42:679), Langkah 2 (58:2), Langkah 3 (61:541) and Langkah 4
+// (61:542) are authored.
 //
-// The counter/dot row reads "N / 6" because Stage 4 is being cut to six
-// procedures. Three sources disagreed on the count: the Figma canvas ships
-// frames LANGKAH 1..12, ADR-0004 and the PRD specify 11 linear steps, and the
-// product decision is 6 - the nine PRD steps after "pakai APD" fold into four.
-// Six is the number the Screen is built for; the remaining four are left
-// unauthored here rather than invented, because *which* PRD steps fold
-// together is a content decision, not a layout one. ADR-0004 still says 11 and
-// has to be superseded before Langkah 3 is written.
+// The counter/dot row reads "N / 6" because Stage 4 is cut to six procedures
+// (ADR-0006, which supersedes ADR-0004's eleven). Three sources disagreed on
+// the count: the Figma canvas ships frames LANGKAH 1..12, ADR-0004 and the PRD
+// specify 11 linear steps, and the product decision is 6. Six is the number the
+// Screen is built for; the last two are left unauthored here rather than
+// invented, because *which* PRD steps fold together is a content decision, not
+// a layout one.
 export const TOTAL_STEPS = 6;
 
 // Which procedure a step is, independent of its position in the list. The
 // Screen picks a workspace component by this id (see
 // presentation/pages/stages/teknik-aseptik/steps/index.tsx), so authoring
 // LANGKAH 3 is a new id here, a new entry there, and nothing else.
-export type ProcedureId = 'cuci-tangan' | 'memakai-apd' | 'bersihkan-meja';
+export type ProcedureId = 'cuci-tangan' | 'memakai-apd' | 'bersihkan-meja' | 'nyalakan-bunsen';
 
 export interface Rect {
   x: number;
@@ -217,7 +219,94 @@ export interface CleanTool {
   height: number;
 }
 
-export type ProcedureStep = SequenceStep | EquipStep | CleanStep;
+// One plate of Langkah 4's art, plus the burner painted into it.
+//
+// The lamp travels with the plate for the same reason Langkah 3's bench does:
+// BG_LANGKAH_5's two rasters are not registered to each other. The lamp is
+// painted 11 design px further left on the lit plate than on the unlit one, so
+// one rect for both would hang the hit area - and the flame standing on the
+// wick - off the side of the burner the moment the art advances.
+//
+// Both rects are measured off their own 1920x1080 raster: the burner is painted
+// into the background, so it has no Figma node to read bounds from.
+export interface BunsenFrame {
+  src: string;
+  alt: string;
+  // Glass reservoir plus metal collar - the object the Analyst clicks, and what
+  // the cap has to be dropped on.
+  tube: Rect;
+  // Top of the wick, where the braid clears the collar. The flame is anchored
+  // here by its base rather than by its centre, so growing it lifts the tip
+  // instead of sinking the flame into the metal.
+  wick: { x: number; y: number };
+}
+
+// One size the flame passes through on its way to burning steadily. Sizes are
+// design px on the 1920x1080 frame; `holdMs` is how long this size stays up
+// before the next one takes over, and is unused on the last stage.
+export interface FlameStage {
+  id: 'kindling' | 'growing' | 'stable';
+  width: number;
+  height: number;
+  message: string;
+  holdMs: number;
+}
+
+// The cap, and where it comes to rest once the burner is covered: over the
+// wick, its rim sitting on the collar at y 518.
+export interface BunsenCap {
+  name: string;
+  accessibleName: string;
+  // Announced while the flame is still coming up and the cap may not be used.
+  lockedName: string;
+  rest: Rect;
+}
+
+// How the flame painted into the lit plate is taken off screen.
+//
+// The plate draws its own flame at x 932..949, y 447..497, and a raster cannot
+// be blown out. The cap covers the lower half of it - which is what a cap
+// physically does - and this covers the rest: a strip of the analyst's coat,
+// copied out of the *same* plate and stacked over the flame's top.
+//
+// Copied rather than painted flat, because the coat is not flat there: its
+// front edge is a blue seam running vertically through x 929..930, straight
+// behind the flame, and a plain white rectangle would cut a hole in that line.
+// `donor` is a clean band of the same columns (below the coat's button at y
+// ~424..434, above the flame at 447), repeated down the strip - the seam is
+// vertical, so every repeat of the band lines up with the one above it.
+export interface FlamePatch {
+  rect: Rect;
+  donor: { y: number; height: number };
+}
+
+// Langkah 4's shape: light the burner, let it settle into a steady flame, then
+// put it out with the cap.
+//
+// Nothing in the interaction is a PNG. The step ships two background plates and
+// nothing else, so the flame, the cap and the wisp of smoke are drawn in the
+// workspace (SVG) instead of being composited from art: a painted flame could
+// not grow, and a painted cap could not be carried to the burner without
+// leaving a copy of itself behind on the bench.
+export interface BunsenStep extends BaseStep {
+  kind: 'bunsen';
+  // Copy of the floating card on the right, verbatim from frame 61:542. It
+  // describes both halves of the procedure, so it stays put while the phase
+  // changes underneath it.
+  hint: string;
+  // Spoken form of the burner control, one per phase it can be used in.
+  igniteName: string;
+  extinguishName: string;
+  // Announced when the cap is released somewhere that is not the burner.
+  offTargetCorrection: string;
+  // Unlit plate first, lit plate second - the order the procedure walks them.
+  frames: [BunsenFrame, BunsenFrame];
+  flameStages: [FlameStage, FlameStage, FlameStage];
+  cap: BunsenCap;
+  flamePatch: FlamePatch;
+}
+
+export type ProcedureStep = SequenceStep | EquipStep | CleanStep | BunsenStep;
 
 // Wash-hands sequence: the four backgrounds are used in file order (1 dirty ->
 // 2 lathered -> 3 rinsing -> 4 clean), so the frame index is simply the number
@@ -480,5 +569,105 @@ export const CLEAN_BENCH_STEP: CleanStep = {
   },
 };
 
-// The LANJUT button walks this array, so authoring LANGKAH 4 is a data change.
-export const PROCEDURE_STEPS: ProcedureStep[] = [HAND_WASH_STEP, WEAR_PPE_STEP, CLEAN_BENCH_STEP];
+// The two plates of BG_LANGKAH_5 (231:610 / 231:611), in procedure order. The
+// lamp sits at x 905..1000 on the first and x 893..988 on the second, and its
+// wick tip - the braid where it clears the collar - at (951, 494) and
+// (939, 499).
+const BURNER_FRAMES: [BunsenFrame, BunsenFrame] = [
+  {
+    src: burnerUnlitUrl,
+    alt: 'Analis memegang korek api yang menyala di atas sumbu bunsen spirtus yang masih padam di meja kerja',
+    tube: { x: 905, y: 512, width: 95, height: 120 },
+    wick: { x: 951, y: 494 },
+  },
+  {
+    src: burnerLitUrl,
+    alt: 'Bunsen spirtus menyala dengan api biru kekuningan dan analis mengacungkan jempol',
+    tube: { x: 893, y: 512, width: 95, height: 116 },
+    wick: { x: 939, y: 499 },
+  },
+];
+
+// Lighting the burner: click the tube, wait for the flame to come up, then cap
+// it. Figma frame 61:542 "LANGKAH 4 NEW" - the card copy is verbatim from its
+// text nodes (242:320 / 242:322 / 242:321) and the hint from the floating card.
+//
+// The flame does not arrive in one beat. "Hingga menyala stabil dengan warna
+// biru kekuningan" is a statement about *waiting*: a spirit lamp catches small
+// and yellow, and only settles into a steady blue-based flame once the wick is
+// drawing properly. Each stage is announced, so the wait carries information
+// rather than being a delay - and the art advances with it, the lit plate
+// landing exactly when the flame becomes steady.
+export const LIGHT_BUNSEN_STEP: BunsenStep = {
+  kind: 'bunsen',
+  id: 'nyalakan-bunsen',
+  n: 4,
+  eyebrow: 'Langkah 4',
+  title: 'Menyalakan Bunsen',
+  description:
+    'Bunsen spirtus menggunakan bahan bakar cair (spirtus) yang lebih aman, mudah digunakan, dan cocok untuk praktikum di laboratorium sekolah.',
+  hint: 'Klik tabung bunsen spirtus untuk menyalakan apinya hingga menyala stabil dengan warna biru kekuningan, lalu gunakan penutup untuk memadamkannya setelah selesai digunakan.',
+  igniteName: 'Nyalakan bunsen spirtus dengan korek api',
+  extinguishName: 'Tutup bunsen spirtus dengan penutup untuk memadamkan api',
+  offTargetCorrection: 'Arahkan penutup ke tabung bunsen - hanya bunsen yang perlu ditutup.',
+  initialBackground: BURNER_FRAMES[0].src,
+  initialBackgroundAlt: BURNER_FRAMES[0].alt,
+  backgroundRect: FULL_FRAME,
+  frames: BURNER_FRAMES,
+  flameStages: [
+    {
+      id: 'kindling',
+      width: 16,
+      height: 26,
+      message: 'Api mulai menyala, nyalanya masih kecil.',
+      holdMs: 620,
+    },
+    {
+      id: 'growing',
+      width: 24,
+      height: 52,
+      message: 'Api membesar, nyalanya masih bergoyang dan belum stabil.',
+      holdMs: 700,
+    },
+    {
+      id: 'stable',
+      width: 32,
+      height: 76,
+      message:
+        'Api menyala stabil dengan warna biru kekuningan. Gunakan penutup untuk memadamkannya setelah selesai digunakan.',
+      holdMs: 0,
+    },
+  ],
+  cap: {
+    name: 'Penutup bunsen',
+    accessibleName: 'Penutup bunsen, seret ke tabung bunsen',
+    lockedName: 'Penutup bunsen, tersedia setelah api menyala stabil',
+    // Sleeved over the wick, its rim sunk into the collar (518..548) rather
+    // than perched on top of it, and proportioned like the cap the plate paints
+    // on the bench beside the lamp (27 x 47).
+    rest: { x: 922, y: 484, width: 36, height: 52 },
+  },
+  // The painted flame, covered with the coat behind it. The strip runs the
+  // flame's whole height (447..497) rather than stopping where the cap's dome
+  // starts: the dome is narrow at the top, and the flame is at its widest just
+  // beside those shoulders, so a shorter strip leaves two specks of fire either
+  // side of the cap.
+  flamePatch: {
+    rect: { x: 920, y: 442, width: 40, height: 56 },
+    donor: { y: 436, height: 10 },
+  },
+  // Verbatim from the frame's note card. It names what the step is for -
+  // getting the burner lit - and stays that way even though the closing beat
+  // puts the flame back out: capping a burner you have finished with is part of
+  // using it, not a second achievement.
+  successTitle: 'Bunsen telah menyala!',
+  successBody: 'Anda siap melanjutkan ke langkah berikutnya.',
+};
+
+// The LANJUT button walks this array, so authoring LANGKAH 5 is a data change.
+export const PROCEDURE_STEPS: ProcedureStep[] = [
+  HAND_WASH_STEP,
+  WEAR_PPE_STEP,
+  CLEAN_BENCH_STEP,
+  LIGHT_BUNSEN_STEP,
+];

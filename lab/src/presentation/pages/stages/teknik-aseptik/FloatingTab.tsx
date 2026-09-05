@@ -6,6 +6,7 @@ import { COLOR, FLOATING_TAB, S, T, textBase } from './geometry';
 export function FloatingTab({ label, dx }: { label: string; dx: number }) {
   return (
     <span
+      data-testid="floating-step-tab"
       style={{
         ...textBase,
         position: 'absolute',
