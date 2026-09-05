@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { prefersReducedMotion } from '../../../../../core/a11y/motion';
-import type { CleanStep, CleanTool } from '../../../../../data/stages/teknikAseptik';
+import type { CleanFrame, CleanStep, CleanTool, Rect } from '../../../../../data/stages/teknikAseptik';
 import { CARD_RADIUS, CARD_SHADOW, COLOR, FLOATING_TAB, HAIRLINE, S, T, textBase } from '../geometry';
 import type { Animation } from '../geometry';
 import { FloatingTab } from '../FloatingTab';
@@ -25,6 +25,13 @@ import type { ProcedureProps } from '../types';
 // finger reaches for first). Both run the same code path. The keyboard/tap path
 // is the segment buttons: each activation applies the live tool once, so the
 // step is completable with Enter alone and no pointer at all.
+//
+// The art advances with the procedure: one of BG_LANGKAH_3's three plates per
+// phase, so finishing the spraying and finishing the wiping are each visible in
+// the room and not only in the overlay. The plates are not registered to each
+// other - the bench is painted 44 design px higher on the second than on the
+// first - so the strip, the grime and the segment buttons all read their rect
+// off the plate currently showing rather than off the step.
 
 // Langkah 3's floating card (Figma group 229:458): same x and width as Langkah
 // 1's, taller because it carries the tool panel.
@@ -86,7 +93,7 @@ interface Stroke {
 }
 
 export function Prosedur03MembersihkanMeja({ step, runtime }: ProcedureProps<CleanStep>) {
-  const { exiting, playClick, setMessage, complete } = runtime;
+  const { exiting, playClick, setFrame, setMessage, complete } = runtime;
   // One array, not one per tool: whether a segment may be wiped depends on
   // whether *every* segment has been sprayed, and a stroke can apply to several
   // segments between two renders. Splitting that across two states would read
@@ -108,7 +115,18 @@ export function Prosedur03MembersihkanMeja({ step, runtime }: ProcedureProps<Cle
   const wipedCount = cells.filter((cell) => cell.wipes >= step.wipePasses).length;
   const phase: Phase =
     sprayedCount < step.segments ? 'spray' : wipedCount < step.segments ? 'wipe' : 'done';
-  const tool = phase === 'wipe' ? step.tools.cloth : step.tools.spray;
+  const tool = phase === 'spray' ? step.tools.spray : step.tools.cloth;
+  // One plate per phase, in phase order. `done` is reported the moment the last
+  // segment is wiped, so the clean bench is already on screen while the note
+  // card spends SETTLE_MS rising - the room finishes the job, then the card
+  // says so.
+  const frameIndex = phase === 'spray' ? 0 : phase === 'wipe' ? 1 : 2;
+  const frame: CleanFrame = step.frames[frameIndex];
+  const surface = frame.surface;
+
+  useEffect(() => {
+    setFrame({ src: frame.src, alt: frame.alt, rect: step.backgroundRect });
+  }, [setFrame, frame.src, frame.alt, step.backgroundRect]);
 
   useEffect(() => () => window.clearTimeout(correctionTimerRef.current), []);
 
@@ -188,12 +206,22 @@ export function Prosedur03MembersihkanMeja({ step, runtime }: ProcedureProps<Cle
   // does not need. Nothing moves the segments mid-stroke: they are absolutely
   // positioned on the Stage, so neither the card growing nor a segment
   // repainting can shift them.
-  const measureSegments = () => {
+  const measureSegments = useCallback(() => {
     rectsRef.current = [...segmentsRef.current].map(([index, element]) => ({
       index,
       box: element.getBoundingClientRect(),
     }));
-  };
+  }, []);
+
+  // The plates are not registered to each other, and the phase can turn over
+  // mid-sweep - the same stroke that sprays the last segment starts the wipe
+  // phase, which lifts the bench 44 design px. `rectsRef` is measured once per
+  // stroke, so without this the rest of that sweep would go on hit-testing
+  // against the bench's old position. Runs after the segments have been laid
+  // out at their new place, so it reads the plate that is actually showing.
+  useEffect(() => {
+    if (strokeRef.current) measureSegments();
+  }, [surface, measureSegments]);
 
   const segmentAt = (clientX: number, clientY: number): number | null => {
     for (const { index, box } of rectsRef.current) {
@@ -301,12 +329,13 @@ export function Prosedur03MembersihkanMeja({ step, runtime }: ProcedureProps<Cle
   };
 
   const cardAnimation = runtime.cardAnimation;
-  const segmentWidth = step.surface.width / step.segments;
+  const segmentWidth = surface.width / step.segments;
 
   return (
     <>
       <Bench
         step={step}
+        surface={surface}
         cells={cells}
         phase={phase}
         over={over}
@@ -349,6 +378,7 @@ export function Prosedur03MembersihkanMeja({ step, runtime }: ProcedureProps<Cle
 // with the art rather than with a percentage that happens to look right.
 function Bench({
   step,
+  surface,
   cells,
   phase,
   over,
@@ -362,6 +392,7 @@ function Bench({
   onPointerCancel,
 }: {
   step: CleanStep;
+  surface: Rect;
   cells: Cell[];
   phase: Phase;
   over: number | null;
@@ -374,8 +405,6 @@ function Bench({
   onPointerUp: (event: ReactPointerEvent<HTMLElement>) => void;
   onPointerCancel: () => void;
 }) {
-  const { surface } = step;
-
   return (
     <>
       {/* Grime, clipped to the painted slab. Purely decorative: every fact it
@@ -442,6 +471,7 @@ function Bench({
             key={index}
             index={index}
             step={step}
+            surface={surface}
             width={segmentWidth}
             sprayed={cell.sprayed}
             wipes={cell.wipes}
@@ -465,6 +495,12 @@ function Bench({
 // One segment's worth of dirt. Three fixed blobs per segment rather than random
 // ones, so the same segment looks the same on every render and a screenshot
 // diff stays meaningful.
+//
+// Deliberately faint: the first plate paints its own dust across the whole
+// bench, so this layer is not there to say "the bench is dirty" - the art
+// already does - but to say which *segment* has been dealt with. Smudges heavy
+// enough to read as dirt on their own would sit on top of the painted dust as a
+// second, coarser set of it.
 function Grime({
   index,
   width,
@@ -489,10 +525,10 @@ function Grime({
       return {
         cx: (t + (k % 3) * 0.018) * width,
         cy: (0.28 + (k % 4) * 0.16) * height,
-        rx: (0.055 + (k % 3) * 0.022) * width,
-        ry: (0.09 + (k % 2) * 0.05) * height,
+        rx: (0.028 + (k % 3) * 0.011) * width,
+        ry: (0.05 + (k % 2) * 0.028) * height,
         rotate: k % 2 === 0 ? -6 : 5,
-        opacity: 0.2 + (k % 3) * 0.07,
+        opacity: 0.12 + (k % 3) * 0.04,
       };
     });
   }, [index, width, height]);
@@ -504,8 +540,8 @@ function Grime({
       return {
         cx: (t + (k % 4) * 0.012) * width,
         cy: (0.2 + (k % 5) * 0.14) * height,
-        r: (0.012 + (k % 2) * 0.008) * width,
-        opacity: 0.28 + (k % 3) * 0.08,
+        r: (0.007 + (k % 2) * 0.004) * width,
+        opacity: 0.16 + (k % 3) * 0.05,
       };
     });
   }, [index, width, height]);
@@ -529,6 +565,10 @@ function Grime({
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }}
         focusable="false"
       >
+        {/* The segment's own "not dealt with yet" tint. Faint enough to read as
+            film on the painted slab rather than as a painted stripe, and it is
+            what actually lifts as the segment is wiped. */}
+        <rect x="0" y="0" width={width} height={height} fill="#8A7B60" opacity="0.16" />
         {smudges.map((smudge, i) => (
           <ellipse
             key={`smudge-${i}`}
@@ -568,6 +608,7 @@ function Grime({
 function Segment({
   index,
   step,
+  surface,
   width,
   sprayed,
   wipes,
@@ -584,6 +625,7 @@ function Segment({
 }: {
   index: number;
   step: CleanStep;
+  surface: Rect;
   width: number;
   sprayed: boolean;
   wipes: number;
@@ -598,7 +640,6 @@ function Segment({
   onPointerUp: (event: ReactPointerEvent<HTMLElement>) => void;
   onPointerCancel: () => void;
 }) {
-  const { surface } = step;
   const wiped = wipes >= step.wipePasses;
   const position = `Bagian meja ${index + 1} dari ${step.segments}`;
   const label = wiped
@@ -753,7 +794,7 @@ function CleaningCard({
             color: COLOR.navy,
           }}
         >
-          {phase === 'wipe' ? step.wipeHint : step.sprayHint}
+          {phase === 'spray' ? step.sprayHint : step.wipeHint}
         </span>
 
         <ToolPanel

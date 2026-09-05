@@ -11,7 +11,9 @@ import glovesUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_asept
 import faceMaskUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_2/face_mask.png';
 import safetyShoesUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_2/safety_shoes.png';
 import swimCapUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_2/swim_cap.png';
-import benchUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_3/backgrounds/1.png';
+import benchDirtyUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_3/backgrounds/1.png';
+import benchCleaningUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_3/backgrounds/2.png';
+import benchCleanUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_3/backgrounds/3.png';
 import alcoholSprayUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_3/alcohol_spray.png';
 import clothUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_3/cloth.png';
 
@@ -152,6 +154,30 @@ export interface EquipStep extends BaseStep {
   completedBackgroundAlt: string;
 }
 
+// One plate of Langkah 3's art, plus the bench top painted into it.
+//
+// The surface travels with the plate rather than sitting once on the step:
+// BG_LANGKAH_3's three rasters are not registered to each other, and the bench
+// is painted 44 design px higher on plate 2 than on plate 1. A single rect
+// would leave the grime and the sweep strip floating above the table for the
+// whole wipe phase.
+//
+// Each rect is measured off its own 1920x1080 raster - the bench is painted
+// into the background, so it has no Figma node to read bounds from. The slab is
+// a trapezoid in perspective; the rect is its narrower back edge, so every part
+// of it lands on painted table.
+//
+// Both ends are then clipped to the gap between the two cards, which sit above
+// the strip: the PROSEDUR card ends at 556.489 and the floating card starts at
+// 1428.65. The painted slab reaches x 506 on every plate, but a strip that
+// started there would put its first segment underneath the PROSEDUR card, where
+// a press lands on the card and never reaches the bench at all.
+export interface CleanFrame {
+  src: string;
+  alt: string;
+  surface: Rect;
+}
+
 // Langkah 3's shape: two passes over one surface with two different tools -
 // spray every segment of the bench, then scrub each segment clean.
 export interface CleanStep extends BaseStep {
@@ -163,15 +189,15 @@ export interface CleanStep extends BaseStep {
   wipeHint: string;
   // Announced when a tool is dropped somewhere that is not the bench.
   offSurfaceCorrection: string;
-  // The bench top the Analyst works on. Measured off a render of frame 61:541
-  // rather than taken from a Figma node: the bench is painted into
-  // BG_LANGKAH_3, so it has no node of its own. The painted slab runs
-  // x 562..1472, y 632..689; the interactive strip stops at 1428 because the
-  // floating card's bottom-left corner covers the last 44 design px of it.
-  surface: Rect;
-  // How many segments the strip is divided into. Five, because the strip is
-  // 862 design px wide and the 44px touch floor at 568px viewport works out at
-  // 148.7 design px - six segments would each be 143.7 and miss the floor.
+  // One plate per phase, in phase order: spray (bench dirty, Analyst idle),
+  // wipe (Analyst spraying and wiping), done (bench clean, thumbs up). That is
+  // what BG_LANGKAH_3's three stacked rasters draw, so the art advances with
+  // the procedure instead of holding one illustration for all of it.
+  frames: [CleanFrame, CleanFrame, CleanFrame];
+  // How many segments the strip is divided into. Five, because the narrowest
+  // strip is 828 design px wide and the 44px touch floor at 568px viewport
+  // works out at 148.7 design px - five segments are 165.6 each and clear it,
+  // six would be 138 and miss it.
   segments: number;
   // Scrubs per segment. Two, so "usap berulang" is literally true: one sweep
   // across and one back.
@@ -385,6 +411,28 @@ export const WEAR_PPE_STEP: EquipStep = {
   ],
 };
 
+// The three plates of BG_LANGKAH_3 (229:11 / 229:12 / 229:13), in phase order.
+// The bench rects are measured off each raster: the painted slab sits at
+// y 635..694 on the first, y 591..659 on the second and y 607..676 on the
+// third, so the strip has to move with the plate.
+const CLEAN_BENCH_FRAMES: [CleanFrame, CleanFrame, CleanFrame] = [
+  {
+    src: benchDirtyUrl,
+    alt: 'Meja kerja laboratorium di tengah ruangan dengan permukaan yang masih kotor berdebu, analis berdiri di belakangnya',
+    surface: { x: 566, y: 635, width: 828, height: 59 },
+  },
+  {
+    src: benchCleaningUrl,
+    alt: 'Analis menyemprotkan alkohol 70% ke meja kerja dan mengusapnya dengan lap',
+    surface: { x: 566, y: 591, width: 843, height: 68 },
+  },
+  {
+    src: benchCleanUrl,
+    alt: 'Meja kerja laboratorium yang sudah bersih mengkilap, analis mengacungkan jempol',
+    surface: { x: 566, y: 607, width: 837, height: 69 },
+  },
+];
+
 // Bench-cleaning: spray the whole bench with 70% alcohol, then wipe it down.
 // Figma frame 61:541 "LANGKAH 3 NEW" - the card copy is verbatim from its text
 // nodes (242:292 / 242:294 / 242:293 and the hint at 229:474).
@@ -401,14 +449,13 @@ export const CLEAN_BENCH_STEP: CleanStep = {
   wipeHint:
     'Usap Permukaan Meja: Tarik (drag) lap ke meja kerja, lalu usap bolak-balik hingga seluruh area kerja bersih.',
   offSurfaceCorrection: 'Arahkan ke permukaan meja kerja - hanya meja yang perlu dibersihkan.',
-  initialBackground: benchUrl,
-  initialBackgroundAlt:
-    // Deliberately not opening with "Ruang laboratorium": Case's own artwork
-    // already carries that phrase, and tests/case.ts matches it to know it has
-    // landed on Case.
-    'Meja kerja laboratorium di tengah ruangan, dengan lemari alat gelas di dinding kanan dan jendela di dinding kiri',
+  // Deliberately not opening with "Ruang laboratorium": Case's own artwork
+  // already carries that phrase, and tests/case.ts matches it to know it has
+  // landed on Case.
+  initialBackground: CLEAN_BENCH_FRAMES[0].src,
+  initialBackgroundAlt: CLEAN_BENCH_FRAMES[0].alt,
   backgroundRect: FULL_FRAME,
-  surface: { x: 566, y: 632, width: 862, height: 57 },
+  frames: CLEAN_BENCH_FRAMES,
   segments: 5,
   wipePasses: 2,
   successTitle: 'Meja kerja telah dibersihkan!',
@@ -419,7 +466,7 @@ export const CLEAN_BENCH_STEP: CleanStep = {
       name: 'Botol spray alkohol 70%',
       accessibleName: 'Botol spray alkohol 70%, seret ke meja kerja',
       src: alcoholSprayUrl,
-      width: 132,
+      width: 123,
       height: 190,
     },
     cloth: {
@@ -427,8 +474,8 @@ export const CLEAN_BENCH_STEP: CleanStep = {
       name: 'Lap pembersih',
       accessibleName: 'Lap pembersih, seret ke meja kerja',
       src: clothUrl,
-      width: 150,
-      height: 120,
+      width: 170,
+      height: 128,
     },
   },
 };

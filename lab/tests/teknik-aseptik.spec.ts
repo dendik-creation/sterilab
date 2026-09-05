@@ -588,8 +588,18 @@ function segment(page: Page, n: number) {
   return page.getByRole('button', { name: new RegExp(`^Bagian meja ${n} dari ${SEGMENTS}`) });
 }
 
+// One locator per plate of BG_LANGKAH_3. The art advances with the phase, so
+// "which plate is showing" is a fact about progress and worth asserting.
 function benchArt(page: Page) {
   return page.getByAltText(/Meja kerja laboratorium di tengah ruangan/);
+}
+
+function benchCleaningArt(page: Page) {
+  return page.getByAltText(/Analis menyemprotkan alkohol 70%/);
+}
+
+function benchCleanArt(page: Page) {
+  return page.getByAltText(/Meja kerja laboratorium yang sudah bersih/);
 }
 
 async function gotoStep3(page: Page): Promise<void> {
@@ -641,6 +651,7 @@ test('Langkah 3 opens dirty, on the spray phase, with the bottle in the card', a
 
   await expect(page.getByText('Membersihkan Meja Kerja', { exact: true })).toBeVisible();
   await expect(benchArt(page)).toBeVisible();
+  await expect(benchCleaningArt(page)).toHaveCount(0);
   await expect(page.getByTestId('tool-spray')).toBeVisible();
   await expect(page.getByTestId('tool-cloth')).toHaveCount(0);
   await expect(page.getByText(/^Semprot Permukaan Meja:/)).toBeVisible();
@@ -662,6 +673,10 @@ test('one sweep sprays the whole bench and hands the card over to the cloth', as
   await expect(page.getByTestId('tool-cloth')).toBeVisible();
   await expect(page.getByTestId('tool-spray')).toHaveCount(0);
   await expect(page.getByText(/^Usap Permukaan Meja:/)).toBeVisible();
+  // Finishing the spraying is visible in the room, not only in the card: the
+  // wipe phase draws its own plate of BG_LANGKAH_3.
+  await expect(benchCleaningArt(page)).toBeVisible();
+  await expect(benchCleanArt(page)).toHaveCount(0);
   // Wet is not clean: the step is not finished by spraying alone.
   await expect(page.getByRole('group', { name: 'Meja kerja telah dibersihkan!' })).not.toBeAttached();
 });
@@ -676,6 +691,9 @@ test('wiping takes a pass and a return pass, and finishing raises the note', asy
   await expect(segment(page, 1)).toHaveAccessibleName(new RegExp(`1 dari ${WIPE_PASSES} usapan$`));
 
   await sweep(page, 'rtl');
+  // The clean bench lands before the note card does - the room finishes the
+  // job, then the card says so.
+  await expect(benchCleanArt(page)).toBeVisible();
   const note = page.getByRole('group', { name: 'Meja kerja telah dibersihkan!' });
   await expect(note).toBeVisible({ timeout: 4000 });
   await waitForMotionSettled(page);
