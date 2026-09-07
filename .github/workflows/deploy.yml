@@ -1,0 +1,54 @@
+name: Deploy AnatoQuest
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Pillow
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Optimize image assets
+        run: python scripts/optimize-assets.py
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: lab/package-lock.json
+
+      - name: Install Node dependencies
+        working-directory: lab
+        run: npm ci
+
+      - name: Build production application
+        working-directory: lab
+        run: npm run build
+
+      - name: Deploy to Vercel production
+        working-directory: lab
+        run: npx vercel deploy --prod --yes --token="$VERCEL_TOKEN"
