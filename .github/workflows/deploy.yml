@@ -1,4 +1,4 @@
-name: Deploy AnatoQuest
+name: Deploy Sterilab
 
 on:
   push:
