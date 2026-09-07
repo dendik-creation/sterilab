@@ -4,6 +4,7 @@ import { useNavigation } from '../../app/navigation';
 import type { StageId } from '../../core/types';
 import { TeknikAseptikPage } from './stages/TeknikAseptikPage';
 import { KulturMikroba } from './stages/KulturMikroba';
+import { PengelolaanLimbah } from './stages/PengelolaanLimbah';
 
 // One Screen for all five practice Stages, selected by `params.stageId`
 // (docs/adr/0005-single-path-spa-navigation.md).
@@ -22,6 +23,7 @@ export function StagePage() {
 
   if (stageId === 'teknik-aseptik') return <TeknikAseptikPage />;
   if (stageId === 'media-kultur') return <KulturMikroba />;
+  if (stageId === 'pengelolaan-limbah') return <PengelolaanLimbah />;
 
   return <PhaserStage stageId={stageId} />;
 }
