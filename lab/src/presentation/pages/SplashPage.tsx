@@ -14,6 +14,7 @@ import { useNavigation } from '../../app/navigation';
 import { isAudioEnabled, toggleAudioEnabled } from '../../core/audio/audioSettings';
 import { startGlobalBgm } from '../../core/audio/bgmPlayer';
 import { prefersReducedMotion } from '../../core/a11y/motion';
+import { preloadApplicationAssets } from '../../core/assets/preload';
 import { Stage } from '../components/Stage';
 import { IconButton } from '../components/IconButton';
 
@@ -23,8 +24,6 @@ import { IconButton } from '../components/IconButton';
 // docs/adr/0005-single-path-spa-navigation.md). Figma "Sterilab-APHP" nodes
 // 9:500 (Loading), 9:501 (After Loading), 2:3 (Home).
 type Phase = 'loading' | 'touch' | 'home';
-
-const MIN_LOADING_DISPLAY_MS = 1000;
 
 // Home phase exit ("Mulai Menjelajah"): every element bubbles back out
 // before the Screen actually switches to Case, mirroring the entrance -
@@ -45,34 +44,6 @@ const ADVANCE_ELEMENT_COUNT = 3; // logo, touch icon, touch text
 const ADVANCE_EXIT_STAGGER_MS = 120;
 const ADVANCE_EXIT_DURATION_MS = 550;
 const ADVANCE_EXIT_TOTAL_MS = (ADVANCE_ELEMENT_COUNT - 1) * ADVANCE_EXIT_STAGGER_MS + ADVANCE_EXIT_DURATION_MS;
-
-// Preloaded so the Home phase (shown immediately after the touch-anywhere
-// tap, no further wait) never pops its art in mid-decode.
-const PRELOAD_IMAGE_URLS = [
-  splashBgUrl,
-  mainLogoUrl,
-  touchAnythingUrl,
-  homeBgUrl,
-  greetingUrl,
-  exploreBtnUrl,
-  bgmOnBtnUrl,
-  bgmOffBtnUrl,
-  exitBtnUrl,
-];
-
-function preloadImages(urls: string[]): Promise<void> {
-  return Promise.all(
-    urls.map(
-      (url) =>
-        new Promise<void>((resolve) => {
-          const img = new Image();
-          img.onload = () => resolve();
-          img.onerror = () => resolve(); // one broken asset must not block the whole app
-          img.src = url;
-        }),
-    ),
-  ).then(() => undefined);
-}
 
 // Must run synchronously inside the tap/click/keydown handler - browsers
 // only grant the Fullscreen API within a real user-gesture call stack. Once
@@ -109,7 +80,6 @@ export function SplashPage() {
   const [advancing, setAdvancing] = useState(false);
   const clickAudioRef = useRef<HTMLAudioElement | null>(null);
   const assetsReadyRef = useRef(false);
-  const minDisplayElapsedRef = useRef(false);
   const loadingExitStartedRef = useRef(false);
   const exitTimeoutRef = useRef(0);
   const loadingExitTimeoutRef = useRef(0);
@@ -124,13 +94,10 @@ export function SplashPage() {
     [],
   );
 
-  // Called from whichever of the two independent gates below (real asset
-  // preload, floored display timer) finishes second - not a synchronizing
-  // effect watching both, since that would fire an extra render for no reason.
-  // Mirrors the Home exit below: the progress bar bubbles out first, then
-  // the phase actually flips to "touch" once the animation has played.
+  // Mirrors the Home exit below: the progress bar bubbles out first, then the
+  // phase actually flips to "touch" once the real asset preload has finished.
   const tryProceedToTouch = () => {
-    if (!assetsReadyRef.current || !minDisplayElapsedRef.current) return;
+    if (!assetsReadyRef.current) return;
     if (loadingExitStartedRef.current) return;
     loadingExitStartedRef.current = true;
     if (prefersReducedMotion()) {
@@ -153,12 +120,14 @@ export function SplashPage() {
     void audio.play().catch(() => {});
   };
 
-  // Real preload gate - the bar reaching 100% and the phase actually
-  // advancing are decoupled from raw byte progress the same way the old
-  // Phaser tween was (mock progress animation, floored display time).
+  // The first scene loads all runtime media now, rather than just its own
+  // splash/home art. The progress callback is invoked only by browser asset
+  // load completion, so this bar reflects real application readiness.
   useEffect(() => {
     let cancelled = false;
-    preloadImages(PRELOAD_IMAGE_URLS).then(() => {
+    preloadApplicationAssets(({ percent: loadedPercent }) => {
+      if (!cancelled) setPercent(loadedPercent);
+    }).then(() => {
       if (cancelled) return;
       assetsReadyRef.current = true;
       startGlobalBgm();
@@ -166,36 +135,6 @@ export function SplashPage() {
     });
     return () => {
       cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    let raf = 0;
-    let holdTimeout = 0;
-    const start = performance.now();
-
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / MIN_LOADING_DISPLAY_MS);
-      const eased = Math.sin((t * Math.PI) / 2); // Sine.easeOut
-      setPercent(t < 1 ? Math.round(eased * 100) : 100);
-      if (t < 1) {
-        raf = requestAnimationFrame(tick);
-        return;
-      }
-      // Hold "100% Memuat Konten" on screen for a beat instead of flipping
-      // phase the instant the tween ends - otherwise the Analyst (and any
-      // observer) never actually sees it reach 100, only ~90-something.
-      holdTimeout = window.setTimeout(() => {
-        minDisplayElapsedRef.current = true;
-        tryProceedToTouch();
-      }, 200);
-    };
-
-    raf = requestAnimationFrame(tick);
-    return () => {
-      cancelAnimationFrame(raf);
-      window.clearTimeout(holdTimeout);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
