@@ -1,115 +1,115 @@
 # SteriLab
 
-SteriLab is a landscape-only web laboratory for Grade X vocational students in the Agribusiness of Agricultural Product Processing program (APHP, Fase E). The Analyst investigates a suspected food-poisoning case, practices microbiology procedures, reviews simulated evidence, and makes an Evidence Decision.
+SteriLab is a landscape-only web laboratory for Grade X vocational students in the Agribusiness of Agricultural Product Processing program (APHP, Phase E). The Analyst investigates a suspected food-poisoning case, practices microbiology procedures, reviews simulated evidence, and makes an Evidence Decision.
 
-The application is learning software, not a source of real laboratory operating values or food-safety advice. Any displayed CFU count, threshold, duration, or temperature is simulated data and needs approval from an APHP or microbiology expert before release.
+The application is learning software, not a source of real laboratory operating values or food-safety advice. Any displayed CFU count, threshold, duration, or temperature is simulated data and requires approval from an APHP or microbiology expert before release.
 
-## Peta isi
+## Table of Contents
 
-| Bagian | Isi | Tautan |
+| Section | Content | Link |
 | --- | --- | --- |
-| Produk | Tujuan, peran, dan cakupan pembelajaran | [Tentang](#tentang) |
-| Alur | Urutan Screen dan lima Stage | [Alur pembelajaran](#alur-pembelajaran) |
-| Status | Batas implementasi saat ini | [Status implementasi](#status-implementasi) |
-| Arsitektur | SPA, React, Phaser, dan aset | [Arsitektur](#arsitektur) |
-| Struktur | Peta direktori utama | [Struktur repository](#struktur-repository) |
-| Menjalankan | Instalasi, pengembangan, build, dan pengujian | [Pengembangan lokal](#pengembangan-lokal) |
-| Rilis | Optimasi aset dan deploy Vercel | [Build dan deployment](#build-dan-deployment) |
-| Referensi | PRD, ADR, dan daftar kerja | [Dokumentasi](#dokumentasi) |
+| Product | Purpose, role, and learning scope | [About](#about) |
+| Flow | Screen sequence and the five Stages | [Learning flow](#learning-flow) |
+| Status | Current implementation boundaries | [Implementation status](#implementation-status) |
+| Architecture | SPA, React, Phaser, and assets | [Architecture](#architecture) |
+| Structure | Main directory map | [Repository structure](#repository-structure) |
+| Running | Install, dev, build, and testing | [Local development](#local-development) |
+| Release | Asset optimization and Vercel deploy | [Build and deployment](#build-and-deployment) |
+| Reference | PRD, ADRs, and task list | [Documentation](#documentation) |
 
-## Tentang
+## About
 
-Analyst berperan sebagai analis mikrobiologi pangan. Pembelajaran memakai Problem Based Learning: kasus memberi konteks, Stage memberi latihan prosedural, lalu Evidence Decision meminta Analyst membaca bukti sebelum memilih keputusan.
+The Analyst plays the role of a food microbiology analyst. Learning follows Problem Based Learning: the case provides context, the Stages provide procedural practice, and the Evidence Decision asks the Analyst to read the evidence before choosing an outcome.
 
-Materi yang dicakup:
+Topics covered:
 
-- teknik kerja aseptik dan K3 laboratorium;
-- persiapan ruang kerja dan APD;
-- pembuatan serta sterilisasi media kultur;
-- inokulasi sederhana secara aseptik;
-- dampak kontaminasi pada hasil kultur; dan
-- pengelolaan limbah laboratorium.
+- aseptic technique and laboratory safety (K3);
+- workspace preparation and PPE;
+- preparing and sterilizing culture media;
+- simple aseptic inoculation;
+- the impact of contamination on culture results; and
+- laboratory waste management.
 
-Istilah yang dipakai di produk:
+Terminology used in the product:
 
-| Istilah | Makna |
+| Term | Meaning |
 | --- | --- |
-| Screen | Halaman yang dapat dinavigasi, seperti Case atau Missions. |
-| Stage | Satu dari lima aktivitas praktik. Jangan menyebutnya level atau scene. |
-| Analyst | Peran peserta didik di dalam cerita. Narasi menggunakan kata `kamu`. |
-| Lead QC | Pembimbing di dalam cerita yang memberi briefing. |
-| Evidence Decision | Pilihan Produk Aman atau Produk Tidak Aman berdasarkan evidence. |
-| Simulated Value | Nilai ilustratif untuk skenario, bukan standar laboratorium nyata. |
+| Screen | A navigable page, such as Case or Missions. |
+| Stage | One of the five hands-on activities. Never call it a level or scene. |
+| Analyst | The learner's role within the story. The narrative addresses them as "you." |
+| Lead QC | The in-story mentor who gives the briefing. |
+| Evidence Decision | The choice between "Product Safe" and "Product Unsafe," based on evidence. |
+| Simulated Value | An illustrative value for the scenario, not a real laboratory standard. |
 
-## Alur pembelajaran
+## Learning flow
 
 ```text
-Splash dan Cover
+Splash and Cover
   -> Case
-  -> Briefing Lead QC
+  -> Lead QC Briefing
   -> Guide
   -> Missions
-  -> Stage 1 sampai 5
+  -> Stage 1 through 5
   -> Evidence Decision
   -> Evaluation
   -> Reflection
   -> Completion
 ```
 
-Lima Stage yang direncanakan:
+The five planned Stages:
 
-| Stage | Fokus |
+| Stage | Focus |
 | --- | --- |
-| Persiapan APD | Memilih dan mengenakan APD yang sesuai. |
-| Area Kerja Aseptik | Menyiapkan area, alat, dan urutan kerja. |
-| Pembuatan Media Kultur | Mengurutkan pembuatan hingga sterilisasi media. |
-| Teknik Kerja Aseptik | Menjalankan enam prosedur linear. |
-| Pengelolaan Limbah | Mengelompokkan limbah ke penanganan yang tepat. |
+| PPE Preparation | Selecting and putting on the appropriate PPE. |
+| Aseptic Work Area | Setting up the area, tools, and work sequence. |
+| Culture Media Preparation | Sequencing media preparation through sterilization. |
+| Aseptic Technique | Performing six linear procedures. |
+| Waste Management | Sorting waste into the correct disposal method. |
 
-Stage Teknik Kerja Aseptik memakai enam prosedur: cuci tangan, memakai APD, membersihkan meja kerja, menyalakan Bunsen, memijarkan jarum ose, serta mengambil dan menginokulasi kultur. Urutan internal seperti memanaskan lalu mendinginkan jarum ose tetap divalidasi di dalam prosedur terkait.
+The Aseptic Technique Stage covers six procedures: handwashing, putting on PPE, cleaning the workbench, lighting the Bunsen burner, flaming the inoculation loop, and collecting and inoculating the culture. Internal ordering — such as heating and then cooling the loop — is validated within the relevant procedure itself.
 
-## Status implementasi
+## Implementation status
 
-Repository ini masih dalam pengembangan. Splash dan Cover, Case, Missions, serta Stage Teknik Kerja Aseptik menjadi bagian yang telah dibangun paling jauh. Source tree saat ini memuat enam komponen prosedur untuk Stage tersebut.
+This repository is still under development. Splash and Cover, Case, Missions, and the Aseptic Technique Stage are the most complete parts of the build. The current source tree includes six procedure components for that Stage.
 
-Briefing, Guide, Evidence, Evaluation, Reflection, Completion, dan empat Stage lain masih membutuhkan penyelesaian sesuai daftar kerja. [`TASKS.md`](TASKS.md) adalah catatan implementasi dan verifikasi yang harus dipakai saat memilih pekerjaan berikutnya.
+Briefing, Guide, Evidence, Evaluation, Reflection, Completion, and the remaining four Stages still need to be completed per the task list. [`TASKS.md`](TASKS.md) is the implementation and verification log to consult when picking the next piece of work.
 
-## Arsitektur
+## Architecture
 
-- Aplikasi adalah SPA pada satu path, `/`. Navigasi memakai stack in-memory di `lab/src/app/navigation.tsx`, bukan `react-router` dan bukan URL per Screen.
-- React, Vite, dan TypeScript menangani shell aplikasi, navigasi, halaman naratif, kontrol, dan aksesibilitas DOM.
-- Phaser 3 dipakai untuk lapisan simulasi 2D ketika sebuah Stage membutuhkannya. Phaser tidak menjadi pengelola state aplikasi.
-- Aturan belajar, progres, validasi, dan skor dipisahkan dari renderer sejauh implementasi Stage memerlukannya.
-- Semua Stage berbasis canvas harus memiliki jalur kontrol DOM yang setara untuk keyboard dan touch. Canvas tidak boleh menjadi satu-satunya cara menyelesaikan aktivitas.
-- Aplikasi hanya dirender pada landscape. Saat portrait, rotate prompt memblokir interaksi sampai orientasi kembali landscape.
-- Progres dirancang local-first. Saat ini refresh masih kembali ke Splash karena posisi Screen belum disimpan.
+- The application is a single-path SPA at `/`. Navigation uses an in-memory stack in `lab/src/app/navigation.tsx`, not `react-router` and not a per-Screen URL.
+- React, Vite, and TypeScript handle the application shell, navigation, narrative pages, controls, and DOM accessibility.
+- Phaser 3 provides the 2D simulation layer for Stages that need it. Phaser does not manage application state.
+- Learning rules, progress, validation, and scoring are kept separate from the renderer wherever a Stage's implementation requires it.
+- Every canvas-based Stage must have an equivalent DOM control path for keyboard and touch input. Canvas must never be the only way to complete an activity.
+- The application renders only in landscape orientation. In portrait mode, a rotate prompt blocks interaction until the device returns to landscape.
+- Progress is designed to be local-first. Currently, a page refresh still returns to Splash because Screen position is not yet persisted.
 
-Stage Teknik Kerja Aseptik menggunakan konfigurasi data di `lab/src/data/stages/teknikAseptik.ts`. Registry prosedur memilih workspace berdasarkan id prosedur, sehingga urutan data tidak bergantung pada posisi komponen.
+The Aseptic Technique Stage uses a data configuration in `lab/src/data/stages/teknikAseptik.ts`. The procedure registry selects the workspace by procedure id, so data order is independent of component position.
 
-## Struktur repository
+## Repository structure
 
 ```text
 .
-|-- CONTEXT.md              # istilah produk dan batas makna
-|-- TASKS.md                # checklist implementasi dan catatan verifikasi
+|-- CONTEXT.md              # product terminology and content boundaries
+|-- TASKS.md                # implementation checklist and verification notes
 |-- docs/
-|   |-- prd/                # kebutuhan produk, desain, interaksi, QA
-|   `-- adr/                # keputusan arsitektur
+|   |-- prd/                # product requirements, design, interaction, QA
+|   `-- adr/                # architecture decision records
 |-- scripts/
-|   `-- optimize-assets.py  # generator WebP non-destruktif
+|   `-- optimize-assets.py  # non-destructive WebP generator
 |-- lab/
-|   |-- assets/             # aset sumber yang dilacak Git
-|   |-- assets-optimized/   # WebP hasil build, diabaikan Git
-|   |-- src/                # aplikasi React, Phaser, data, dan presentasi
-|   |-- tests/              # pengujian Playwright
-|   `-- package.json        # perintah Node.js proyek
-|-- requirements.txt        # dependensi Python untuk optimasi aset
-`-- vercel.json             # menonaktifkan deploy Git otomatis Vercel
+|   |-- assets/             # source assets tracked by Git
+|   |-- assets-optimized/   # build-generated WebP, ignored by Git
+|   |-- src/                # React, Phaser, data, and presentation code
+|   |-- tests/              # Playwright test suite
+|   `-- package.json        # project Node.js commands
+|-- requirements.txt        # Python dependencies for asset optimization
+`-- vercel.json              # disables Vercel's automatic Git deployments
 ```
 
-## Pengembangan lokal
+## Local development
 
-Gunakan Node.js 22 atau versi LTS yang kompatibel dengan Vite 8. Python hanya diperlukan ketika menjalankan optimasi aset.
+Use Node.js 22 or a Vite 8-compatible LTS version. Python is only required when running asset optimization.
 
 ```bash
 cd lab
@@ -117,67 +117,67 @@ npm ci
 npm run dev
 ```
 
-Perintah yang tersedia dari direktori `lab/`:
+Commands available from the `lab/` directory:
 
-| Perintah | Kegunaan |
+| Command | Purpose |
 | --- | --- |
-| `npm run dev` | Menjalankan server pengembangan Vite. |
-| `npm run build` | Menjalankan pemeriksaan TypeScript dan membuat build produksi. |
-| `npm run lint` | Menjalankan Oxlint. |
-| `npm run test:e2e` | Menjalankan suite Playwright. |
-| `npm run preview` | Menyajikan hasil build lokal. |
+| `npm run dev` | Runs the Vite development server. |
+| `npm run build` | Runs TypeScript checks and produces a production build. |
+| `npm run lint` | Runs Oxlint. |
+| `npm run test:e2e` | Runs the Playwright test suite. |
+| `npm run preview` | Serves the local build for preview. |
 
-Target viewport Playwright mencakup lima ukuran landscape dan satu ukuran portrait untuk memeriksa rotate prompt. Jalankan pengujian e2e setelah perubahan pada navigasi, orientasi, interaksi Stage, atau target sentuh.
+The Playwright viewport targets cover five landscape sizes and one portrait size to verify the rotate prompt. Run the e2e suite after any change to navigation, orientation, Stage interaction, or touch targets.
 
-## Build dan deployment
+## Build and deployment
 
-### Optimasi aset
+### Asset optimization
 
-Optimizer memindai seluruh `lab/assets/` secara rekursif dan menulis WebP yang lebih kecil ke `lab/assets-optimized/` dengan struktur folder yang sama. Aset sumber tidak pernah ditimpa. GIF animasi dipertahankan, SVG tidak dirasterisasi, dan output yang lebih besar dari sumber tidak dipakai.
+The optimizer recursively scans `lab/assets/` and writes smaller WebP files to `lab/assets-optimized/`, preserving the same folder structure. Source assets are never overwritten. Animated GIFs are preserved, SVGs are not rasterized, and any output larger than its source is discarded.
 
 ```bash
 python -m pip install -r requirements.txt
 python scripts/optimize-assets.py
 ```
 
-Vite akan memakai WebP hasil optimasi bila tersedia. Jika file hasil tidak ada atau tidak lebih kecil, import aset asli tetap dipakai. Karena `lab/assets-optimized/` dibuat saat build, direktori ini tidak masuk Git.
+Vite uses the optimized WebP files when available. If an optimized file doesn't exist or isn't smaller than the source, the original asset import is used instead. Because `lab/assets-optimized/` is generated at build time, it is not tracked by Git.
 
-### Deployment produksi
+### Production deployment
 
-[`vercel.json`](vercel.json) menonaktifkan deployment otomatis Vercel dari Git. Production deployment hanya dijalankan oleh [workflow GitHub Actions](.github/workflows/deploy.yml) saat push ke branch `main` atau melalui `workflow_dispatch`.
+[`vercel.json`](vercel.json) disables Vercel's automatic Git-based deployments. Production deployments run only through the [GitHub Actions workflow](.github/workflows/deploy.yml), triggered by a push to `main` or via `workflow_dispatch`.
 
-Urutan workflow:
+Workflow sequence:
 
 ```text
-checkout -> setup Python -> install Pillow -> optimize assets
-         -> setup Node.js -> npm ci -> npm run build -> Vercel CLI deploy
+checkout -> set up Python -> install Pillow -> optimize assets
+         -> set up Node.js -> npm ci -> npm run build -> Vercel CLI deploy
 ```
 
-Tambahkan secret berikut di GitHub repository, pada `Settings -> Secrets and variables -> Actions`:
+Add the following secrets in the GitHub repository under `Settings -> Secrets and variables -> Actions`:
 
 - `VERCEL_TOKEN`
 - `VERCEL_ORG_ID`
 - `VERCEL_PROJECT_ID`
 
-Panduan deployment yang lebih rinci tersedia di [`docs/deployment.md`](docs/deployment.md).
+A more detailed deployment guide is available at [`docs/deployment.md`](docs/deployment.md).
 
-## Aksesibilitas dan batas konten
+## Accessibility and content boundaries
 
-- Target desain adalah WCAG 2.2 AA, termasuk focus yang terlihat, label, live region untuk feedback, caption atau transkrip audio, dan `prefers-reduced-motion`.
-- Target sentuh minimum adalah 44 x 44 px, termasuk area interaktif pada canvas.
-- Feedback menjelaskan apa yang perlu diperbaiki tanpa bahasa menghakimi.
-- Jangan menulis atau menampilkan parameter prosedur sebagai fakta operasional sebelum ada sign-off ahli.
-- MVP tidak meminta data pribadi peserta didik. Isi Reflection tidak boleh dikirim sebagai analytics.
+- The design target is WCAG 2.2 AA, including visible focus states, labels, a live region for feedback, audio captions or transcripts, and support for `prefers-reduced-motion`.
+- The minimum touch target size is 44 x 44 px, including interactive areas on canvas.
+- Feedback explains what needs correcting without judgmental language.
+- Do not write or display procedural parameters as operational fact before expert sign-off.
+- The MVP does not collect personal learner data. Reflection content must never be sent as analytics.
 
-## Dokumentasi
+## Documentation
 
-| Dokumen | Kegunaan |
+| Document | Purpose |
 | --- | --- |
-| [CONTEXT.md](CONTEXT.md) | Kamus istilah produk dan aturan untuk nilai simulasi. |
-| [TASKS.md](TASKS.md) | Status pekerjaan, catatan implementasi, dan QA yang belum selesai. |
-| [PRD overview](docs/prd/00-overview.md) | Ringkasan produk dan cakupan materi. |
-| [Product requirements](docs/prd/02-product-requirements.md) | Scope MVP, requirement, dan acceptance criteria. |
-| [Learning interactions](docs/prd/06-learning-interactions.md) | Mekanik Stage, Evidence Decision, dan Evaluation. |
-| [Technical specification](docs/prd/07-technical-spec.md) | Batas React, Phaser, domain, state, dan pengujian. |
-| [Architecture decisions](docs/adr/) | Keputusan platform, orientasi, navigasi, dan enam prosedur Stage 4. |
-| [Deployment guide](docs/deployment.md) | Secret GitHub dan alur deploy Vercel. |
+| [CONTEXT.md](CONTEXT.md) | Product terminology glossary and rules for simulated values. |
+| [TASKS.md](TASKS.md) | Work status, implementation notes, and outstanding QA. |
+| [PRD overview](docs/prd/00-overview.md) | Product summary and content scope. |
+| [Product requirements](docs/prd/02-product-requirements.md) | MVP scope, requirements, and acceptance criteria. |
+| [Learning interactions](docs/prd/06-learning-interactions.md) | Stage mechanics, Evidence Decision, and Evaluation. |
+| [Technical specification](docs/prd/07-technical-spec.md) | Boundaries for React, Phaser, domain logic, state, and testing. |
+| [Architecture decisions](docs/adr/) | Decisions on platform, orientation, navigation, and the six Stage 4 procedures. |
+| [Deployment guide](docs/deployment.md) | GitHub secrets and the Vercel deploy flow. |
