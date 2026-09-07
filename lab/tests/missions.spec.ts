@@ -42,7 +42,7 @@ function card(page: Page, name: RegExp) {
   return page.getByRole('button', { name });
 }
 
-test('renders all five menu cards plus the note card, with only Misi 1 unlocked on a fresh install', async ({ page }) => {
+test('renders all four menu cards plus the note card, with only Misi 1 unlocked on a fresh install', async ({ page }) => {
   await gotoMissions(page);
 
   await expect(card(page, /^Mulai Misi 1: Teknik Kerja Aseptik$/)).toBeEnabled();
@@ -50,7 +50,6 @@ test('renders all five menu cards plus the note card, with only Misi 1 unlocked 
     [2, 'Pembuatan Media Kultur Mikroba'],
     [3, 'Pengelolaan Limbah Laboratorium'],
     [4, 'Evaluasi'],
-    [5, 'Refleksi'],
   ] as const) {
     const locked = card(page, new RegExp(`^Misi ${n}: ${title} - terkunci`));
     await expect(locked).toBeVisible();
@@ -70,7 +69,6 @@ test('completing a menu unlocks exactly the next one and keeps the finished one 
   await expect(card(page, /^Ulangi Misi 2: Pembuatan Media Kultur Mikroba$/)).toBeEnabled();
   await expect(card(page, /^Mulai Misi 3: Pengelolaan Limbah Laboratorium$/)).toBeEnabled();
   await expect(card(page, /^Misi 4: Evaluasi - terkunci/)).toBeDisabled();
-  await expect(card(page, /^Misi 5: Refleksi - terkunci/)).toBeDisabled();
 });
 
 test('finishing a menu writes through to localStorage and the unlock survives a reload', async ({ page }) => {
@@ -106,15 +104,11 @@ test('menu cards and the note card land on their Figma positions at every suppor
     return { w, h, left: (window.innerWidth - w) / 2, top: (window.innerHeight - h) / 2 };
   });
 
-  // Figma 42:36: cards at y=421.195/1080, x = 252.878 + (n-1) * 291.098 of 1920.
-  const expectedLeft = [252.878, 543.976, 835.074, 1126.172, 1417.27];
-  const names = [
-    /^Mulai Misi 1:/,
-    /^Misi 2:.* terkunci/,
-    /^Misi 3:.* terkunci/,
-    /^Misi 4:.* terkunci/,
-    /^Misi 5:.* terkunci/,
-  ];
+  // Only 4 cards ship now (MissionsPage.tsx: Refleksi/level 5 was cut after
+  // slicing) - recentered using the Figma mock's own step (291.098/1920) and
+  // card width (257/1920), not the mock's own x (which assumed 5 cards).
+  const expectedLeft = [394.848, 685.958, 977.05, 1268.141];
+  const names = [/^Mulai Misi 1:/, /^Misi 2:.* terkunci/, /^Misi 3:.* terkunci/, /^Misi 4:.* terkunci/];
 
   for (let i = 0; i < names.length; i += 1) {
     const box = await card(page, names[i]).boundingBox();

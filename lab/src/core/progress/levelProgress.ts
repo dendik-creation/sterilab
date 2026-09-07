@@ -8,11 +8,12 @@ import type { StageStatus } from '../types';
 const STORAGE_KEY = 'sterilab:levelProgress';
 const VERSION = 1;
 
-// The five menu cards the Figma frame actually ships: Teknik Kerja Aseptik,
-// Pembuatan Media Kultur Mikroba, Pengelolaan Limbah Laboratorium, Evaluasi,
-// Refleksi. Levels are addressed 1-based, matching the numbered badge baked
-// into each card's art.
-export const LEVEL_COUNT = 5;
+// The four menu cards Missions ships: Teknik Kerja Aseptik, Pembuatan Media
+// Kultur Mikroba, Pengelolaan Limbah Laboratorium, Evaluasi (the Figma frame
+// also drew a 5th "Refleksi" card, cut after slicing - see MissionsPage.tsx).
+// Levels are addressed 1-based, matching the numbered badge baked into each
+// card's art.
+export const LEVEL_COUNT = 4;
 
 // No 'in_progress' here: a menu is either not reachable yet, reachable, or
 // done. Resume-mid-Stage state belongs to the Stage's own persistence, not to

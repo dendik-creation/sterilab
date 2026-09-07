@@ -356,6 +356,26 @@ body {
   animation: sterilab-smoke 1500ms ease-out both;
 }
 
+/* Evaluasi's 3-2-1 countdown (pages/evaluation/components/Countdown.tsx):
+   each digit rises from just below its resting position while fading in -
+   "dari bawah ke atas" - replayed per digit via a React `key` change rather
+   than looped, since 3, 2 and 1 are three distinct mounts, not one loop. */
+@keyframes sterilab-countdown-in {
+  from {
+    transform: translateY(28px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.sterilab-countdown-in {
+  display: inline-block;
+  animation: sterilab-countdown-in 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sterilab-pulse-ring,
   .sterilab-rise-in-offscreen,
@@ -373,7 +393,8 @@ body {
   .sterilab-flame-waver,
   .sterilab-fade-in,
   .sterilab-cap-drop,
-  .sterilab-smoke {
+  .sterilab-smoke,
+  .sterilab-countdown-in {
     animation: none !important;
   }
 

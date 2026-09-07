@@ -1,5 +1,6 @@
 import mainBgmUrl from '../../../assets/sounds/01_reusable/long/main_bgm.ogg';
 import { isAudioEnabled, onAudioEnabledChange } from './audioSettings';
+import { rampVolume } from './fade';
 
 // Single looping background-music track for the whole app (not per-Phaser-
 // scene - ADR-0001 scopes Phaser to the 5 Stage canvases only). Started once
@@ -15,7 +16,6 @@ let started = false;
 const FULL_VOLUME = 1;
 const DUCKED_VOLUME = 0.10;
 const RAMP_MS = 400;
-let rampFrame = 0;
 
 function ensureAudio(): HTMLAudioElement {
   if (!audio) {
@@ -58,24 +58,24 @@ export function startGlobalBgm(): void {
 // Ramped rather than stepped: a hard cut to 15% under a narration that is
 // itself fading in reads as a glitch, and a hard cut back on Screen change
 // reads as the music restarting.
-function rampVolumeTo(target: number): void {
-  const el = ensureAudio();
-  cancelAnimationFrame(rampFrame);
-  const from = el.volume;
-  if (from === target) return;
-  const startedAt = performance.now();
-  const step = () => {
-    const t = Math.min(1, (performance.now() - startedAt) / RAMP_MS);
-    el.volume = from + (target - from) * t;
-    if (t < 1) rampFrame = requestAnimationFrame(step);
-  };
-  rampFrame = requestAnimationFrame(step);
-}
-
 export function duckGlobalBgm(): void {
-  rampVolumeTo(DUCKED_VOLUME);
+  rampVolume(ensureAudio(), DUCKED_VOLUME, RAMP_MS);
 }
 
 export function restoreGlobalBgm(): void {
-  rampVolumeTo(FULL_VOLUME);
+  rampVolume(ensureAudio(), FULL_VOLUME, RAMP_MS);
+}
+
+// Evaluasi's own stop/resume: unlike duck/restore (music keeps playing under
+// the surface), the loop is fully paused while Evaluasi runs its own
+// work_theme track, and un-paused once the Analyst leaves that Screen.
+export function stopGlobalBgmFaded(ms = RAMP_MS): void {
+  const el = ensureAudio();
+  rampVolume(el, 0, ms, () => el.pause());
+}
+
+export function resumeGlobalBgmFaded(ms = RAMP_MS): void {
+  const el = ensureAudio();
+  if (el.paused) void el.play().catch(() => {});
+  rampVolume(el, FULL_VOLUME, ms);
 }

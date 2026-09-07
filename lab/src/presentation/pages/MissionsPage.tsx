@@ -5,7 +5,6 @@ import level1CardUrl from '../../../assets/images/02_scenes/04_levels/level_1_ca
 import level2CardUrl from '../../../assets/images/02_scenes/04_levels/level_2_card.png';
 import level3CardUrl from '../../../assets/images/02_scenes/04_levels/level_3_card.png';
 import level4CardUrl from '../../../assets/images/02_scenes/04_levels/level_4_card.png';
-import level5CardUrl from '../../../assets/images/02_scenes/04_levels/level_5_card.png';
 import startBtnUrl from '../../../assets/images/02_scenes/04_levels/start_btn.png';
 import lockedBtnUrl from '../../../assets/images/02_scenes/04_levels/locked_btn.png';
 import noteCardUrl from '../../../assets/images/02_scenes/04_levels/note_card.png';
@@ -27,10 +26,16 @@ import { IconButton } from '../components/IconButton';
 // "Sterilab-APHP" node 29:2435 "Scene 03: Navigasi (Menu Utama)", frame 42:36
 // (1920x1080). levels_bg.png already bakes the "Selamat datang di dashboard
 // STERILAB" heading and its paragraph, so nothing here re-renders that copy -
-// the only sliced pieces are the five numbered menu cards, their MULAI /
-// TERKUNCI pills, and the bottom note card, each placed at that frame's own
-// x/y as a percentage of the 1920x1080 canvas (Stage keeps both its layers on
-// the same 16:9 box, so a canvas percentage lands on the same point in either).
+// the only sliced pieces are the numbered menu cards, their MULAI / TERKUNCI
+// pills, and the bottom note card, each placed at that frame's own x/y as a
+// percentage of the 1920x1080 canvas (Stage keeps both its layers on the same
+// 16:9 box, so a canvas percentage lands on the same point in either).
+//
+// Only 4 cards ship (Refleksi/level 5 was cut after the Figma frame was
+// sliced) - their leftPct values are no longer the mock's own x/y but a
+// recentered row using the mock's own card width and gap (step 291.098/1920,
+// gap 34.098/1920), so the remaining 4 read as an intentional row instead of
+// 4 cards bunched left of a hole where the 5th used to be.
 interface LevelDef {
   n: number;
   src: string;
@@ -55,7 +60,7 @@ const LEVELS: LevelDef[] = [
     title: 'Teknik Kerja Aseptik',
     screen: 'stage',
     params: { stageId: 'teknik-aseptik' },
-    leftPct: '13.171%',
+    leftPct: '20.565%',
     widthPct: '13.229%',
     aspect: '254 / 430',
   },
@@ -65,7 +70,7 @@ const LEVELS: LevelDef[] = [
     title: 'Pembuatan Media Kultur Mikroba',
     screen: 'stage',
     params: { stageId: 'media-kultur' },
-    leftPct: '28.332%',
+    leftPct: '35.727%',
     widthPct: '13.385%',
     aspect: '257 / 430',
   },
@@ -75,7 +80,7 @@ const LEVELS: LevelDef[] = [
     title: 'Pengelolaan Limbah Laboratorium',
     screen: 'stage',
     params: { stageId: 'pengelolaan-limbah' },
-    leftPct: '43.493%',
+    leftPct: '50.888%',
     widthPct: '13.385%',
     aspect: '257 / 430',
   },
@@ -84,16 +89,7 @@ const LEVELS: LevelDef[] = [
     src: level4CardUrl,
     title: 'Evaluasi',
     screen: 'evaluation',
-    leftPct: '58.655%',
-    widthPct: '13.385%',
-    aspect: '257 / 430',
-  },
-  {
-    n: 5,
-    src: level5CardUrl,
-    title: 'Refleksi',
-    screen: 'reflection',
-    leftPct: '73.816%',
+    leftPct: '66.049%',
     widthPct: '13.385%',
     aspect: '257 / 430',
   },
@@ -110,7 +106,7 @@ const NOTE_TOP = '89.088%';
 const NOTE_WIDTH = '35.833%';
 
 // Staggered entrance, then the exact reverse on the way out (top bar first in
-// / last out, then cards 1-5, then the note card). Mirrors SplashPage's Home
+// / last out, then each card, then the note card). Mirrors SplashPage's Home
 // exit: the Screen holds its content on screen for the full transition instead
 // of swapping out from under a still-visible UI.
 const STAGGER_MS = 110;
