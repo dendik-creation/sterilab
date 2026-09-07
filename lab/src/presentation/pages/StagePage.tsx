@@ -3,6 +3,7 @@ import type Phaser from 'phaser';
 import { useNavigation } from '../../app/navigation';
 import type { StageId } from '../../core/types';
 import { TeknikAseptikPage } from './stages/TeknikAseptikPage';
+import { KulturMikroba } from './stages/KulturMikroba';
 
 // One Screen for all five practice Stages, selected by `params.stageId`
 // (docs/adr/0005-single-path-spa-navigation.md).
@@ -20,6 +21,7 @@ export function StagePage() {
   const stageId = params.stageId;
 
   if (stageId === 'teknik-aseptik') return <TeknikAseptikPage />;
+  if (stageId === 'media-kultur') return <KulturMikroba />;
 
   return <PhaserStage stageId={stageId} />;
 }
