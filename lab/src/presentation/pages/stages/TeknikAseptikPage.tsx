@@ -6,6 +6,7 @@ import bgmOffBtnUrl from '../../../../assets/images/01_reusable/buttons/bgm_off_
 import clickSfxUrl from '../../../../assets/sounds/01_reusable/short/click.webm';
 import { useNavigation } from '../../../app/navigation';
 import { isAudioEnabled, toggleAudioEnabled } from '../../../core/audio/audioSettings';
+import { markLevelCompleted } from '../../../core/progress/levelProgress';
 import { prefersReducedMotion } from '../../../core/a11y/motion';
 import { PROCEDURE_STEPS } from '../../../data/stages/teknikAseptik';
 import type { ProcedureStep } from '../../../data/stages/teknikAseptik';
@@ -163,6 +164,7 @@ export function TeknikAseptikPage() {
       setStepIndex(stepIndex + 1);
       return;
     }
+    markLevelCompleted(1);
     leaveTo(goBack);
   };
 
