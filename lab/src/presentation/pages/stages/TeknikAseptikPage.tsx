@@ -187,6 +187,7 @@ export function TeknikAseptikPage() {
 
   return (
     <Stage
+      resetKey={frame.src}
       background={
         // Blurred bleed only - the crisp, aligned copy lives in the safe layer
         // below. Hidden entirely on a 16:9 viewport.

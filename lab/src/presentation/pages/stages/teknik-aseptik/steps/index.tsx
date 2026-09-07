@@ -5,6 +5,8 @@ import { Prosedur01CuciTangan } from './Prosedur01CuciTangan';
 import { Prosedur02MemakaiApd } from './Prosedur02MemakaiApd';
 import { Prosedur03MembersihkanMeja } from './Prosedur03MembersihkanMeja';
 import { Prosedur04MenyalakanBunsen } from './Prosedur04MenyalakanBunsen';
+import { Prosedur05MemijarkanOse } from './Prosedur05MemijarkanOse';
+import { Prosedur06MenginokulasiKultur } from './Prosedur06MenginokulasiKultur';
 
 // Which component runs which of Stage 4's procedures.
 //
@@ -13,9 +15,6 @@ import { Prosedur04MenyalakanBunsen } from './Prosedur04MenyalakanBunsen';
 // wrong workspace. Each entry narrows the ProcedureStep union itself - that is
 // what lets Prosedur02MemakaiApd be typed against EquipStep and read
 // `step.items` without a cast, while the registry stays one flat table.
-//
-// Authoring LANGKAH 5: add the id to ProcedureId, the step object to
-// PROCEDURE_STEPS, a Prosedur05*.tsx beside this file, and one line here.
 type ProcedureRenderer = (props: ProcedureProps) => ReactNode;
 
 export const PROCEDURES: Record<ProcedureId, ProcedureRenderer> = {
@@ -27,4 +26,8 @@ export const PROCEDURES: Record<ProcedureId, ProcedureRenderer> = {
     step.kind === 'clean' ? <Prosedur03MembersihkanMeja step={step} runtime={runtime} /> : null,
   'nyalakan-bunsen': ({ step, runtime }) =>
     step.kind === 'bunsen' ? <Prosedur04MenyalakanBunsen step={step} runtime={runtime} /> : null,
+  'memijarkan-ose': ({ step, runtime }) =>
+    step.kind === 'sterilize' ? <Prosedur05MemijarkanOse step={step} runtime={runtime} /> : null,
+  'menginokulasi-kultur': ({ step, runtime }) =>
+    step.kind === 'inoculate' ? <Prosedur06MenginokulasiKultur step={step} runtime={runtime} /> : null,
 };

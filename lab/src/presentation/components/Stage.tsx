@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { palette } from '../../core/theme/palette';
 
@@ -62,10 +63,52 @@ const safeStyle: CSSProperties = {
   fontFamily: "'Plus Jakarta Sans Variable', system-ui, 'Segoe UI', Roboto, sans-serif",
 };
 
-export function Stage({ background, children }: { background: ReactNode; children: ReactNode }) {
+// Forces the cover box to re-lay-out from scratch. On at least one Chromium
+// build, swapping an <img> deep inside `background` to a URL the page has
+// never shown before occasionally leaves *both* centred boxes' own
+// top/left/transform stuck resolved against a stale size - the safe layer
+// (everything the Analyst can act on) up to 80px off-centre, permanently,
+// until something changes either box's own display. Reproduced on Stage 4's
+// Langkah 6 (never hit by Langkah 1-5's smaller/already-cached art).
+//
+// Only the decorative cover box gets toggled, never the safe one: forcing a
+// display toggle on the safe layer fixes its position too, but a `display:
+// none` blip on the subtree holding every drag target permanently breaks
+// pointer-capture-based drags on it afterwards (reproduced with Langkah 4 and
+// 5's own drags) - a cost this bug isn't worth paying. Toggling the sibling
+// cover box alone is enough to make the browser recompute the safe box's
+// position correctly too, without ever touching anything interactive. Pass a
+// value that changes once per background swap (the frame's own src is the
+// obvious one) as `resetKey`, and it happens a frame after paint via rAF so
+// there is nothing to see even on the cover box itself.
+function forceReflow(el: HTMLElement | null) {
+  if (!el) return;
+  el.style.display = 'none';
+  void el.offsetHeight;
+  el.style.display = '';
+}
+
+export function Stage({
+  background,
+  children,
+  resetKey,
+}: {
+  background: ReactNode;
+  children: ReactNode;
+  resetKey?: string | number;
+}) {
+  const coverRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => forceReflow(coverRef.current));
+    return () => cancelAnimationFrame(raf);
+  }, [resetKey]);
+
   return (
     <div style={outerStyle}>
-      <div style={coverStyle}>{background}</div>
+      <div ref={coverRef} style={coverStyle}>
+        {background}
+      </div>
       <div style={safeStyle}>{children}</div>
     </div>
   );

@@ -929,7 +929,7 @@ test('clicking the tube lights the burner, and the flame settles before the plat
   await expect(page.getByRole('group', { name: 'Bunsen telah menyala!' })).not.toBeAttached();
 });
 
-test('capping the burner puts the flame out, raises the note, and LANJUT leaves the Stage', async ({ page }) => {
+test('capping the burner puts the flame out, raises the note, and LANJUT advances to Langkah 5', async ({ page }) => {
   await gotoStep4(page);
   await lightBurner(page);
 
@@ -947,9 +947,10 @@ test('capping the burner puts the flame out, raises the note, and LANJUT leaves 
   expect(Math.abs(box.y + box.h - 1001.159)).toBeLessThan(4);
 
   await page.getByRole('button', { name: 'Lanjut ke langkah berikutnya' }).click();
-  // Langkah 4 is the last authored step, so LANJUT falls through to Missions
-  // rather than dead-ending on an empty workspace.
-  await expect(page.getByAltText(/Dashboard SteriLab/)).toBeVisible({ timeout: 4000 });
+  // Steps advance in place: Langkah 5 is authored now, so LANJUT walks the
+  // Screen on rather than leaving Stage 4.
+  await expect(page.getByText('Langkah 5 / 6', { exact: true })).toBeVisible();
+  await expect(page.getByText('Memijarkan Jarum Ose', { exact: true })).toBeVisible();
 });
 
 test('the cap can be dragged out of the card onto the burner', async ({ page }) => {
@@ -1034,4 +1035,390 @@ test('the burner control keeps a 44x44 touch target', async ({ page }) => {
   const box = (await tube(page).boundingBox())!;
   expect(box.width, 'control width').toBeGreaterThanOrEqual(44);
   expect(box.height, 'control height').toBeGreaterThanOrEqual(44);
+});
+
+// Langkah 5 "Memijarkan Jarum Ose" - Figma frame 61:543 "LANGKAH 5 NEW". Heat
+// the inoculating loop in the bunsen's flame until it glows, then let it cool.
+
+// One locator per plate. The bunsen itself never moves between them - only the
+// analyst's hands and the loop's own glow change.
+function oseIdleArt(page: Page) {
+  return page.getByAltText(/Analis berdiri dengan tangan di sisi tubuh/);
+}
+
+function oseHeatingArt(page: Page) {
+  return page.getByAltText(/mengarahkan ujung kawatnya yang memijar merah/);
+}
+
+function oseCoolingArt(page: Page) {
+  return page.getByAltText(/mengangkat jarum ose menjauh dari api bunsen/);
+}
+
+function flameTarget(page: Page) {
+  return page.getByRole('button', { name: /^(Panaskan jarum ose|Jarum ose sedang|Jarum ose telah)/ });
+}
+
+async function gotoStep5(page: Page): Promise<void> {
+  await gotoStep4(page);
+  await lightBurner(page);
+  await page.getByRole('button', { name: EXTINGUISH }).click();
+  await expect(page.getByRole('group', { name: 'Bunsen telah menyala!' })).toBeVisible({ timeout: 4000 });
+  await page.getByRole('button', { name: 'Lanjut ke langkah berikutnya' }).click({ timeout: 5000 });
+  await expect(page.getByText('Langkah 5 / 6', { exact: true })).toBeVisible();
+  await waitForMotionSettled(page);
+}
+
+test('Langkah 5 opens with the bunsen lit, the loop in the card, and the flame ready', async ({ page }) => {
+  await gotoStep5(page);
+
+  await expect(page.getByText('Memijarkan Jarum Ose', { exact: true })).toBeVisible();
+  await expect(
+    page.getByText(
+      'Jarum ose adalah alat berbentuk kawat kecil dengan ujung bulat (ose) yang digunakan untuk mengambil dan memindahkan kultur mikroorganisme.',
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/^Tarik dan arahkan ujung jarum ose ke bagian atas api bunsen/),
+  ).toBeVisible();
+
+  await expect(oseIdleArt(page)).toBeVisible();
+  await expect(oseHeatingArt(page)).toHaveCount(0);
+  await expect(page.getByTestId('tool-jarum-ose')).toBeVisible();
+  await expect(flameTarget(page)).toBeEnabled();
+  await expect(page.locator('[aria-live="polite"]')).toHaveText(
+    'Bunsen spirtus sudah menyala. Seret jarum ose ke atas api untuk memijarkannya.',
+  );
+});
+
+test('activating the flame heats the loop, then cools it, then raises the note', async ({ page }) => {
+  await gotoStep5(page);
+
+  await flameTarget(page).click();
+  await expect(oseHeatingArt(page)).toBeVisible();
+  await expect(page.locator('[aria-live="polite"]')).toHaveText(
+    'Jarum ose sedang dipijarkan di atas api hingga kawat memijar merah.',
+  );
+  await expect(flameTarget(page)).toBeDisabled();
+
+  await expect(oseCoolingArt(page)).toBeVisible({ timeout: 3000 });
+  await expect(page.locator('[aria-live="polite"]')).toHaveText(
+    'Jarum ose memijar merah, diamkan sejenak hingga mendingin sebelum digunakan.',
+  );
+
+  // The room settles back to idle - the loop put down - before the note rises.
+  await expect(oseIdleArt(page)).toBeVisible({ timeout: 3000 });
+  const note = page.getByRole('group', { name: 'Jarum ose telah disterilkan!' });
+  await expect(note).toBeVisible({ timeout: 4000 });
+  await waitForMotionSettled(page);
+
+  // Same note card geometry as every other step's (Figma bottom edge 1001.159).
+  const box = await designBox(page, note);
+  expect(box.raw.y + box.raw.height).toBeLessThanOrEqual(box.stage.top + box.stage.h + 1);
+  expect(Math.abs(box.y + box.h - 1001.159)).toBeLessThan(4);
+
+  await page.getByRole('button', { name: 'Lanjut ke langkah berikutnya' }).click();
+  // Steps advance in place: Langkah 6 is authored now, so LANJUT walks the
+  // Screen on rather than leaving Stage 4.
+  await expect(page.getByText('Langkah 6 / 6', { exact: true })).toBeVisible();
+  await expect(page.getByText('Mengambil dan Menginokulasi Kultur', { exact: true })).toBeVisible();
+});
+
+test('the loop can be dragged out of the card onto the flame', async ({ page }) => {
+  await gotoStep5(page);
+
+  const from = await center(page.getByTestId('tool-jarum-ose'));
+  const to = await center(flameTarget(page));
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(to.x, to.y, { steps: 16 });
+  await page.mouse.up();
+
+  await expect(oseHeatingArt(page)).toBeVisible();
+});
+
+test('a loop released away from the flame is refused with a written reason', async ({ page }) => {
+  await gotoStep5(page);
+
+  const from = await center(page.getByTestId('tool-jarum-ose'));
+  const stage = await stageBox(page);
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  // The empty floor in front of the bench, well away from the flame.
+  await page.mouse.move(stage.left + stage.w * 0.2, stage.top + stage.h * 0.85, { steps: 16 });
+  await page.mouse.up();
+
+  await expect(page.locator('[aria-live="polite"]')).toHaveText(
+    'Arahkan jarum ose ke atas api bunsen - hanya bagian ini yang perlu dipanaskan.',
+  );
+  await expect(oseIdleArt(page)).toBeVisible();
+  await expect(page.getByTestId('tool-jarum-ose')).toBeVisible();
+});
+
+test('Langkah 5 card and flame target land on their Figma coordinates', async ({ page }) => {
+  await gotoStep5(page);
+
+  // Same tab as every other procedure's floating card (Figma group 232:1577).
+  const tab = await designBox(page, page.getByTestId('floating-step-tab'));
+  expect(Math.abs(tab.x - 1535.317), 'card tab x').toBeLessThan(6);
+  expect(Math.abs(tab.y - 221.17), 'card tab y').toBeLessThan(6);
+
+  // The flame target sits on the bunsen at x 890..985, y 580..770, and clear of
+  // both cards.
+  const control = await designBox(page, flameTarget(page));
+  const cx = control.x + control.w / 2;
+  const cy = control.y + control.h / 2;
+  expect(cx, 'target on the bunsen').toBeGreaterThan(890);
+  expect(cx, 'target on the bunsen').toBeLessThan(985);
+  expect(cy, 'target on the flame/collar').toBeGreaterThan(580);
+  expect(cy, 'target on the flame/collar').toBeLessThan(770);
+  expect(control.x, 'target clear of the procedure card').toBeGreaterThan(556.489);
+  expect(control.x + control.w, 'target clear of the floating card').toBeLessThan(1428.649);
+});
+
+test('the flame target keeps a 44x44 touch target', async ({ page }) => {
+  await gotoStep5(page);
+
+  const box = (await flameTarget(page).boundingBox())!;
+  expect(box.width, 'target width').toBeGreaterThanOrEqual(44);
+  expect(box.height, 'target height').toBeGreaterThanOrEqual(44);
+});
+
+// Langkah 6 "Mengambil dan Menginokulasi Kultur" - Figma frames 61:544,
+// 256:443, 256:582, 256:711, 258:840, 258:975, 259:21 ("LANGKAH 6 NEW
+// (1)".."(7)"). Six actions across seven plates: open the culture dish, take a
+// sample with the loop, transfer it to fresh media, reseal both vessels, label
+// the new media, then move it to the incubator.
+
+const OPEN_KULTUR = 'Buka wadah kultur secara aseptik di dekat nyala api';
+const AMBIL_SAMPEL = 'Ambil sampel menggunakan jarum ose steril';
+const PINDAH_MEDIA = 'Pindahkan inokulum ke media kultur steril';
+const TUTUP_WADAH = 'Tutup kembali wadah kultur dan media';
+const LABEL_TOOL = 'Label dan spidol, seret ke media yang telah diinokulasi sampel';
+const SIMPAN_INKUBATOR = 'Simpan media yang telah diinokulasi ke dalam inkubator';
+
+// One locator per plate. Every action changes what is on the bench, so which
+// plate is showing is a fact about progress worth asserting on its own.
+function inoculateBenchArt(page: Page) {
+  return page.getByAltText(/Analis berdiri di depan bunsen menyala/);
+}
+function inoculateOpenArt(page: Page) {
+  return page.getByAltText(/Analis membuka wadah kultur/);
+}
+function inoculateSamplingArt(page: Page) {
+  return page.getByAltText(/Analis mengambil sampel dari cawan kultur/);
+}
+function inoculateTransferArt(page: Page) {
+  return page.getByAltText(/Analis memindahkan inokulum/);
+}
+function inoculateClosedArt(page: Page) {
+  return page.getByAltText(/Analis menutup kembali wadah kultur/);
+}
+function inoculateLabeledArt(page: Page) {
+  return page.getByAltText(/kini diberi label/);
+}
+function inoculateIncubatorArt(page: Page) {
+  return page.getByAltText(/menempatkan media.*ke dalam inkubator/);
+}
+
+async function gotoStep6(page: Page): Promise<void> {
+  await gotoStep5(page);
+  await flameTarget(page).click();
+  await expect(page.getByRole('group', { name: 'Jarum ose telah disterilkan!' })).toBeVisible({ timeout: 4000 });
+  await page.getByRole('button', { name: 'Lanjut ke langkah berikutnya' }).click({ timeout: 5000 });
+  await expect(page.getByText('Langkah 6 / 6', { exact: true })).toBeVisible();
+  await waitForMotionSettled(page);
+}
+
+// Walks all six actions in order - the four clicks, then the label drop taken
+// through its own click path (the drop target is a real button, like Langkah
+// 5's flame), then the final click onto the incubator.
+async function finishStep6(page: Page): Promise<void> {
+  await page.getByRole('button', { name: OPEN_KULTUR }).click();
+  await page.getByRole('button', { name: AMBIL_SAMPEL }).click();
+  await page.getByRole('button', { name: PINDAH_MEDIA }).click();
+  await page.getByRole('button', { name: TUTUP_WADAH }).click();
+  await page.getByRole('button', { name: LABEL_TOOL }).click();
+  await page.getByRole('button', { name: SIMPAN_INKUBATOR }).click();
+}
+
+test('Langkah 6 opens on the idle bench with the culture dish armed', async ({ page }) => {
+  await gotoStep6(page);
+
+  await expect(page.getByText('Mengambil dan Menginokulasi Kultur', { exact: true })).toBeVisible();
+  await expect(
+    page.getByText(
+      'Inokulasi adalah proses pemindahan mikroorganisme dari kultur asal ke media pertumbuhan baru secara aseptik untuk memperbanyak atau memurnikan biakan tanpa adanya kontaminasi dari lingkungan sekitar.',
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(page.getByText('Buka wadah kultur secara aseptik di dekat nyala api.', { exact: true })).toBeVisible();
+  await expect(page.getByText('Klik kultur / sampel', { exact: true })).toBeVisible();
+
+  await expect(inoculateBenchArt(page)).toBeVisible();
+  await expect(page.getByRole('button', { name: OPEN_KULTUR })).toBeEnabled();
+  await expect(page.getByRole('group', { name: 'Inokulasi kultur berhasil!' })).not.toBeAttached();
+  await expect(page.locator('[aria-live="polite"]')).toHaveText(
+    `Tindakan 0 dari 6 selesai. Berikutnya: ${OPEN_KULTUR}.`,
+  );
+});
+
+test('each click lands the next object and cuts the art to its own plate', async ({ page }) => {
+  await gotoStep6(page);
+
+  await page.getByRole('button', { name: OPEN_KULTUR }).click();
+  await expect(inoculateOpenArt(page)).toBeVisible();
+  await expect(page.getByText('Klik jarum ose steril', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: AMBIL_SAMPEL })).toBeEnabled();
+
+  await page.getByRole('button', { name: AMBIL_SAMPEL }).click();
+  await expect(inoculateSamplingArt(page)).toBeVisible();
+  await expect(page.getByText('Klik media steril', { exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: PINDAH_MEDIA }).click();
+  await expect(inoculateTransferArt(page)).toBeVisible();
+  await expect(page.getByText('Klik tutup cawan petri', { exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: TUTUP_WADAH }).click();
+  await expect(inoculateClosedArt(page)).toBeVisible();
+  await expect(
+    page.getByText('Drag label dan marker ke media baru yang sudah diinokulasi sampel', { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByTestId('tool-label-marker')).toBeVisible();
+
+  await page.getByRole('button', { name: LABEL_TOOL }).click();
+  await expect(inoculateLabeledArt(page)).toBeVisible();
+  await expect(page.getByRole('button', { name: SIMPAN_INKUBATOR })).toBeEnabled();
+
+  await page.getByRole('button', { name: SIMPAN_INKUBATOR }).click();
+  await expect(inoculateIncubatorArt(page)).toBeVisible();
+});
+
+test('the label can be dragged out of the card onto the media dish', async ({ page }) => {
+  await gotoStep6(page);
+  await page.getByRole('button', { name: OPEN_KULTUR }).click();
+  await page.getByRole('button', { name: AMBIL_SAMPEL }).click();
+  await page.getByRole('button', { name: PINDAH_MEDIA }).click();
+  await page.getByRole('button', { name: TUTUP_WADAH }).click();
+
+  const from = await center(page.getByTestId('tool-label-marker'));
+  const to = await center(page.getByRole('button', { name: LABEL_TOOL }));
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(to.x, to.y, { steps: 16 });
+  await page.mouse.up();
+
+  await expect(inoculateLabeledArt(page)).toBeVisible();
+});
+
+test('a label released away from the media dish is refused with a written reason', async ({ page }) => {
+  await gotoStep6(page);
+  await page.getByRole('button', { name: OPEN_KULTUR }).click();
+  await page.getByRole('button', { name: AMBIL_SAMPEL }).click();
+  await page.getByRole('button', { name: PINDAH_MEDIA }).click();
+  await page.getByRole('button', { name: TUTUP_WADAH }).click();
+
+  const from = await center(page.getByTestId('tool-label-marker'));
+  const stage = await stageBox(page);
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  // The empty floor in front of the bench, well away from the media dish.
+  await page.mouse.move(stage.left + stage.w * 0.2, stage.top + stage.h * 0.85, { steps: 16 });
+  await page.mouse.up();
+
+  await expect(page.locator('[aria-live="polite"]')).toHaveText(
+    'Arahkan label ke media yang telah diinokulasi sampel - hanya media ini yang perlu diberi label.',
+  );
+  await expect(inoculateClosedArt(page)).toBeVisible();
+  await expect(page.getByTestId('tool-label-marker')).toBeVisible();
+});
+
+test('finishing all six actions raises the note, and LANJUT falls through to Missions', async ({ page }) => {
+  // The longest chain in this file: five prior steps plus this one's own six
+  // actions and the note/navigation that follows, all before the default 30s
+  // budget - under load that leaves too little slack for the final LANJUT to
+  // land within it.
+  test.setTimeout(60_000);
+  await gotoStep6(page);
+  await finishStep6(page);
+
+  const note = page.getByRole('group', { name: 'Inokulasi kultur berhasil!' });
+  await expect(note).toBeVisible({ timeout: 4000 });
+  await expect(
+    page.getByText('Anda telah menyelesaikan semua tahap teknik kerja aseptik.', { exact: true }),
+  ).toBeVisible();
+  await waitForMotionSettled(page);
+
+  // Same note card geometry as every other step's (Figma bottom edge 1001.159).
+  const box = await designBox(page, note);
+  expect(box.raw.y + box.raw.height).toBeLessThanOrEqual(box.stage.top + box.stage.h + 1);
+  expect(Math.abs(box.y + box.h - 1001.159)).toBeLessThan(4);
+
+  await page.getByRole('button', { name: 'Lanjut ke langkah berikutnya' }).click();
+  // Langkah 6 is the last authored step, so LANJUT falls through to Missions
+  // rather than dead-ending on an empty workspace.
+  await expect(page.getByAltText(/Dashboard SteriLab/)).toBeVisible({ timeout: 4000 });
+});
+
+test('the step is completable from the keyboard alone, including the label drop', async ({ page }) => {
+  await gotoStep6(page);
+
+  for (const name of [OPEN_KULTUR, AMBIL_SAMPEL, PINDAH_MEDIA, TUTUP_WADAH, LABEL_TOOL, SIMPAN_INKUBATOR]) {
+    await page.getByRole('button', { name }).focus();
+    await page.keyboard.press('Enter');
+  }
+
+  await expect(page.getByRole('group', { name: 'Inokulasi kultur berhasil!' })).toBeVisible({ timeout: 4000 });
+});
+
+test('progress is announced after every action', async ({ page }) => {
+  await gotoStep6(page);
+  const live = page.locator('[aria-live="polite"]');
+
+  await page.getByRole('button', { name: OPEN_KULTUR }).click();
+  await expect(live).toHaveText(`Tindakan 1 dari 6 selesai. Berikutnya: ${AMBIL_SAMPEL}.`);
+
+  await page.getByRole('button', { name: AMBIL_SAMPEL }).click();
+  await expect(live).toHaveText(`Tindakan 2 dari 6 selesai. Berikutnya: ${PINDAH_MEDIA}.`);
+
+  await page.getByRole('button', { name: PINDAH_MEDIA }).click();
+  await page.getByRole('button', { name: TUTUP_WADAH }).click();
+  await page.getByRole('button', { name: LABEL_TOOL }).click();
+  await page.getByRole('button', { name: SIMPAN_INKUBATOR }).click();
+  await expect(live).toHaveText(/Inokulasi kultur berhasil!/);
+});
+
+// Regression test for a real Chromium rendering bug found while building this
+// step: the first time a background image that has never appeared on the page
+// before is swapped in, Stage's two centred boxes can each get stuck rendered
+// up to 80px off-centre (their own transform resolves against a stale size),
+// with no further reflow able to correct it. Only reproduced on the
+// transition into Langkah 6 - every earlier step's art had already been
+// decoded by an earlier `<img>` on the page. Fixed by forcing a display
+// toggle on both boxes whenever the frame's src changes (Stage's `resetKey`).
+test('Langkah 6 renders centred on its first paint, not shifted off-screen', async ({ page }) => {
+  await gotoStep5(page);
+  await flameTarget(page).click();
+  await expect(page.getByRole('group', { name: 'Jarum ose telah disterilkan!' })).toBeVisible({ timeout: 4000 });
+  await page.getByRole('button', { name: 'Lanjut ke langkah berikutnya' }).click({ timeout: 5000 });
+  await expect(page.getByText('Langkah 6 / 6', { exact: true })).toBeVisible();
+  await waitForMotionSettled(page);
+
+  // The home button is the leftmost piece of chrome - if the stage has
+  // drifted off-centre it is the first thing clipped or pushed out of view.
+  const home = await page.getByRole('button', { name: 'Menu Utama' }).boundingBox();
+  const stage = await stageBox(page);
+  expect(home, 'home button box').not.toBeNull();
+  expect(home!.x, 'home button clipped off the left edge of the stage').toBeGreaterThanOrEqual(stage.left - 1);
+});
+
+test('every Langkah 6 hotspot keeps a 44x44 touch target', async ({ page }) => {
+  await gotoStep6(page);
+
+  for (const name of [OPEN_KULTUR, AMBIL_SAMPEL, PINDAH_MEDIA, TUTUP_WADAH, LABEL_TOOL, SIMPAN_INKUBATOR]) {
+    const box = (await page.getByRole('button', { name }).boundingBox())!;
+    expect(box.width, `${name} width`).toBeGreaterThanOrEqual(44);
+    expect(box.height, `${name} height`).toBeGreaterThanOrEqual(44);
+    await page.getByRole('button', { name }).click();
+  }
 });

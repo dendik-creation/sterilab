@@ -18,6 +18,18 @@ import alcoholSprayUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja
 import clothUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_3/cloth.png';
 import burnerUnlitUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_4/backgrounds/1.png';
 import burnerLitUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_4/backgrounds/2.png';
+import oseIdleUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_5/backgrounds/1.png';
+import oseHeatingUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_5/backgrounds/2.png';
+import oseCoolingUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_5/backgrounds/3.png';
+import jarumOseUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_5/jarum_ose.png';
+import inoculateBenchUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/backgrounds/1.png';
+import inoculateOpenLidUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/backgrounds/2.png';
+import inoculateSamplingUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/backgrounds/3.png';
+import inoculateTransferUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/backgrounds/4.png';
+import inoculateClosedUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/backgrounds/5.png';
+import inoculateLabeledUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/backgrounds/6.png';
+import inoculateIncubatorUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/backgrounds/7.png';
+import labelMarkerUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/label_marker.png';
 
 // Data for Stage 4 "Teknik Kerja Aseptik" (Figma "Sterilab-APHP" canvas 42:678
 // "Scene 04: Prosedur Panjang Teknik Kerja Aseptik"). Every number here is a
@@ -25,23 +37,29 @@ import burnerLitUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_as
 // with a single design-px -> stage-length helper instead of hand-tuned
 // percentages per element.
 //
-// Langkah 1 (frame 42:679), Langkah 2 (58:2), Langkah 3 (61:541) and Langkah 4
-// (61:542) are authored.
+// All six are now authored: Langkah 1 (frame 42:679), Langkah 2 (58:2),
+// Langkah 3 (61:541), Langkah 4 (61:542), Langkah 5 (61:543) and Langkah 6
+// (61:544 / 256:443 / 256:582 / 256:711 / 258:840 / 258:975 / 259:21, the seven
+// "LANGKAH 6 NEW" plates).
 //
 // The counter/dot row reads "N / 6" because Stage 4 is cut to six procedures
 // (ADR-0006, which supersedes ADR-0004's eleven). Three sources disagreed on
 // the count: the Figma canvas ships frames LANGKAH 1..12, ADR-0004 and the PRD
-// specify 11 linear steps, and the product decision is 6. Six is the number the
-// Screen is built for; the last two are left unauthored here rather than
-// invented, because *which* PRD steps fold together is a content decision, not
-// a layout one.
+// specify 11 linear steps, and the product decision is 6 - which PRD steps
+// fold together was a content decision, not a layout one.
 export const TOTAL_STEPS = 6;
 
 // Which procedure a step is, independent of its position in the list. The
 // Screen picks a workspace component by this id (see
 // presentation/pages/stages/teknik-aseptik/steps/index.tsx), so authoring
 // LANGKAH 3 is a new id here, a new entry there, and nothing else.
-export type ProcedureId = 'cuci-tangan' | 'memakai-apd' | 'bersihkan-meja' | 'nyalakan-bunsen';
+export type ProcedureId =
+  | 'cuci-tangan'
+  | 'memakai-apd'
+  | 'bersihkan-meja'
+  | 'nyalakan-bunsen'
+  | 'memijarkan-ose'
+  | 'menginokulasi-kultur';
 
 export interface Rect {
   x: number;
@@ -306,7 +324,136 @@ export interface BunsenStep extends BaseStep {
   flamePatch: FlamePatch;
 }
 
-export type ProcedureStep = SequenceStep | EquipStep | CleanStep | BunsenStep;
+// One plate of Langkah 5's art. Unlike Langkah 3 and 4, the bunsen itself never
+// moves between the three plates (measured off each raster: flame + collar
+// both sit within a few px of the same box on all three) - only the analyst's
+// hands and the loop's own glow change - so a single `target` rect on the step
+// covers every plate instead of one rect per frame.
+export interface OseFrame {
+  src: string;
+  alt: string;
+}
+
+// The jarum ose tool tile in the floating card, sized from its own export (8
+// design px of transparent padding per side, like every other tool tile).
+export interface OseTool {
+  name: string;
+  accessibleName: string;
+  src: string;
+  width: number;
+  height: number;
+}
+
+// Langkah 5's shape: drag the loop to the flame (or activate the flame control
+// directly, like Langkah 4's tube), hold it there until it glows red, then hold
+// it clear until it cools. Figma frame 61:543 "LANGKAH 5 NEW" - the card copy
+// is verbatim from its text nodes (232:1585..232:1589).
+export interface SterilizeStep extends BaseStep {
+  kind: 'sterilize';
+  hint: string;
+  tool: OseTool;
+  // Where the loop has to land: the flame and the metal collar under it,
+  // measured off backgrounds/1.png (x 899..972, y 587..759 across all three
+  // plates) with a margin so a floored touch target still lands on it.
+  target: Rect;
+  // Announced when the loop is dropped somewhere that is not the flame.
+  offTargetCorrection: string;
+  // How long the loop stays glowing before it is deemed cool enough to use.
+  heatMs: number;
+  coolMs: number;
+  // Idle (bunsen lit, hands empty) first, heating (loop held in the flame,
+  // glowing) second, cooling (loop held clear, dulled) third. `idle` is shown
+  // again once cooling finishes: the loop has been put down, so the room reads
+  // the same as before the Analyst picked it up.
+  frames: [OseFrame, OseFrame, OseFrame];
+}
+
+// One plate of Langkah 6's art. Unlike Langkah 3/4/5, every one of its six
+// actions changes what is sitting on the bench (a dish opens, a sample moves,
+// a lid closes, a label appears, the dish leaves for the incubator), so - like
+// Langkah 1 - each plate is its own flattened export rather than a shared
+// prop drawn over one background.
+export interface InoculateFrame {
+  src: string;
+  alt: string;
+}
+
+// A plain object already on the bench: click it and the workspace cuts to the
+// next plate. Four of Langkah 6's six actions are this shape (open the dish,
+// take the sample, move it to the media, close the lid) - the object is baked
+// into the plate's own art, so there is no separate tool asset to drag.
+export interface InoculateClickAction {
+  kind: 'click';
+  accessibleName: string;
+  hotspot: Rect;
+}
+
+// A tool tile inside the floating card has to be dropped on a target rect in
+// the scene, exactly like Langkah 5's loop. Labelling is the one action in
+// Langkah 6 with a real isolated asset to drag (Figma node 258:972) rather
+// than an object painted into the plate.
+export interface InoculateDragAction {
+  kind: 'drag';
+  tool: { src: string; width: number; height: number; accessibleName: string };
+  target: Rect;
+  offTargetCorrection: string;
+}
+
+export type InoculateAction = InoculateClickAction | InoculateDragAction;
+
+// Card copy for one action: the descriptive sentence Figma writes above the
+// divider, and the short imperative line below it ("Instruksi :").
+export interface InoculatePhaseCopy {
+  hint: string;
+  instructionLabel: string;
+}
+
+// Langkah 6's shape: a six-action chain across seven plates - open the culture
+// vessel, pick up a sample with the loop, transfer it to fresh media, reseal
+// both vessels, label the new media, then move it to the incubator. Figma
+// frames 61:544, 256:443, 256:582, 256:711, 258:840, 258:975, 259:21 ("LANGKAH
+// 6 NEW (1)".."(7)") - the card copy on each is verbatim from its own text
+// nodes.
+//
+// The sixth action ("Drag media baru... ke incubator") is authored as a click
+// rather than a drag: Figma's card shows a preview of the labelled dish at
+// node 258:986, but that node is an empty mask over the shared background
+// raster (a 1.3KB export, no pixels of its own) rather than an isolated
+// sprite - there is nothing to render as a ghost while it is carried. Clicking
+// the incubator itself (Figma's own drop-target rect) asks for the same
+// action without inventing art the design does not actually ship.
+export interface InoculateStep extends BaseStep {
+  kind: 'inoculate';
+  actions: [
+    InoculateClickAction,
+    InoculateClickAction,
+    InoculateClickAction,
+    InoculateClickAction,
+    InoculateDragAction,
+    InoculateClickAction,
+  ];
+  // One plate per action, plus the opening one: frames[n] is shown once n
+  // actions have landed.
+  frames: [
+    InoculateFrame,
+    InoculateFrame,
+    InoculateFrame,
+    InoculateFrame,
+    InoculateFrame,
+    InoculateFrame,
+    InoculateFrame,
+  ];
+  phaseCopy: [
+    InoculatePhaseCopy,
+    InoculatePhaseCopy,
+    InoculatePhaseCopy,
+    InoculatePhaseCopy,
+    InoculatePhaseCopy,
+    InoculatePhaseCopy,
+  ];
+}
+
+export type ProcedureStep = SequenceStep | EquipStep | CleanStep | BunsenStep | SterilizeStep | InoculateStep;
 
 // Wash-hands sequence: the four backgrounds are used in file order (1 dirty ->
 // 2 lathered -> 3 rinsing -> 4 clean), so the frame index is simply the number
@@ -664,10 +811,153 @@ export const LIGHT_BUNSEN_STEP: BunsenStep = {
   successBody: 'Anda siap melanjutkan ke langkah berikutnya.',
 };
 
-// The LANJUT button walks this array, so authoring LANGKAH 5 is a data change.
+// Langkah 5's three plates, in procedure order. The bunsen sits still across
+// all three (unlike Langkah 3/4's props), so there is one `TARGET` rather than
+// one per plate.
+const OSE_FRAMES: [OseFrame, OseFrame, OseFrame] = [
+  {
+    src: oseIdleUrl,
+    alt: 'Analis berdiri dengan tangan di sisi tubuh di depan bunsen spirtus yang menyala, penutup bunsen diletakkan di sebelahnya',
+    // Same idle plate is shown again once the loop has cooled.
+  },
+  {
+    src: oseHeatingUrl,
+    alt: 'Analis memegang jarum ose dan mengarahkan ujung kawatnya yang memijar merah ke dalam api bunsen',
+  },
+  {
+    src: oseCoolingUrl,
+    alt: 'Analis mengangkat jarum ose menjauh dari api bunsen, ujung kawatnya sudah tidak memijar lagi',
+  },
+];
+
+// Flame + metal collar, measured off backgrounds/1.png: flame x 905..955,
+// y 587..679; collar x 899..972, y 710..759 - the same box (within a few px)
+// on all three plates, since the bunsen itself does not move here.
+const OSE_TARGET: Rect = { x: 890, y: 580, width: 95, height: 190 };
+
+// Sterilizing the inoculating loop: heat it in the flame until it glows red,
+// then hold it clear until it cools, before it touches a culture. Figma frame
+// 61:543 "LANGKAH 5 NEW" - the card copy is verbatim from its text nodes
+// (232:1585..232:1589), and the eyebrow paragraph (242:349/242:350) matches the
+// PROSEDUR card's own description/title.
+export const STERILIZE_OSE_STEP: SterilizeStep = {
+  kind: 'sterilize',
+  id: 'memijarkan-ose',
+  n: 5,
+  eyebrow: 'Langkah 5',
+  title: 'Memijarkan Jarum Ose',
+  description:
+    'Jarum ose adalah alat berbentuk kawat kecil dengan ujung bulat (ose) yang digunakan untuk mengambil dan memindahkan kultur mikroorganisme.',
+  hint: 'Tarik dan arahkan ujung jarum ose ke bagian atas api bunsen hingga seluruh kawat memijar merah, lalu diamkan sejenak hingga mendingin sebelum digunakan untuk mengambil kultur mikroba.',
+  offTargetCorrection: 'Arahkan jarum ose ke atas api bunsen - hanya bagian ini yang perlu dipanaskan.',
+  initialBackground: OSE_FRAMES[0].src,
+  initialBackgroundAlt: OSE_FRAMES[0].alt,
+  backgroundRect: FULL_FRAME,
+  frames: OSE_FRAMES,
+  target: OSE_TARGET,
+  heatMs: 900,
+  coolMs: 900,
+  successTitle: 'Jarum ose telah disterilkan!',
+  successBody: 'Anda siap melanjutkan ke langkah berikutnya.',
+  tool: {
+    name: 'Jarum ose',
+    accessibleName: 'Jarum ose, seret ke atas api bunsen',
+    src: jarumOseUrl,
+    width: 142,
+    height: 137,
+  },
+};
+
+// Langkah 6's seven plates, in procedure order.
+const INOCULATE_FRAMES: InoculateStep['frames'] = [
+  {
+    src: inoculateBenchUrl,
+    alt: 'Analis berdiri di depan bunsen menyala dengan cawan kultur, media steril, dan jarum ose tersedia di meja kerja',
+  },
+  {
+    src: inoculateOpenLidUrl,
+    alt: 'Analis membuka wadah kultur secara aseptik di dekat nyala api bunsen',
+  },
+  {
+    src: inoculateSamplingUrl,
+    alt: 'Analis mengambil sampel dari cawan kultur menggunakan jarum ose steril',
+  },
+  {
+    src: inoculateTransferUrl,
+    alt: 'Analis memindahkan inokulum ke media kultur steril di dekat nyala api',
+  },
+  {
+    src: inoculateClosedUrl,
+    alt: 'Analis menutup kembali wadah kultur dan media setelah inokulasi selesai',
+  },
+  {
+    src: inoculateLabeledUrl,
+    alt: 'Media yang telah diinokulasi kini diberi label identitas sampel, jenis media, dan tanggal',
+  },
+  {
+    src: inoculateIncubatorUrl,
+    alt: 'Analis menempatkan media yang telah diinokulasi ke dalam inkubator',
+  },
+];
+
+// Hotspots and drop targets, measured off the highlight boxes Figma itself
+// draws on each plate (e.g. node 256:167 on plate 1: x=377, y=830, w=199,
+// h=165) rather than eyeballed off the art.
+export const MENGINOKULASI_KULTUR_STEP: InoculateStep = {
+  kind: 'inoculate',
+  id: 'menginokulasi-kultur',
+  n: 6,
+  eyebrow: 'Langkah 6',
+  title: 'Mengambil dan Menginokulasi Kultur',
+  description:
+    'Inokulasi adalah proses pemindahan mikroorganisme dari kultur asal ke media pertumbuhan baru secara aseptik untuk memperbanyak atau memurnikan biakan tanpa adanya kontaminasi dari lingkungan sekitar.',
+  initialBackground: INOCULATE_FRAMES[0].src,
+  initialBackgroundAlt: INOCULATE_FRAMES[0].alt,
+  backgroundRect: FULL_FRAME,
+  frames: INOCULATE_FRAMES,
+  actions: [
+    { kind: 'click', accessibleName: 'Buka wadah kultur secara aseptik di dekat nyala api', hotspot: { x: 377, y: 830, width: 199, height: 165 } },
+    { kind: 'click', accessibleName: 'Ambil sampel menggunakan jarum ose steril', hotspot: { x: 1090, y: 791, width: 434, height: 199 } },
+    { kind: 'click', accessibleName: 'Pindahkan inokulum ke media kultur steril', hotspot: { x: 555, y: 883, width: 234, height: 129 } },
+    { kind: 'click', accessibleName: 'Tutup kembali wadah kultur dan media', hotspot: { x: 950, y: 636, width: 234, height: 129 } },
+    {
+      kind: 'drag',
+      tool: {
+        src: labelMarkerUrl,
+        width: 216,
+        height: 144,
+        accessibleName: 'Label dan spidol, seret ke media yang telah diinokulasi sampel',
+      },
+      target: { x: 576, y: 854, width: 234, height: 129 },
+      offTargetCorrection: 'Arahkan label ke media yang telah diinokulasi sampel - hanya media ini yang perlu diberi label.',
+    },
+    { kind: 'click', accessibleName: 'Simpan media yang telah diinokulasi ke dalam inkubator', hotspot: { x: 1125, y: 278, width: 330, height: 351 } },
+  ],
+  phaseCopy: [
+    { hint: 'Buka wadah kultur secara aseptik di dekat nyala api.', instructionLabel: 'Klik kultur / sampel' },
+    { hint: 'Ambil sampel menggunakan jarum ose steril.', instructionLabel: 'Klik jarum ose steril' },
+    { hint: 'Pindahkan inokulum ke media kultur steril menggunakan teknik aseptik.', instructionLabel: 'Klik media steril' },
+    { hint: 'Tutup kembali wadah kultur dan media setelah proses inokulasi selesai.', instructionLabel: 'Klik tutup cawan petri' },
+    {
+      hint: 'Beri label pada media agar sampel dapat diidentifikasi dengan benar.',
+      instructionLabel: 'Drag label dan marker ke media baru yang sudah diinokulasi sampel',
+    },
+    {
+      hint: 'Tempatkan media yang telah diinokulasi ke dalam inkubator sesuai prosedur.',
+      instructionLabel: 'Klik media untuk menempatkannya ke dalam inkubator',
+    },
+  ],
+  successTitle: 'Inokulasi kultur berhasil!',
+  successBody: 'Anda telah menyelesaikan semua tahap teknik kerja aseptik.',
+};
+
+// The LANJUT button walks this array, so authoring another LANGKAH is a data
+// change.
 export const PROCEDURE_STEPS: ProcedureStep[] = [
   HAND_WASH_STEP,
   WEAR_PPE_STEP,
   CLEAN_BENCH_STEP,
   LIGHT_BUNSEN_STEP,
+  STERILIZE_OSE_STEP,
+  MENGINOKULASI_KULTUR_STEP,
 ];
