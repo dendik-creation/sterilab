@@ -4,7 +4,6 @@ import caseBgUrl from '../../../assets/images/02_scenes/03_case/case_bg.png';
 import lanjutBriefingBtnUrl from '../../../assets/images/02_scenes/03_case/lanjut_briefing_btn.png';
 import scientistUrl from '../../../assets/images/02_scenes/03_case/01_karakter_ilmuwan.png';
 import mouthSmileAUrl from '../../../assets/images/02_scenes/03_case/02_mulut_senyum_A.png';
-import mouthOpenAUrl from '../../../assets/images/02_scenes/03_case/03_mulut_oval_gelap_A.png';
 import mouthSmileBUrl from '../../../assets/images/02_scenes/03_case/04_mulut_senyum_B.png';
 import mouthOpenBUrl from '../../../assets/images/02_scenes/03_case/05_mulut_oval_gelap_B.png';
 import homeBtnUrl from '../../../assets/images/01_reusable/buttons/home_btn.png';

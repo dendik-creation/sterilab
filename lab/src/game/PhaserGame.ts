@@ -68,6 +68,12 @@ export function createPhaserGame(parent: HTMLElement, data?: PhaserGameData): Ph
     parent,
     backgroundColor: '#0a0e17',
     scale: SCALE_CONFIG,
+    // file:// blocks XHR/fetch, which Phaser's default loaders use (blob
+    // images, arraybuffer + decodeAudioData). Load through <img>/<audio> tags.
+    ...(__OFFLINE_BUILD__ && {
+      loader: { imageLoadType: 'HTMLImageElement' as const },
+      audio: { disableWebAudio: true },
+    }),
     scene: [BootScene, PreloadScene, MainMenuScene, LabScene, ResultScene],
   });
 

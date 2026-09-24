@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:offline": "tsc -b && vite build --config vite.offline.config.ts",
+    "optimize:assets": "python ../scripts/optimize-assets.py",
     "lint": "oxlint",
     "preview": "vite preview",
     "test:e2e": "playwright test"

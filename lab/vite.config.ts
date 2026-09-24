@@ -83,6 +83,15 @@ function applicationAssetManifest(): Plugin {
 }
 
 // https://vite.dev/config/
+const AUDIO_EXTENSIONS = /\.(webm|ogg|m4a|mp3|wav)$/
+const IMAGE_EXTENSIONS = /\.(webp|png|jpe?g|avif)$/
+
 export default defineConfig({
   plugins: [applicationAssetManifest(), optimizedAssetResolver(), react()],
+  define: { __OFFLINE_BUILD__: false },
+  build: {
+    // Audio and images stay separate files instead of base64 inside the JS.
+    assetsInlineLimit: (filePath) =>
+      AUDIO_EXTENSIONS.test(filePath) || IMAGE_EXTENSIONS.test(filePath) ? false : undefined,
+  },
 })
