@@ -1,8 +1,9 @@
 import bgIdleUrl from '../../../assets/images/02_scenes/04_03_pengelolaan_limbah_laboratorium/step_1/backgrounds/1.png';
-import bgDoneUrl from '../../../assets/images/02_scenes/04_03_pengelolaan_limbah_laboratorium/step_1/backgrounds/2.png';
-import bgAutoclaveIdleUrl from '../../../assets/images/02_scenes/04_03_pengelolaan_limbah_laboratorium/step_2/backgrounds/1.png';
-import bgAutoclaveLoadedUrl from '../../../assets/images/02_scenes/04_03_pengelolaan_limbah_laboratorium/step_2/backgrounds/2.png';
-import bgAutoclaveDoneUrl from '../../../assets/images/02_scenes/04_03_pengelolaan_limbah_laboratorium/step_2/backgrounds/3.png';
+import wasteStep2IdleBackgroundUrl from '../../../assets/images/02_scenes/04_03_pengelolaan_limbah_laboratorium/step_2/backgrounds/new_step_1.png';
+import wasteStep2LoadedBackgroundUrl from '../../../assets/images/02_scenes/04_03_pengelolaan_limbah_laboratorium/step_2/backgrounds/new_step_2.png';
+import wasteStep2DoneBackgroundUrl from '../../../assets/images/02_scenes/04_03_pengelolaan_limbah_laboratorium/step_2/backgrounds/3.png';
+import biologicalWasteStainlessTrayUrl from '../../../assets/images/02_scenes/04_03_pengelolaan_limbah_laboratorium/step_2/backgrounds/stainless_1.png';
+import biologicalWasteStainlessTrayPreviewUrl from '../../../assets/images/02_scenes/04_03_pengelolaan_limbah_laboratorium/step_2/backgrounds/stainless_2.png';
 import bgDesinfeksiIdleUrl from '../../../assets/images/02_scenes/04_03_pengelolaan_limbah_laboratorium/step_3/backgrounds/1.png';
 import bgDesinfeksiSprayingUrl from '../../../assets/images/02_scenes/04_03_pengelolaan_limbah_laboratorium/step_3/backgrounds/2.png';
 import bgDesinfeksiDoneUrl from '../../../assets/images/02_scenes/04_03_pengelolaan_limbah_laboratorium/step_3/backgrounds/3.png';
@@ -83,28 +84,19 @@ export interface IdentifyStep extends BaseStep {
   doneBackgroundAlt: string;
 }
 
-// Langkah 2's shape: pick up the bin of already-identified biological waste
-// and load it into the autoclave, then press the autoclave's own start
-// button to run the decontamination cycle. Figma frames "6.2 - A" (idle, the
-// bin still on the bench, the open autoclave door drawn as the drop target),
-// "6.2 - B" (bin loaded into the open autoclave, the start button drawn as
-// the next hotspot) and "6.2 - C" (door closed, hand on the lit button,
-// success note baked into the frame as a reference for the shell's own
-// SuccessNote).
-//
-// The bin itself carries no dashed hotspot box in Figma (only the autoclave
-// door does) - there is exactly one draggable object this time, so the
-// design leaves it to the art rather than drawing a redundant box. binRect
-// below is measured off the rendered frame instead of a Figma node for that
-// reason.
+// Langkah 2 loads one stainless-steel tray into the autoclave, then starts
+// the existing decontamination flow. The tray is part of the idle background;
+// trayRect is only its responsive interaction hotspot.
 export interface DecontaminateStep extends BaseStep {
   kind: 'decontaminate';
   hint: string;
   instructionLabel: string;
   dragInstruction: string;
   startInstruction: string;
-  binRect: Rect;
-  binAccessibleName: string;
+  trayRect: Rect;
+  trayAccessibleName: string;
+  dragObjectSrc: string;
+  previewSrc: string;
   autoclaveDropRect: Rect;
   autoclaveDropAccessibleName: string;
   loadedBackground: string;
@@ -213,9 +205,9 @@ export const PROCEDURE_STEPS: ProcedureStep[] = [
       { id: 'botol-akuades', rect: { x: 1359, y: 724, width: 156, height: 261 }, accessibleName: 'Botol akuades' },
     ],
     wrongMessage: 'Itu bukan limbah biologis - biarkan di meja.',
-    doneBackground: bgDoneUrl,
+    doneBackground: bgIdleUrl,
     doneBackgroundAlt:
-      'Cawan petri dan rak tabung reaksi telah dipindahkan ke kotak kuning limbah biohazard; kertas dan botol akuades tetap di meja.',
+      'Meja kerja dengan cawan petri berisi media agar bekas, rak tabung reaksi, selembar kertas dan botol akuades.',
   },
   {
     kind: 'decontaminate',
@@ -224,27 +216,29 @@ export const PROCEDURE_STEPS: ProcedureStep[] = [
     eyebrow: 'Langkah 2',
     title: 'Mendekontaminasi Limbah Biologis',
     description:
-      'Dekontaminasi dilakukan pada media atau biakan bekas sebelum dibuang untuk mengurangi risiko biologis dari sisa kegiatan laboratorium.',
-    initialBackground: bgAutoclaveIdleUrl,
+      'Tempatkan limbah biologis pada wadah stainless steel, kemudian lakukan proses dekontaminasi menggunakan autoklaf.',
+    initialBackground: wasteStep2IdleBackgroundUrl,
     initialBackgroundAlt:
-      'Meja kerja dengan kotak kuning limbah biohazard berisi cawan petri dan tabung reaksi, di samping autoklaf dengan pintu terbuka.',
+      'Meja kerja dengan tray stainless steel berisi cawan petri dan tabung kultur, di samping autoklaf.',
     backgroundRect: FULL_FRAME,
     successTitle: 'Dekontaminasi selesai!',
     successBody: 'Anda siap melanjutkan ke langkah berikutnya.',
-    hint: 'Tempatkan limbah biologis pada wadah yang sesuai, kemudian lakukan proses dekontaminasi menggunakan autoklaf.',
+    hint: 'Gunakan autoklaf untuk mendekontaminasi limbah biologis dengan aman.',
     instructionLabel: 'Instruksi :',
-    dragInstruction: 'Seret wadah limbah biologis ke dalam autoklaf.',
+    dragInstruction: 'Seret wadah stainless steel berisi limbah biologis ke dalam autoklaf.',
     startInstruction: 'Klik tombol autoklaf untuk memulai proses dekontaminasi sesuai SOP laboratorium.',
-    binRect: { x: 440, y: 795, width: 400, height: 205 },
-    binAccessibleName: 'Kotak kuning limbah biohazard di atas meja',
-    autoclaveDropRect: { x: 1127, y: 263, width: 304, height: 353 },
-    autoclaveDropAccessibleName: 'Autoklaf dengan pintu terbuka',
-    loadedBackground: bgAutoclaveLoadedUrl,
-    loadedBackgroundAlt: 'Kotak kuning limbah biohazard telah dimasukkan ke dalam autoklaf dengan pintu masih terbuka.',
-    startButtonRect: { x: 1492, y: 496, width: 119, height: 119 },
+    trayRect: { x: 410, y: 775, width: 445, height: 220 },
+    trayAccessibleName: 'Tray stainless steel berisi limbah biologis di atas meja',
+    dragObjectSrc: biologicalWasteStainlessTrayUrl,
+    previewSrc: biologicalWasteStainlessTrayPreviewUrl,
+    autoclaveDropRect: { x: 1150, y: 265, width: 235, height: 300 },
+    autoclaveDropAccessibleName: 'Ruang autoklaf',
+    loadedBackground: wasteStep2LoadedBackgroundUrl,
+    loadedBackgroundAlt: 'Analis memasukkan tray stainless steel berisi limbah biologis ke dalam autoklaf.',
+    startButtonRect: { x: 1545, y: 400, width: 120, height: 120 },
     startButtonAccessibleName: 'Tombol mulai autoklaf',
-    doneBackground: bgAutoclaveDoneUrl,
-    doneBackgroundAlt: 'Pintu autoklaf tertutup dan tombol mulai menyala setelah proses dekontaminasi dijalankan.',
+    doneBackground: wasteStep2DoneBackgroundUrl,
+    doneBackgroundAlt: 'Proses dekontaminasi limbah biologis dengan autoklaf telah selesai.',
   },
   {
     kind: 'sequence',

@@ -15,7 +15,7 @@ import bgFlaskWrappedUrl from '../../../assets/images/02_scenes/04_02_pembuatan_
 import bgAutoklafIdleUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_5/backgrounds/1.png';
 import bgAutoklafLoadedUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_5/backgrounds/2.png';
 import bgAutoklafDoneUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_5/backgrounds/3.png';
-import autoklafPanelUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_5/autoclave_panel.png';
+import autoklafPanelUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_5/new_autoclave_panel.png';
 import mulaiProsesBtnUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_5/mulai_proses_btn.png';
 import bgPetriIdleUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_6/backgrounds/1.png';
 import bgPetriStartedUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_6/backgrounds/2.png';
@@ -225,6 +225,13 @@ export interface SterilizeStep extends BaseStep {
   temperatureDefault: number;
   temperatureStep: number;
   temperatureTarget: number;
+  // Tekanan control follows the same bounded +/- interaction as suhu.
+  pressureUnit: string;
+  pressureMin: number;
+  pressureMax: number;
+  pressureDefault: number;
+  pressureStep: number;
+  pressureTarget: number;
   // Waktu control (Figma nodes 298:2595 label / 302:157 value, "-"/"+" at
   // ~1596,838 and ~1745,838 in the panel) - same shape as suhu, but the
   // expected value is a range (15-20) rather than one exact number.
@@ -248,6 +255,8 @@ export interface SterilizeStep extends BaseStep {
   // panel's own art instead).
   temperatureMinusRect: Rect;
   temperaturePlusRect: Rect;
+  pressureMinusRect: Rect;
+  pressurePlusRect: Rect;
   durationMinusRect: Rect;
   durationPlusRect: Rect;
   sterilizeMs: number;
@@ -447,7 +456,7 @@ const STERILIZE_FRAMES: [SterilizeFrame, SterilizeFrame, SterilizeFrame] = [
   },
   {
     src: bgAutoklafLoadedUrl,
-    alt: 'Analis memasukkan labu Erlenmeyer ke dalam rak autoklaf yang pintunya masih terbuka, dengan panel suhu dan waktu sterilisasi mengambang di sampingnya',
+    alt: 'Analis memasukkan labu Erlenmeyer ke dalam rak autoklaf yang pintunya masih terbuka, dengan panel suhu, tekanan, dan waktu sterilisasi mengambang di sampingnya',
     hotspot: { x: 1301.86, y: 906.62, width: 329.704, height: 109.901 },
   },
   {
@@ -468,17 +477,23 @@ export const MENSTERILISASI_MEDIA_STEP: SterilizeStep = {
   backgroundRect: FULL_FRAME,
   hint: 'Masukkan Erlenmeyer ke dalam autoklaf dan lakukan sterilisasi sesuai parameter yang ditentukan.',
   instructionLabel: 'Instruksi :',
-  instruction: 'Masukkan Erlenmeyer ke autoklaf, lalu atur suhu 121°C selama 15–20 menit.',
+  instruction: 'Masukkan Erlenmeyer ke autoklaf, lalu atur suhu 121°C, tekanan 15 psi, selama 15–20 menit.',
   loadAccessibleName: 'Erlenmeyer, klik untuk memasukkan ke dalam autoklaf',
   startAccessibleName: 'Mulai Proses, klik untuk memulai sterilisasi',
-  sterilizingMessage: 'Media sedang disterilisasi di dalam autoklaf sesuai suhu dan waktu yang diatur.',
-  outOfRangeMessage: 'Atur suhu ke 121°C dan waktu ke rentang 15-20 menit sebelum memulai proses.',
+  sterilizingMessage: 'Media sedang disterilisasi di dalam autoklaf sesuai suhu, tekanan, dan waktu yang diatur.',
+  outOfRangeMessage: 'Periksa kembali parameter sterilisasi autoklaf.',
   temperatureUnit: '°C',
   temperatureMin: 0,
   temperatureMax: 121,
   temperatureDefault: 115,
   temperatureStep: 1,
   temperatureTarget: 121,
+  pressureUnit: ' psi',
+  pressureMin: 0,
+  pressureMax: 30,
+  pressureDefault: 10,
+  pressureStep: 1,
+  pressureTarget: 15,
   durationUnit: ' min',
   durationMin: 0,
   durationMax: 20,
@@ -491,9 +506,11 @@ export const MENSTERILISASI_MEDIA_STEP: SterilizeStep = {
   startButtonSrc: mulaiProsesBtnUrl,
   startButtonRect: { x: 1301.86, y: 906.62, width: 329.704, height: 109.901 },
   temperatureMinusRect: { x: 1231.6, y: 838.4, width: 70.5, height: 66.6 },
-  temperaturePlusRect: { x: 1380.3, y: 838.4, width: 70.5, height: 66.6 },
-  durationMinusRect: { x: 1595.6, y: 838.4, width: 70.5, height: 66.6 },
-  durationPlusRect: { x: 1744.4, y: 838.4, width: 70.5, height: 66.6 },
+  temperaturePlusRect: { x: 1272.2, y: 838.4, width: 70.5, height: 66.6 },
+  pressureMinusRect: { x: 1364.6, y: 838.4, width: 70.5, height: 66.6 },
+  pressurePlusRect: { x: 1507.4, y: 838.4, width: 70.5, height: 66.6 },
+  durationMinusRect: { x: 1598.6, y: 838.4, width: 70.5, height: 66.6 },
+  durationPlusRect: { x: 1750.4, y: 838.4, width: 70.5, height: 66.6 },
   sterilizeMs: 1800,
   frames: STERILIZE_FRAMES,
   successTitle: 'Media telah disterilisasi',

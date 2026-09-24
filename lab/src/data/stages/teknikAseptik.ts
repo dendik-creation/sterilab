@@ -22,13 +22,12 @@ import oseIdleUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_asep
 import oseHeatingUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_5/backgrounds/2.png';
 import oseCoolingUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_5/backgrounds/3.png';
 import jarumOseUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_5/jarum_ose.png';
-import inoculateBenchUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/backgrounds/1.png';
-import inoculateOpenLidUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/backgrounds/2.png';
-import inoculateSamplingUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/backgrounds/3.png';
-import inoculateTransferUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/backgrounds/4.png';
-import inoculateClosedUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/backgrounds/5.png';
-import inoculateLabeledUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/backgrounds/6.png';
-import inoculateIncubatorUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/backgrounds/7.png';
+import inoculateCultureUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/backgrounds/new_1.png';
+import inoculateSlantUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/backgrounds/new_2.png';
+import inoculateCloseTubeUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/backgrounds/new_3.png';
+import inoculateClosedTubeUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/backgrounds/new_4.png';
+import inoculateLabelTubeUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/backgrounds/new_5.png';
+import inoculateIncubatorUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/backgrounds/new_6.png';
 import labelMarkerUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/label_marker.png';
 
 // Data for Stage 4 "Teknik Kerja Aseptik" (Figma "Sterilab-APHP" canvas 42:678
@@ -368,38 +367,56 @@ export interface SterilizeStep extends BaseStep {
   frames: [OseFrame, OseFrame, OseFrame];
 }
 
-// One plate of Langkah 6's art. Unlike Langkah 3/4/5, every one of its six
-// actions changes what is sitting on the bench (a dish opens, a sample moves,
-// a lid closes, a label appears, the dish leaves for the incubator), so - like
-// Langkah 1 - each plate is its own flattened export rather than a shared
-// prop drawn over one background.
+// One plate of Langkah 6's composited art. The scientist, bench, culture dish,
+// passive tubes, and incubator are all painted into these assets; only a
+// hotspot or the existing draggable label is layered above them.
 export interface InoculateFrame {
   src: string;
   alt: string;
 }
 
-// A plain object already on the bench: click it and the workspace cuts to the
-// next plate. Four of Langkah 6's six actions are this shape (open the dish,
-// take the sample, move it to the media, close the lid) - the object is baked
-// into the plate's own art, so there is no separate tool asset to drag.
+// A plain object already painted into a plate: click it and the workspace cuts
+// to the next state. Tube selection, slant inoculation, closing, and incubation
+// use this shape because those objects have no separate sprite to move.
 export interface InoculateClickAction {
   kind: 'click';
+  state: Procedure6State;
   accessibleName: string;
   hotspot: Rect;
 }
 
 // A tool tile inside the floating card has to be dropped on a target rect in
-// the scene, exactly like Langkah 5's loop. Labelling is the one action in
-// Langkah 6 with a real isolated asset to drag (Figma node 258:972) rather
-// than an object painted into the plate.
+// the scene, exactly like Langkah 5's loop. Labelling is one such action
+// (Figma node 258:972 ships a real isolated sprite rather than an object
+// painted into the plate); sampling is the other, reusing Langkah 5's own
+// loop asset since it is the same physical object.
 export interface InoculateDragAction {
   kind: 'drag';
+  state: Procedure6State;
   tool: { src: string; width: number; height: number; accessibleName: string };
   target: Rect;
   offTargetCorrection: string;
+  // Sampling only: a short cover-fade crossfades the ready/sampling plates
+  // instead of the usual hard cut, and this text both flashes in the
+  // correction slot (green, not red) and leads the aria-live announcement -
+  // the revision's "tampilkan feedback sukses" requirement. Omitted by the
+  // label action, which keeps the plain instant swap every other action uses.
+  successFeedback?: string;
 }
 
 export type InoculateAction = InoculateClickAction | InoculateDragAction;
+
+// Internal-only states for the revised destination-medium flow. The workspace
+// advances solely by index, so a later state has no live hotspot until its
+// prerequisite action has completed.
+export type Procedure6State =
+  | 'collectCulture'
+  | 'selectSlantTube'
+  | 'inoculateSlant'
+  | 'closeTube'
+  | 'labelTube'
+  | 'incubateTube'
+  | 'completed';
 
 // Card copy for one action: the descriptive sentence Figma writes above the
 // divider, and the short imperative line below it ("Instruksi :").
@@ -408,24 +425,14 @@ export interface InoculatePhaseCopy {
   instructionLabel: string;
 }
 
-// Langkah 6's shape: a six-action chain across seven plates - open the culture
-// vessel, pick up a sample with the loop, transfer it to fresh media, reseal
-// both vessels, label the new media, then move it to the incubator. Figma
-// frames 61:544, 256:443, 256:582, 256:711, 258:840, 258:975, 259:21 ("LANGKAH
-// 6 NEW (1)".."(7)") - the card copy on each is verbatim from its own text
-// nodes.
-//
-// The sixth action ("Drag media baru... ke incubator") is authored as a click
-// rather than a drag: Figma's card shows a preview of the labelled dish at
-// node 258:986, but that node is an empty mask over the shared background
-// raster (a 1.3KB export, no pixels of its own) rather than an isolated
-// sprite - there is nothing to render as a ghost while it is carried. Clicking
-// the incubator itself (Figma's own drop-target rect) asks for the same
-// action without inventing art the design does not actually ship.
+// Langkah 6's revised six-action chain: collect from the source petri dish,
+// choose one slant-agar tube, inoculate it, close it, label that tube, then
+// incubate it. The opening culture setup is already composed in new_1; its
+// completion does not create a separate global procedure step.
 export interface InoculateStep extends BaseStep {
   kind: 'inoculate';
   actions: [
-    InoculateClickAction,
+    InoculateDragAction,
     InoculateClickAction,
     InoculateClickAction,
     InoculateClickAction,
@@ -826,7 +833,7 @@ const OSE_FRAMES: [OseFrame, OseFrame, OseFrame] = [
   },
   {
     src: oseCoolingUrl,
-    alt: 'Analis mengangkat jarum ose menjauh dari api bunsen, ujung kawatnya sudah tidak memijar lagi',
+    alt: 'Analis tetap memegang jarum ose sambil mendinginkannya di dekat api bunsen, dengan tabung reaksi dan cawan petri media kultur sudah tersedia di meja kerja',
   },
 ];
 
@@ -868,41 +875,43 @@ export const STERILIZE_OSE_STEP: SterilizeStep = {
   },
 };
 
-// Langkah 6's seven plates, in procedure order.
+// new_1 is used for the aseptic source-culture setup and the immediately
+// following tube-selection phase. All other revised stages have their own
+// composited plate.
 const INOCULATE_FRAMES: InoculateStep['frames'] = [
   {
-    src: inoculateBenchUrl,
-    alt: 'Analis berdiri di depan bunsen menyala dengan cawan kultur, media steril, dan jarum ose tersedia di meja kerja',
+    src: inoculateCultureUrl,
+    alt: 'Analis mengambil kultur dari cawan petri menggunakan jarum ose steril dengan rak tabung agar miring tersedia di meja',
   },
   {
-    src: inoculateOpenLidUrl,
-    alt: 'Analis membuka wadah kultur secara aseptik di dekat nyala api bunsen',
+    src: inoculateCultureUrl,
+    alt: 'Kultur asal telah diambil dari cawan petri dan rak tabung agar miring siap dipilih',
   },
   {
-    src: inoculateSamplingUrl,
-    alt: 'Analis mengambil sampel dari cawan kultur menggunakan jarum ose steril',
+    src: inoculateSlantUrl,
+    alt: 'Analis memegang satu tabung reaksi berisi agar miring yang siap diinokulasi dengan jarum ose',
   },
   {
-    src: inoculateTransferUrl,
-    alt: 'Analis memindahkan inokulum ke media kultur steril di dekat nyala api',
+    src: inoculateCloseTubeUrl,
+    alt: 'Analis menutup tabung reaksi yang telah diinokulasi setelah menggores agar miring',
   },
   {
-    src: inoculateClosedUrl,
-    alt: 'Analis menutup kembali wadah kultur dan media setelah inokulasi selesai',
+    src: inoculateClosedTubeUrl,
+    alt: 'Tabung reaksi hasil inokulasi telah ditutup dan siap diberi label',
   },
   {
-    src: inoculateLabeledUrl,
-    alt: 'Media yang telah diinokulasi kini diberi label identitas sampel, jenis media, dan tanggal',
+    src: inoculateLabelTubeUrl,
+    alt: 'Analis memberi label Sampel A, NA, dan tanggal pada tabung reaksi hasil inokulasi',
   },
   {
     src: inoculateIncubatorUrl,
-    alt: 'Analis menempatkan media yang telah diinokulasi ke dalam inkubator',
+    alt: 'Analis menempatkan tabung reaksi berlabel ke dalam inkubator',
   },
 ];
 
-// Hotspots and drop targets, measured off the highlight boxes Figma itself
-// draws on each plate (e.g. node 256:167 on plate 1: x=377, y=830, w=199,
-// h=165) rather than eyeballed off the art.
+// Hotspots are measured against each new 1672x941 plate, mapped to the stage's
+// 1920x1080 design grid. They only exist for the current action, which is the
+// guard against skipping the inoculation sequence.
 export const MENGINOKULASI_KULTUR_STEP: InoculateStep = {
   kind: 'inoculate',
   id: 'menginokulasi-kultur',
@@ -916,35 +925,77 @@ export const MENGINOKULASI_KULTUR_STEP: InoculateStep = {
   backgroundRect: FULL_FRAME,
   frames: INOCULATE_FRAMES,
   actions: [
-    { kind: 'click', accessibleName: 'Buka wadah kultur secara aseptik di dekat nyala api', hotspot: { x: 377, y: 830, width: 199, height: 165 } },
-    { kind: 'click', accessibleName: 'Ambil sampel menggunakan jarum ose steril', hotspot: { x: 1090, y: 791, width: 434, height: 199 } },
-    { kind: 'click', accessibleName: 'Pindahkan inokulum ke media kultur steril', hotspot: { x: 555, y: 883, width: 234, height: 129 } },
-    { kind: 'click', accessibleName: 'Tutup kembali wadah kultur dan media', hotspot: { x: 950, y: 636, width: 234, height: 129 } },
     {
       kind: 'drag',
+      state: 'collectCulture',
+      tool: {
+        src: jarumOseUrl,
+        width: 142,
+        height: 137,
+        accessibleName: 'Ambil kultur dari cawan petri menggunakan jarum ose steril',
+      },
+      target: { x: 865, y: 510, width: 220, height: 145 },
+      offTargetCorrection: 'Arahkan jarum ose ke koloni pada cawan petri.',
+      successFeedback: 'Sampel kultur berhasil diambil secara aseptik.',
+    },
+    {
+      kind: 'click',
+      state: 'selectSlantTube',
+      accessibleName: 'Pilih tabung reaksi berisi agar miring untuk diinokulasi',
+      hotspot: { x: 1050, y: 650, width: 115, height: 210 },
+    },
+    {
+      kind: 'click',
+      state: 'inoculateSlant',
+      accessibleName: 'Goreskan inokulum pada agar miring di dalam tabung reaksi',
+      hotspot: { x: 1015, y: 490, width: 155, height: 270 },
+    },
+    {
+      kind: 'click',
+      state: 'closeTube',
+      accessibleName: 'Tutup kembali tabung reaksi hasil inokulasi',
+      hotspot: { x: 890, y: 375, width: 135, height: 135 },
+    },
+    {
+      kind: 'drag',
+      state: 'labelTube',
       tool: {
         src: labelMarkerUrl,
         width: 216,
         height: 144,
-        accessibleName: 'Label dan spidol, seret ke media yang telah diinokulasi sampel',
+        accessibleName: 'Label dan spidol, seret ke tabung reaksi yang telah diinokulasi',
       },
-      target: { x: 576, y: 854, width: 234, height: 129 },
-      offTargetCorrection: 'Arahkan label ke media yang telah diinokulasi sampel - hanya media ini yang perlu diberi label.',
+      target: { x: 970, y: 470, width: 125, height: 230 },
+      offTargetCorrection: 'Arahkan label ke tabung reaksi yang telah diinokulasi - hanya tabung ini yang perlu diberi label.',
     },
-    { kind: 'click', accessibleName: 'Simpan media yang telah diinokulasi ke dalam inkubator', hotspot: { x: 1125, y: 278, width: 330, height: 351 } },
+    {
+      kind: 'click',
+      state: 'incubateTube',
+      accessibleName: 'Tempatkan tabung reaksi berlabel ke dalam inkubator',
+      hotspot: { x: 975, y: 430, width: 125, height: 265 },
+    },
   ],
   phaseCopy: [
-    { hint: 'Buka wadah kultur secara aseptik di dekat nyala api.', instructionLabel: 'Klik kultur / sampel' },
-    { hint: 'Ambil sampel menggunakan jarum ose steril.', instructionLabel: 'Klik jarum ose steril' },
-    { hint: 'Pindahkan inokulum ke media kultur steril menggunakan teknik aseptik.', instructionLabel: 'Klik media steril' },
-    { hint: 'Tutup kembali wadah kultur dan media setelah proses inokulasi selesai.', instructionLabel: 'Klik tutup cawan petri' },
+    { hint: 'Ambil kultur dari cawan petri menggunakan jarum ose steril.', instructionLabel: 'Seret jarum ose ke koloni pada cawan petri' },
     {
-      hint: 'Beri label pada media agar sampel dapat diidentifikasi dengan benar.',
-      instructionLabel: 'Drag label dan marker ke media baru yang sudah diinokulasi sampel',
+      hint: 'Pilih salah satu tabung reaksi berisi media agar miring untuk diinokulasi.',
+      instructionLabel: 'Klik tabung reaksi yang akan diinokulasi',
     },
     {
-      hint: 'Tempatkan media yang telah diinokulasi ke dalam inkubator sesuai prosedur.',
-      instructionLabel: 'Klik media untuk menempatkannya ke dalam inkubator',
+      hint: 'Pindahkan inokulum ke media agar miring dengan teknik aseptik.',
+      instructionLabel: 'Klik permukaan agar untuk menggores inokulum dengan jarum ose',
+    },
+    {
+      hint: 'Tutup kembali tabung reaksi setelah proses inokulasi selesai.',
+      instructionLabel: 'Klik tutup tabung untuk menutupnya',
+    },
+    {
+      hint: 'Beri label pada tabung agar sampel dapat diidentifikasi dengan benar.',
+      instructionLabel: 'Drag label ke tabung yang telah diinokulasi',
+    },
+    {
+      hint: 'Tempatkan tabung yang telah diinokulasi ke dalam inkubator sesuai prosedur.',
+      instructionLabel: 'Klik tabung untuk menempatkannya ke dalam inkubator',
     },
   ],
   successTitle: 'Inokulasi kultur berhasil!',

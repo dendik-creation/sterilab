@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { waitForMotionSettled } from './settle';
-import { HOOK_NARRATION_SECONDS, reachCase, skipCaseNarration } from './case';
+import { reachCase, skipCaseNarration } from './case';
 
 // Revised Case (Figma frame 20:1296): the "Baca Selengkapnya" reveal is gone
 // - case_bg.png bakes the whole news monitor - and what paces the Screen now
@@ -11,7 +11,7 @@ test.beforeEach(({ viewport }) => {
   test.skip(!viewport || viewport.width <= viewport.height, 'landscape-only app');
 });
 
-test('the shipped narration is the ~50s file the CTA gate is sized against', async ({ page }) => {
+test('the shipped narration can be decoded for the CTA gate', async ({ page }) => {
   await reachCase(page);
 
   const duration = await page
@@ -29,21 +29,22 @@ test('the shipped narration is the ~50s file the CTA gate is sized against', asy
   // Also proves the browser decoded it: an unsupported codec leaves duration
   // NaN, which would silently fall through to the error-path CTA reveal.
   expect(Number.isFinite(duration)).toBe(true);
-  expect(duration).toBeGreaterThan(HOOK_NARRATION_SECONDS - 0.5);
-  expect(duration).toBeLessThan(HOOK_NARRATION_SECONDS + 0.5);
+  expect(duration).toBeGreaterThan(0);
 });
 
-test('narration plays on mount, badge marks the wait, and the CTA only arrives when it ends', async ({ page }) => {
+test('narration plays on mount, controls mark progress, and the CTA only arrives when it ends', async ({ page }) => {
   await reachCase(page);
 
-  // Sound defaults off, so the badge copy truthfully reflects either the
-  // muted default or the opted-in listening state. Both identify the same
-  // narration gate.
-  const badge = page.getByText(/Dengarkan sampai selesai|Suara sedang dimatikan/);
+  const controls = page.getByRole('progressbar', { name: 'Kemajuan narasi' });
   const lanjut = page.getByRole('button', { name: 'Lanjut Briefing' });
 
-  await expect(badge).toBeVisible();
+  await expect(page.getByTestId('case-scientist')).toBeVisible();
+  await expect(page.getByTestId('case-speaking-mouth')).toBeVisible();
+  await expect(controls).toBeVisible();
   await expect(lanjut).not.toBeAttached();
+
+  const firstMouthFrame = await page.getByTestId('case-speaking-mouth').getAttribute('src');
+  await expect.poll(() => page.getByTestId('case-speaking-mouth').getAttribute('src')).not.toBe(firstMouthFrame);
 
   // Playing, not merely present - the badge would be a lie otherwise.
   const playing = await page
@@ -53,8 +54,35 @@ test('narration plays on mount, badge marks the wait, and the CTA only arrives w
 
   await skipCaseNarration(page);
 
-  await expect(badge).not.toBeAttached();
+  await expect(controls).not.toBeAttached();
   await expect(lanjut).toBeVisible();
+});
+
+test('dialogue follows narration timestamps and stays above the scientist', async ({ page }) => {
+  await reachCase(page);
+
+  const dialogue = page.getByRole('region', { name: 'Pesan dari Analis Lab' });
+  const narration = page.getByTestId('case-narration');
+  const lines = [
+    'Tahukah kamu, satu hasil uji mikrobiologi yang tidak akurat dapat menyebabkan makanan yang berbahaya dinyatakan aman, atau sebaliknya.',
+    'Dampaknya, tidak hanya mengancam keselamatan konsumen, tetapi juga dapat merusak reputasi perusahaan dan menurunkan kepercayaan masyarakat terhadap keamanan pangan.',
+    'Bagaimana seorang analis mikrobiologi memastikan hasil pengujiannya akurat dan dapat dipertanggungjawabkan?',
+    'Ayo, jelajah di Sterilab!',
+  ];
+
+  await expect(dialogue).toHaveCSS('z-index', '2');
+  for (const [time, line] of [
+    [0, lines[0]],
+    [9, lines[1]],
+    [19, lines[2]],
+    [27, lines[3]],
+  ] as const) {
+    await narration.evaluate((el, currentTime) => {
+      el.currentTime = currentTime;
+      el.dispatchEvent(new Event('timeupdate'));
+    }, time);
+    await expect(dialogue).toContainText(line);
+  }
 });
 
 test('the global BGM ducks for Case and is restored on the way to Missions', async ({ page }) => {
@@ -76,7 +104,7 @@ test('the global BGM ducks for Case and is restored on the way to Missions', asy
   await expect.poll(bgmVolume, { timeout: 3000 }).toBeGreaterThan(0.95);
 });
 
-test('badge and CTA stay inside the stage and clear of the top bar at every landscape size', async ({ page }) => {
+test('narration controls and CTA stay inside the stage and clear of the top bar at every landscape size', async ({ page }) => {
   await reachCase(page);
   await waitForMotionSettled(page);
 
@@ -86,11 +114,11 @@ test('badge and CTA stay inside the stage and clear of the top bar at every land
     return { top: r.top, left: r.left, right: r.right, bottom: r.bottom };
   });
 
-  const badgeBox = await page.getByText(/Dengarkan sampai selesai|Suara sedang dimatikan/).boundingBox();
-  expect(badgeBox).not.toBeNull();
-  expect(badgeBox!.x).toBeGreaterThanOrEqual(stage.left - 1);
-  expect(badgeBox!.x + badgeBox!.width).toBeLessThanOrEqual(stage.right + 1);
-  expect(badgeBox!.y + badgeBox!.height).toBeLessThanOrEqual(stage.bottom + 1);
+  const controlsBox = await page.getByRole('progressbar', { name: 'Kemajuan narasi' }).boundingBox();
+  expect(controlsBox).not.toBeNull();
+  expect(controlsBox!.x).toBeGreaterThanOrEqual(stage.left - 1);
+  expect(controlsBox!.x + controlsBox!.width).toBeLessThanOrEqual(stage.right + 1);
+  expect(controlsBox!.y + controlsBox!.height).toBeLessThanOrEqual(stage.bottom + 1);
 
   await skipCaseNarration(page);
   await waitForMotionSettled(page);

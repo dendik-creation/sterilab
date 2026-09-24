@@ -41,13 +41,13 @@ async function gotoStage(page: Page): Promise<void> {
 
 function workspace(page: Page) {
   return page.getByAltText(
-    /cawan petri berisi media agar bekas|dipindahkan ke kotak kuning|kotak kuning limbah biohazard|dimasukkan ke dalam autoklaf|Pintu autoklaf tertutup|botol semprot desinfektan|menyemprotkan larutan desinfektan|mengusap permukaan meja|lima limbah yang belum dipilah|memberi tanda jempol/i,
+    /cawan petri berisi media agar bekas|dipindahkan ke kotak kuning|tray stainless steel|dimasukkan ke dalam autoklaf|proses dekontaminasi limbah biologis|botol semprot desinfektan|menyemprotkan larutan desinfektan|mengusap permukaan meja|lima limbah yang belum dipilah|memberi tanda jempol/i,
   );
 }
 
 async function backgroundFrame(page: Page): Promise<string> {
   const src = await workspace(page).getAttribute('src');
-  return src?.match(/(\d)\.png/)?.[1] ?? src ?? '';
+  return src?.match(/(new_step_[12]|\d)\.(?:png|webp)/)?.[1] ?? src ?? '';
 }
 
 async function gotoStep2(page: Page): Promise<void> {
@@ -59,15 +59,15 @@ async function gotoStep2(page: Page): Promise<void> {
   await waitForMotionSettled(page);
 }
 
-const BIN = 'Kotak kuning limbah biohazard di atas meja';
-const AUTOCLAVE_DOOR = 'Autoklaf dengan pintu terbuka';
+const TRAY = 'Tray stainless steel berisi limbah biologis di atas meja';
+const AUTOCLAVE_DOOR = 'Ruang autoklaf';
 const START_BUTTON = 'Tombol mulai autoklaf';
 const SPRAY_BOTTLE = 'Botol semprot desinfektan';
 const CLOTH = 'Tumpukan kain lap';
 
 async function gotoStep3(page: Page): Promise<void> {
   await gotoStep2(page);
-  await page.getByRole('button', { name: BIN }).click();
+  await page.getByRole('button', { name: TRAY }).click();
   await page.getByRole('button', { name: AUTOCLAVE_DOOR }).click();
   await page.getByRole('button', { name: START_BUTTON }).click();
   await page.getByRole('button', { name: 'Lanjut ke langkah berikutnya' }).click({ timeout: 5000 });
@@ -161,7 +161,7 @@ test('identifying both correct objects swaps the scene, raises the note, and LAN
   const note = page.getByRole('group', { name: 'Identifikasi berhasil!' });
   await expect(note).toBeVisible({ timeout: 4000 });
   await expect(page.getByText('Anda siap melanjutkan ke langkah berikutnya.', { exact: true })).toBeVisible();
-  expect(await backgroundFrame(page)).toBe('2');
+  expect(await backgroundFrame(page)).toBe('1');
   await waitForMotionSettled(page);
 
   // Same note-card geometry every other Stage's success note uses (Figma
@@ -256,75 +256,76 @@ test('progress is announced through the live region, not only shown as a checkma
 
 // ---------------------------------------------------------------------------
 // Langkah 2 "Mendekontaminasi Limbah Biologis" - Figma frames "6.2 - A/B/C".
-// Load the bin into the autoclave (drag, or tap-then-tap), then press the
+// Load the tray into the autoclave (drag, or tap-then-tap), then press the
 // autoclave's own start button.
 // ---------------------------------------------------------------------------
 
-test('Langkah 2 opens with the bin on the bench, the autoclave door as the only target, and the idle frame', async ({
+test('Langkah 2 opens with the stainless tray on the bench and the autoclave chamber as the target', async ({
   page,
 }) => {
   await gotoStep2(page);
 
   await expect(
     page.getByText(
-      'Dekontaminasi dilakukan pada media atau biakan bekas sebelum dibuang untuk mengurangi risiko biologis dari sisa kegiatan laboratorium.',
+      'Tempatkan limbah biologis pada wadah stainless steel, kemudian lakukan proses dekontaminasi menggunakan autoklaf.',
       { exact: true },
     ),
   ).toBeVisible();
-  await expect(page.getByText('Seret wadah limbah biologis ke dalam autoklaf.', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: BIN })).toBeVisible();
+  await expect(page.getByText('Seret wadah stainless steel berisi limbah biologis ke dalam autoklaf.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: TRAY })).toBeVisible();
+  await expect(page.getByTestId('stainless-tray-preview')).toHaveAttribute('src', /stainless_2\.png/);
   await expect(page.getByRole('button', { name: AUTOCLAVE_DOOR })).toBeDisabled();
-  expect(await backgroundFrame(page)).toBe('1');
+  expect(await backgroundFrame(page)).toBe('new_step_1');
   await expect(page.getByRole('button', { name: START_BUTTON })).not.toBeAttached();
 });
 
-test('dragging the bin onto the autoclave loads it and switches the card to the start instruction', async ({ page }) => {
+test('dragging the tray onto the autoclave loads it and switches the card to the start instruction', async ({ page }) => {
   await gotoStep2(page);
 
-  const from = await center(page.getByRole('button', { name: BIN }));
+  const from = await center(page.getByRole('button', { name: TRAY }));
   const to = await center(page.getByRole('button', { name: AUTOCLAVE_DOOR }));
   await page.mouse.move(from.x, from.y);
   await page.mouse.down();
   await page.mouse.move(to.x, to.y, { steps: 16 });
   await page.mouse.up();
 
-  await expect(page.getByRole('button', { name: BIN })).not.toBeAttached();
+  await expect(page.getByRole('button', { name: TRAY })).not.toBeAttached();
   await expect(page.getByRole('button', { name: AUTOCLAVE_DOOR })).not.toBeAttached();
   await expect(
     page.getByText('Klik tombol autoklaf untuk memulai proses dekontaminasi sesuai SOP laboratorium.', { exact: true }),
   ).toBeVisible();
   await expect(page.getByRole('button', { name: START_BUTTON })).toBeVisible();
-  expect(await backgroundFrame(page)).toBe('2');
+  expect(await backgroundFrame(page)).toBe('new_step_2');
 });
 
-test('a drag released away from the autoclave does not load the bin', async ({ page }) => {
+test('a drag released away from the autoclave does not load the tray', async ({ page }) => {
   await gotoStep2(page);
 
-  const from = await center(page.getByRole('button', { name: BIN }));
+  const from = await center(page.getByRole('button', { name: TRAY }));
   await page.mouse.move(from.x, from.y);
   await page.mouse.down();
   await page.mouse.move(from.x + 40, from.y - 300, { steps: 12 });
   await page.mouse.up();
 
-  await expect(page.getByRole('button', { name: BIN })).toBeVisible();
-  expect(await backgroundFrame(page)).toBe('1');
+  await expect(page.getByRole('button', { name: TRAY })).toBeVisible();
+  expect(await backgroundFrame(page)).toBe('new_step_1');
 });
 
-test('the bin can be loaded by tapping it, then tapping the autoclave (keyboard-equivalent path)', async ({ page }) => {
+test('the tray can be loaded by tapping it, then tapping the autoclave (keyboard-equivalent path)', async ({ page }) => {
   await gotoStep2(page);
 
   await expect(page.getByRole('button', { name: AUTOCLAVE_DOOR })).toBeDisabled();
-  await page.getByRole('button', { name: BIN }).click();
+  await page.getByRole('button', { name: TRAY }).click();
   await expect(page.getByRole('button', { name: AUTOCLAVE_DOOR })).toBeEnabled();
 
   await page.getByRole('button', { name: AUTOCLAVE_DOOR }).click();
   await expect(page.getByRole('button', { name: START_BUTTON })).toBeVisible();
-  expect(await backgroundFrame(page)).toBe('2');
+  expect(await backgroundFrame(page)).toBe('new_step_2');
 });
 
 test('pressing the start button closes the door, raises the note, and LANJUT advances to Langkah 3', async ({ page }) => {
   await gotoStep2(page);
-  await page.getByRole('button', { name: BIN }).click();
+  await page.getByRole('button', { name: TRAY }).click();
   await page.getByRole('button', { name: AUTOCLAVE_DOOR }).click();
 
   await page.getByRole('button', { name: START_BUTTON }).click();
@@ -356,10 +357,10 @@ test('Langkah 2 progress is announced through the live region at every phase', a
   await gotoStep2(page);
   const live = page.locator('[aria-live="polite"]');
 
-  await expect(live).toHaveText(/Wadah limbah biologis belum dimasukkan ke autoklaf\./);
-  await page.getByRole('button', { name: BIN }).click();
+  await expect(live).toHaveText(/Tray stainless steel berisi limbah biologis belum dimasukkan ke autoklaf\./);
+  await page.getByRole('button', { name: TRAY }).click();
   await page.getByRole('button', { name: AUTOCLAVE_DOOR }).click();
-  await expect(live).toHaveText(/Wadah limbah biologis sudah di dalam autoklaf\./);
+  await expect(live).toHaveText(/Tray stainless steel berisi limbah biologis sudah di dalam autoklaf\./);
   await page.getByRole('button', { name: START_BUTTON }).click();
   await expect(live).toHaveText(/Dekontaminasi selesai!/);
 });
@@ -369,7 +370,7 @@ test('Langkah 2 hotspots keep a 44x44 touch target and the floating card lands o
 }) => {
   await gotoStep2(page);
 
-  for (const name of [BIN, AUTOCLAVE_DOOR]) {
+  for (const name of [TRAY, AUTOCLAVE_DOOR]) {
     const box = (await page.getByRole('button', { name }).boundingBox())!;
     expect(box.width, `${name} width`).toBeGreaterThanOrEqual(44);
     expect(box.height, `${name} height`).toBeGreaterThanOrEqual(44);

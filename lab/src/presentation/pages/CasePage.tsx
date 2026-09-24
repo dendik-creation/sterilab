@@ -2,6 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import caseBgUrl from '../../../assets/images/02_scenes/03_case/case_bg.png';
 import lanjutBriefingBtnUrl from '../../../assets/images/02_scenes/03_case/lanjut_briefing_btn.png';
+import scientistUrl from '../../../assets/images/02_scenes/03_case/01_karakter_ilmuwan.png';
+import mouthSmileAUrl from '../../../assets/images/02_scenes/03_case/02_mulut_senyum_A.png';
+import mouthOpenAUrl from '../../../assets/images/02_scenes/03_case/03_mulut_oval_gelap_A.png';
+import mouthSmileBUrl from '../../../assets/images/02_scenes/03_case/04_mulut_senyum_B.png';
+import mouthOpenBUrl from '../../../assets/images/02_scenes/03_case/05_mulut_oval_gelap_B.png';
 import homeBtnUrl from '../../../assets/images/01_reusable/buttons/home_btn.png';
 import backBtnUrl from '../../../assets/images/01_reusable/buttons/back_btn.png';
 import bgmOnBtnUrl from '../../../assets/images/01_reusable/buttons/bgm_on_btn.png';
@@ -23,13 +28,13 @@ import { IconButton } from '../components/IconButton';
 const STAGGER_MS = 110;
 const BUBBLE_MS = 550;
 
-// Mount entrance: top bar left-to-right, then the listening badge. The
+// Mount entrance: top bar left-to-right, then the narration panel. The
 // "Lanjut Briefing" CTA is not here - it does not exist until the hook
 // narration finishes, so its entrance is timed from that `ended` event.
 const ENTER_DELAY_MS = { home: 0, back: STAGGER_MS, sound: 2 * STAGGER_MS, badge: 3 * STAGGER_MS } as const;
 
 // Exit runs whatever is currently on screen backwards - last in, first out.
-// Exactly one of `badge` / `lanjut` is ever mounted (the badge is the
+// Exactly one of `badge` / `lanjut` is ever mounted (the panel is the
 // narration running, the CTA is the narration finished), so the two orders
 // below are the only two shapes this Screen can exit in.
 type Piece = 'lanjut' | 'badge' | 'sound' | 'back' | 'home';
@@ -51,18 +56,15 @@ const SOUND_LEFT = 'min(93.931%, 100% - 52px)';
 const TOP_BAR_TOP = '3.574%';
 const ICON_SIZE = '3.791%';
 
-// The narration script this Screen plays, verbatim from
-// docs/prd/05-content-and-storyboard.md > Case (Briefing Kasus) > Narasi.
-// Present as real text, not just as an audio file: the CTA is gated on the
-// narration finishing, so an Analyst who cannot hear it would otherwise be
-// waiting out 50 seconds of nothing.
-const NARRATION_TRANSCRIPT =
-  'Bayangkan terjadi dugaan keracunan makanan setelah beberapa anak SD mengonsumsi produk pangan pada sebuah kegiatan sekolah. ' +
-  'Sampel makanan kemudian dikirim ke laboratorium mikrobiologi untuk diteliti lebih lanjut, dan kamu adalah analis laboratorium ' +
-  'yang bertugas menangani pengujian tersebut. Tahukah kamu? Satu hasil uji mikrobiologi yang tidak akurat dapat menyebabkan ' +
-  'makanan yang berbahaya dinyatakan aman, atau sebaliknya, produk yang sebenarnya aman justru ditarik dari peredaran. ' +
-  'Kesalahan sekecil apa pun selama proses pengujian dapat mengubah hasil analisis. Penasaran bagaimana seorang analis ' +
-  'laboratorium menghasilkan data yang akurat, valid, dan dapat dipertanggungjawabkan? Yuk, jelajahi SteriLab!';
+const NARRATION_LINES = [
+  'Tahukah kamu, satu hasil uji mikrobiologi yang tidak akurat dapat menyebabkan makanan yang berbahaya dinyatakan aman, atau sebaliknya.',
+  'Dampaknya, tidak hanya mengancam keselamatan konsumen, tetapi juga dapat merusak reputasi perusahaan dan menurunkan kepercayaan masyarakat terhadap keamanan pangan.',
+  'Bagaimana seorang analis mikrobiologi memastikan hasil pengujiannya akurat dan dapat dipertanggungjawabkan?',
+  'Ayo, jelajah di Sterilab!',
+] as const;
+const NARRATION_TRANSCRIPT = NARRATION_LINES.join(' ');
+
+const MOUTH_FRAMES = [mouthSmileAUrl, mouthSmileBUrl, mouthOpenBUrl];
 
 const srOnly: CSSProperties = {
   position: 'absolute',
@@ -82,12 +84,15 @@ const srOnly: CSSProperties = {
 // reveal interaction left: the "Baca Selengkapnya" button and the separate
 // "Berita Terkini" card (frame 29:1297, now marked unused in Figma) are gone,
 // along with their art. What paces the Screen instead is audio: the hook
-// narration plays on mount over a ducked BGM, a badge marks it as running,
+// narration plays on mount over a ducked BGM, its panel marks it as running,
 // and the one CTA appears when it ends.
 export function CasePage() {
   const { goTo, goBack } = useNavigation();
   const [audioOn, setAudioOn] = useState(isAudioEnabled());
   const [narrationDone, setNarrationDone] = useState(false);
+  const [narrationTime, setNarrationTime] = useState(0);
+  const [narrationDuration, setNarrationDuration] = useState(0);
+  const [mouthFrame, setMouthFrame] = useState(0);
   const [exiting, setExiting] = useState(false);
   const clickAudioRef = useRef<HTMLAudioElement | null>(null);
   const narrationRef = useRef<HTMLAudioElement | null>(null);
@@ -103,6 +108,12 @@ export function CasePage() {
   }, []);
 
   useEffect(() => () => window.clearTimeout(exitTimeoutRef.current), []);
+
+  useEffect(() => {
+    if (narrationDone || exiting) return;
+    const timer = window.setInterval(() => setMouthFrame((frame) => (frame + 1) % MOUTH_FRAMES.length), 190);
+    return () => window.clearInterval(timer);
+  }, [exiting, narrationDone]);
 
   // Duck the global loop for as long as this Screen is mounted and restore it
   // on the way out - the cleanup covers every exit (home, back, CTA) instead
@@ -205,7 +216,12 @@ export function CasePage() {
         src={hookNarrationUrl}
         preload="auto"
         data-testid="case-narration"
-        onEnded={() => setNarrationDone(true)}
+        onLoadedMetadata={(event) => setNarrationDuration(event.currentTarget.duration)}
+        onTimeUpdate={(event) => setNarrationTime(event.currentTarget.currentTime)}
+        onEnded={(event) => {
+          setNarrationTime(event.currentTarget.duration);
+          setNarrationDone(true);
+        }}
         onError={() => setNarrationDone(true)}
       />
 
@@ -248,12 +264,17 @@ export function CasePage() {
         onClick={handleToggleSound}
       />
 
-      {/* Why the wait is announced at all: the CTA is deliberately withheld
-          for the length of the narration, and an empty bottom edge would read
-          as a broken Screen rather than as a beat to listen through. Bottom
-          left, so it never lands under the CTA that replaces it. */}
+      <Scientist narrationDone={narrationDone} mouthSrc={MOUTH_FRAMES[mouthFrame]} />
+
       <div aria-live="polite" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-        {!narrationDone && <ListeningBadge exiting={exiting} exitDelayMs={exitDelay('badge')} muted={!audioOn} />}
+        {!narrationDone && (
+          <NarrationPanel
+            exiting={exiting}
+            exitDelayMs={exitDelay('badge')}
+            currentTime={narrationTime}
+            duration={narrationDuration}
+          />
+        )}
       </div>
 
       {narrationDone && (
@@ -284,60 +305,120 @@ export function CasePage() {
   );
 }
 
-// Bottom-left "still playing" badge. Floors everything in px: at 568x320 a
-// percentage-only pill would render ~7px tall with unreadable text.
-function ListeningBadge({
+function Scientist({ mouthSrc, narrationDone }: { mouthSrc: string, narrationDone: boolean }) {
+  return (
+    <div aria-hidden="true" style={{ position: 'absolute', left: '2.5%', bottom: '10%', width: '34%', zIndex: 1 }}>
+      <img data-testid="case-scientist" src={scientistUrl} alt="" style={{ display: 'block', width: '100%', height: 'auto' }} />
+      <img
+        data-testid="case-speaking-mouth"
+        src={narrationDone ? mouthSmileAUrl : mouthSrc}
+        alt=""
+        style={{ position: 'absolute', top: '41%', left: '41%', width: '10.5%', height: 'auto', transform: 'translateX(-50%)' }}
+      />
+    </div>
+  );
+}
+
+function formatTime(seconds: number) {
+  const wholeSeconds = Math.max(0, Math.floor(seconds));
+  return `${String(Math.floor(wholeSeconds / 60)).padStart(2, '0')}:${String(wholeSeconds % 60).padStart(2, '0')}`;
+}
+
+function NarrationPanel({
   exiting,
   exitDelayMs,
-  muted,
+  currentTime,
+  duration,
 }: {
   exiting: boolean;
   exitDelayMs: number;
-  muted: boolean;
+  currentTime: number;
+  duration: number;
 }) {
+  const progress = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
+  const dialogue = NARRATION_LINES[currentTime < 9 ? 0 : currentTime < 21 ? 1 : currentTime < 27 ? 2 : 3];
+
   return (
-    <div
-      className={exiting ? 'sterilab-fade-out' : 'sterilab-rise-in-offscreen'}
-      style={{
-        position: 'absolute',
-        left: 'max(12px, 2.499%)',
-        bottom: 'max(12px, 5.5%)',
-        animationDelay: `${exiting ? exitDelayMs : ENTER_DELAY_MS.badge}ms`,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 'max(8px, 0.63cqw)',
-        padding: 'max(8px, 0.73cqw) max(14px, 1.25cqw)',
-        borderRadius: 999,
-        background: palette.deepBlue,
-        color: palette.offWhite,
-        fontSize: 'max(12px, 1.04cqw)',
-        fontWeight: 600,
-        lineHeight: 1.25,
-        letterSpacing: '0.01em',
-        boxShadow: '0 6px 18px rgba(6, 54, 104, 0.28)',
-        maxWidth: 'min(46%, 420px)',
-      }}
-    >
-      <span
-        aria-hidden="true"
-        style={{ display: 'flex', alignItems: 'flex-end', gap: 'max(2px, 0.16cqw)', height: 'max(12px, 1.04cqw)' }}
+    <>
+      <section
+        aria-label="Pesan dari Analis Lab"
+        style={{
+          position: 'absolute',
+          zIndex: 2,
+          left: '2.5%',
+          bottom: '13.1%',
+          width: 'min(35%, 670px)',
+          minWidth: 'min(250px, 44%)',
+          padding: 'max(13px, 1.15cqw) max(16px, 1.45cqw)',
+          border: '2px solid #1776db',
+          borderRadius: 'max(18px, 1.7cqw)',
+          background: 'rgba(255, 255, 255, 0.96)',
+          boxShadow: '0 7px 16px rgba(7, 49, 105, 0.18)',
+          color: palette.deepBlue,
+          animation: `${exiting ? 'sterilab-fade-out' : 'sterilab-rise-in-offscreen'} 620ms cubic-bezier(0.16, 1, 0.3, 1) both`,
+          animationDelay: `${exiting ? exitDelayMs : ENTER_DELAY_MS.badge}ms`,
+        }}
       >
-        {[0, 160, 320].map((delay) => (
-          <span
-            key={delay}
-            className="sterilab-eq-bar"
-            style={{
-              display: 'block',
-              width: 'max(3px, 0.21cqw)',
-              height: '100%',
-              borderRadius: 999,
-              background: palette.skyBlue,
-              animationDelay: `${delay}ms`,
-            }}
-          />
-        ))}
-      </span>
-      <span>{muted ? 'Suara sedang dimatikan' : 'Dengarkan sampai selesai'}</span>
-    </div>
+        <span
+          style={{
+            position: 'absolute',
+            top: 'max(-20px, -1.8cqw)',
+            left: 'max(12px, 1.15cqw)',
+            padding: 'max(5px, 0.45cqw) max(12px, 1cqw)',
+            borderRadius: 999,
+            background: '#0873df',
+            color: palette.offWhite,
+            fontSize: 'max(11px, 1.15cqw)',
+            fontWeight: 800,
+          }}
+        >
+          Analis Lab
+        </span>
+        <p style={{ fontSize: 'max(10px, 1.15cqw)', fontWeight: 500, lineHeight: 1.4 }}>
+          {dialogue}
+        </p>
+      </section>
+
+      <section
+        aria-label={`Narasi berlangsung, ${formatTime(currentTime)} dari ${formatTime(duration)}`}
+        className={exiting ? 'sterilab-fade-out' : 'sterilab-rise-in-offscreen'}
+        style={{
+          position: 'absolute',
+          zIndex: 2,
+          left: '25%',
+          bottom: '3.2%',
+          width: 'min(38%, 730px)',
+          minWidth: 'min(300px, 53%)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'max(9px, 0.8cqw)',
+          padding: 'max(10px, 0.85cqw) max(14px, 1.15cqw)',
+          border: '1px solid #3187df',
+          borderRadius: 999,
+          background: 'rgba(255, 255, 255, 0.95)',
+          color: palette.deepBlue,
+          boxShadow: '0 5px 12px rgba(7, 49, 105, 0.14)',
+          animationDelay: `${exiting ? exitDelayMs : ENTER_DELAY_MS.badge}ms`,
+        }}
+      >
+        <span aria-hidden="true" style={{ color: '#0668c9', fontSize: 'max(18px, 1.8cqw)', lineHeight: 1 }}>
+          &#128266;
+        </span>
+        <span style={{ whiteSpace: 'nowrap', fontSize: 'max(10px, 0.95cqw)', fontWeight: 700 }}>Narasi berlangsung...</span>
+        <div
+          role="progressbar"
+          aria-label="Kemajuan narasi"
+          aria-valuemin={0}
+          aria-valuemax={Math.round(duration)}
+          aria-valuenow={Math.round(currentTime)}
+          style={{ flex: 1, minWidth: 'max(58px, 6cqw)', height: 'max(8px, 0.75cqw)', overflow: 'hidden', borderRadius: 999, background: '#dceafb' }}
+        >
+          <span style={{ display: 'block', width: `${progress}%`, height: '100%', borderRadius: 'inherit', background: '#0873df' }} />
+        </div>
+        <time style={{ whiteSpace: 'nowrap', fontSize: 'max(10px, 0.95cqw)', fontWeight: 700 }}>
+          {formatTime(currentTime)} / {formatTime(duration)}
+        </time>
+      </section>
+    </>
   );
 }

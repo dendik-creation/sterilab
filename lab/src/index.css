@@ -79,6 +79,24 @@ body {
   animation: sterilab-fade-out 420ms ease-out both;
 }
 
+/* Teknik Kerja Aseptik Langkah 6's "ambil sampel" plate swap only: a cover
+   image (the outgoing ready/sampling plate) fades to transparent over the new
+   one already swapped in underneath, so that one action reads as a
+   200-300ms crossfade instead of the hard cut every other Langkah step still
+   uses for its own plate changes. */
+@keyframes sterilab-sample-crossfade {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.sterilab-sample-crossfade {
+  animation: sterilab-sample-crossfade 260ms ease-out both;
+}
+
 /* Three-bar "audio is playing" meter inside the Case badge. The badge says
    "Dengarkan sampai selesai"; this is the part that shows it is still
    running, so the wait reads as progress rather than a stuck screen. */
@@ -380,6 +398,7 @@ body {
   .sterilab-pulse-ring,
   .sterilab-rise-in-offscreen,
   .sterilab-fade-out,
+  .sterilab-sample-crossfade,
   .sterilab-eq-bar,
   .sterilab-bubble-in,
   .sterilab-bubble-out,

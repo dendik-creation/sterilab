@@ -8,36 +8,17 @@ import { FloatingTab } from '../FloatingTab';
 import { useTimeouts } from '../hooks';
 import type { ProcedureProps } from '../types';
 
-// Prosedur 2 - "Mendekontaminasi Limbah Biologis" (Figma frames "6.2 - A/B/C").
-// Pick up the bin of biological waste (already sorted in Langkah 1) and load
-// it into the autoclave, then press the autoclave's own start button to run
-// the cycle. Two beats, two Figma plates: the drop (A -> B) and the press
-// (B -> C) - there is no fourth plate for "mid-cycle", so the door-closed art
-// is the feedback for the button press itself.
-//
-// The drop is a real drag, same dual path as Stage 4's APD equip
-// (teknik-aseptik/Prosedur02MemakaiApd.tsx): a pointer drag for a mouse or a
-// finger, and a tap-the-bin-then-tap-the-autoclave path for the keyboard and
-// anyone who finds dragging awkward. Only one item and one target this time,
-// so there is no socket map to search - just one drop rect to hit-test.
+// Prosedur 2 keeps the existing pointer drag and tap-to-place interaction.
 
 const HINT_CARD = { x: 1437, y: 221.17, width: 426 };
 const HINT_PILL = { dx: 98 };
 const HINT_BODY = { dy: 242 - 221.17, minHeight: 247 - (242 - 221.17) };
 
-// The bin's own rendered art is the only source for a drag ghost and the
-// card's preview thumbnail - there is no standalone icon file for it (unlike
-// Stage 4's APD pieces), so both crop the same idle background photo down to
-// its bin region instead of inventing new art. Sized to Figma's own preview
-// (node 310:1130's mask group, 234.907x115.935); laid out in the card's flex
-// flow rather than at its exact dx/dy, same trade every dot row and rule on
-// this stage already makes.
 const THUMB = { width: 234.907, height: 115.935 };
-const FULL_FRAME_PX = 1920;
 
 const DRAG_THRESHOLD_PX = 6;
 const DROP_PADDING_PX = 24;
-const GHOST_WIDTH_PX = 96;
+const GHOST_WIDTH_PX = 180;
 // The lit-button plate needs to be on screen before the note card starts
 // rising, or the Analyst reads "Dekontaminasi selesai" over a door still
 // swinging shut.
@@ -79,10 +60,10 @@ export function Prosedur02MendekontaminasiLimbahBiologis({ step, runtime }: Proc
       return;
     }
     if (loaded) {
-      setMessage(`Wadah limbah biologis sudah di dalam autoklaf. ${step.startInstruction}`);
+      setMessage(`Tray stainless steel berisi limbah biologis sudah di dalam autoklaf. ${step.startInstruction}`);
       return;
     }
-    setMessage(`Wadah limbah biologis belum dimasukkan ke autoklaf. ${step.dragInstruction}`);
+    setMessage(`Tray stainless steel berisi limbah biologis belum dimasukkan ke autoklaf. ${step.dragInstruction}`);
   }, [setMessage, started, loaded, step]);
 
   const load = () => {
@@ -103,7 +84,7 @@ export function Prosedur02MendekontaminasiLimbahBiologis({ step, runtime }: Proc
     after(SETTLE_MS, complete);
   };
 
-  const handleBinClick = () => {
+  const handleTrayClick = () => {
     if (suppressClickRef.current) {
       suppressClickRef.current = false;
       return;
@@ -113,7 +94,7 @@ export function Prosedur02MendekontaminasiLimbahBiologis({ step, runtime }: Proc
     setHeld((current) => !current);
   };
 
-  const handleBinPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
+  const handleTrayPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (loaded || !event.isPrimary) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     dragOriginRef.current = { x: event.clientX, y: event.clientY, moved: false };
@@ -131,7 +112,7 @@ export function Prosedur02MendekontaminasiLimbahBiologis({ step, runtime }: Proc
     );
   };
 
-  const handleBinPointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
+  const handleTrayPointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
     const origin = dragOriginRef.current;
     if (!origin) return;
     if (Math.hypot(event.clientX - origin.x, event.clientY - origin.y) > DRAG_THRESHOLD_PX) origin.moved = true;
@@ -139,7 +120,7 @@ export function Prosedur02MendekontaminasiLimbahBiologis({ step, runtime }: Proc
     setOver(origin.moved && hitsDropTarget(event.clientX, event.clientY));
   };
 
-  const handleBinPointerUp = (event: ReactPointerEvent<HTMLButtonElement>) => {
+  const handleTrayPointerUp = (event: ReactPointerEvent<HTMLButtonElement>) => {
     const origin = dragOriginRef.current;
     dragOriginRef.current = null;
     setDrag(null);
@@ -149,7 +130,7 @@ export function Prosedur02MendekontaminasiLimbahBiologis({ step, runtime }: Proc
     if (hitsDropTarget(event.clientX, event.clientY)) load();
   };
 
-  const handleBinPointerCancel = () => {
+  const handleTrayPointerCancel = () => {
     dragOriginRef.current = null;
     setDrag(null);
     setOver(false);
@@ -163,21 +144,21 @@ export function Prosedur02MendekontaminasiLimbahBiologis({ step, runtime }: Proc
         <>
           <button
             type="button"
-            onClick={handleBinClick}
-            onPointerDown={handleBinPointerDown}
-            onPointerMove={handleBinPointerMove}
-            onPointerUp={handleBinPointerUp}
-            onPointerCancel={handleBinPointerCancel}
-            onLostPointerCapture={handleBinPointerCancel}
+            onClick={handleTrayClick}
+            onPointerDown={handleTrayPointerDown}
+            onPointerMove={handleTrayPointerMove}
+            onPointerUp={handleTrayPointerUp}
+            onPointerCancel={handleTrayPointerCancel}
+            onLostPointerCapture={handleTrayPointerCancel}
             aria-pressed={armed}
-            aria-label={held ? `${step.binAccessibleName}, terpilih - pilih autoklaf untuk meletakkannya` : step.binAccessibleName}
+            aria-label={held ? `${step.trayAccessibleName}, terpilih - pilih autoklaf untuk meletakkannya` : step.trayAccessibleName}
             className={armed ? undefined : 'sterilab-hotspot-pulse'}
             style={{
               position: 'absolute',
-              left: S(step.binRect.x),
-              top: S(step.binRect.y),
-              width: `max(44px, ${S(step.binRect.width)})`,
-              height: `max(44px, ${S(step.binRect.height)})`,
+              left: S(step.trayRect.x),
+              top: S(step.trayRect.y),
+              width: `max(44px, ${S(step.trayRect.width)})`,
+              height: `max(44px, ${S(step.trayRect.height)})`,
               zIndex: 3,
               padding: 0,
               border: `max(2px, 0.156cqw) solid ${COLOR.hotspotBorder}`,
@@ -205,11 +186,12 @@ export function Prosedur02MendekontaminasiLimbahBiologis({ step, runtime }: Proc
               height: S(step.autoclaveDropRect.height),
               zIndex: 2,
               padding: 0,
-              border: `max(2px, 0.156cqw) ${over ? 'solid' : 'dashed'} ${COLOR.hotspotBorder}`,
+              border: `max(2px, 0.156cqw) dashed ${over ? '#1769D2' : '#2F80ED'}`,
               borderRadius: S(18),
-              background: over ? 'rgba(109, 215, 253, 0.4)' : 'rgba(255, 255, 255, 0.2)',
+              background: over ? 'rgba(47, 128, 237, 0.12)' : 'rgba(47, 128, 237, 0.04)',
               cursor: armed ? 'pointer' : 'default',
-              transition: 'background 160ms ease-out, border-style 160ms ease-out',
+              boxShadow: over ? '0 0 14px rgba(47, 128, 237, 0.35)' : 'none',
+              transition: 'background 160ms ease-out, border-color 160ms ease-out, box-shadow 160ms ease-out',
             }}
           />
 
@@ -221,15 +203,14 @@ export function Prosedur02MendekontaminasiLimbahBiologis({ step, runtime }: Proc
                 left: drag.x,
                 top: drag.y,
                 width: GHOST_WIDTH_PX,
-                aspectRatio: `${step.binRect.width} / ${step.binRect.height}`,
                 transform: `translate(-50%, ${drag.coarse ? '-115%' : '-50%'}) scale(1.08)`,
                 pointerEvents: 'none',
                 zIndex: 20,
-                borderRadius: 8,
                 boxShadow: '0 6px 14px rgba(4, 72, 139, 0.35)',
-                ...cropStyle(step.initialBackground, step.binRect, GHOST_WIDTH_PX, 'px'),
               }}
-            />
+            >
+              <img src={step.dragObjectSrc} alt="" style={{ display: 'block', width: '100%', height: 'auto' }} />
+            </div>
           ) : null}
         </>
       ) : null}
@@ -270,36 +251,10 @@ export function Prosedur02MendekontaminasiLimbahBiologis({ step, runtime }: Proc
   );
 }
 
-// Crops one design-space rect out of a full 1920x1080 background photo,
-// returned as a background-image style - used for both the card's static
-// preview thumbnail (sized in cqw, matching every other measurement on this
-// stage) and the drag ghost (sized in fixed px, since it follows the pointer
-// in viewport space rather than the safe layer's container query).
-function cropStyle(
-  src: string,
-  rect: { x: number; y: number; width: number; height: number },
-  displaySize: number,
-  unit: 'cqw' | 'px',
-): { backgroundImage: string; backgroundSize: string; backgroundPosition: string; backgroundRepeat: string } {
-  const scale = displaySize / rect.width;
-  // The 'cqw' branch has to go through S() itself (design px -> percent of
-  // the safe layer, /1920*100) rather than just appending the unit: a raw
-  // `${designPx * scale}cqw` is ~19x too large, since it skips that /1920
-  // and reads the number as already being a percent of the container.
-  const size = (designPx: number) => (unit === 'cqw' ? S(designPx * scale) : `${designPx * scale}px`);
-  return {
-    backgroundImage: `url(${src})`,
-    backgroundSize: `${size(FULL_FRAME_PX)} ${size(1080)}`,
-    backgroundPosition: `-${size(rect.x)} -${size(rect.y)}`,
-    backgroundRepeat: 'no-repeat',
-  };
-}
-
 // Prosedur 2's floating card (Figma group "LANGKAH 6", node 309:879 /
 // 310:1005 / 310:1140): the same tab and white card as every other
-// procedure's, carrying a preview thumbnail of the bin only while it is
-// still on the bench (Figma node 310:1130's mask group) - once it is loaded
-// the card matches Langkah 1's plain shape.
+// procedure's, carrying the supplied tray preview only while it is still on
+// the bench - once it is loaded the card matches Langkah 1's plain shape.
 function HintCard({ step, loaded, animation }: { step: DecontaminateStep; loaded: boolean; animation: Animation }) {
   return (
     <div
@@ -376,16 +331,19 @@ function HintCard({ step, loaded, animation }: { step: DecontaminateStep; loaded
         </span>
 
         {!loaded ? (
-          <div
+          <img
             aria-hidden="true"
+            data-testid="stainless-tray-preview"
+            src={step.previewSrc}
+            alt=""
             style={{
               marginTop: S(6),
               width: S(THUMB.width),
               maxWidth: '100%',
-              aspectRatio: `${THUMB.width} / ${THUMB.height}`,
+              height: S(THUMB.height),
               borderRadius: S(12),
               flex: 'none',
-              ...cropStyle(step.initialBackground, step.binRect, THUMB.width, 'cqw'),
+              objectFit: 'contain',
             }}
           />
         ) : null}

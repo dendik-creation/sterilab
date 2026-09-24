@@ -10,14 +10,14 @@ import { useTimeouts } from '../hooks';
 import type { ProcedureProps } from '../types';
 
 // Prosedur 5 - "Mensterilisasi Media" (Figma frames "5.5 - A/B/C"). Load the
-// Erlenmeyer into the autoklaf, dial suhu/waktu in to the expected range,
+// Erlenmeyer into the autoklaf, dial suhu/tekanan/waktu in to the expected range,
 // start the run, then wait for sterilization to finish - the art cuts to the
 // loaded plate on the first click, then holds there (only its floating
 // panel's own readout and the "Mulai Proses" button's state change) until the
 // run times out on its own and cuts to the done plate.
 //
 // Everything the procedure owns lives here: which phase this is, which plate
-// that implies, what suhu/waktu are currently dialled to, and when the step
+// that implies, what suhu/tekanan/waktu are currently dialled to, and when the step
 // is done. The shell knows none of it.
 
 type Phase = 'idle' | 'loaded' | 'sterilizing' | 'done';
@@ -28,14 +28,11 @@ const HINT_BODY = { dy: 242 - 221.17, minHeight: 244 - (242 - 221.17) };
 
 const PHASE_INDEX: Record<Phase, number> = { idle: 0, loaded: 1, sterilizing: 1, done: 2 };
 
-// The panel's own "Suhu"/"Waktu" readout (Figma nodes 298:2594/298:2595
-// labels, 302:156/302:157 values) - centred over the panel graphic like the
-// rest of its own text, hence the translateX(-50%) rather than a left edge.
+// The new panel paints its own labels; only the dynamic values are DOM overlays.
 const PANEL_READOUT = {
-  suhuLabel: { x: 1335.85, y: 783.04 },
-  suhuValue: { x: 1335.85, y: 854 },
-  waktuLabel: { x: 1693.14, y: 783.04 },
-  waktuValue: { x: 1700, y: 854 },
+  temperature: { x: 1229, y: 868 },
+  pressure: { x: 1468, y: 868 },
+  duration: { x: 1707, y: 868 },
 };
 
 // The done plate's own LCD readout (Figma nodes 302:158/302:159), smaller and
@@ -50,12 +47,15 @@ export function Prosedur05MensterilisasiMedia({ step, runtime }: ProcedureProps<
   const { exiting, playClick, setFrame, setMessage, complete } = runtime;
   const [phase, setPhase] = useState<Phase>('idle');
   const [temperature, setTemperature] = useState(step.temperatureDefault);
+  const [pressure, setPressure] = useState(step.pressureDefault);
   const [duration, setDuration] = useState(step.durationDefault);
   const after = useTimeouts();
 
   const frame: SterilizeFrame = step.frames[PHASE_INDEX[phase]];
-  const isValid =
-    temperature === step.temperatureTarget && duration >= step.durationTargetMin && duration <= step.durationTargetMax;
+  const isTemperatureCorrect = temperature === step.temperatureTarget;
+  const isPressureCorrect = pressure === step.pressureTarget;
+  const isDurationCorrect = duration >= step.durationTargetMin && duration <= step.durationTargetMax;
+  const isAutoclaveReady = isTemperatureCorrect && isPressureCorrect && isDurationCorrect;
 
   // Layout, not passive: the art is the feedback for the click that just
   // landed, so it has to be swapped in the same commit as the phase change.
@@ -68,14 +68,14 @@ export function Prosedur05MensterilisasiMedia({ step, runtime }: ProcedureProps<
       phase === 'idle'
         ? step.loadAccessibleName
         : phase === 'loaded'
-          ? isValid
+          ? isAutoclaveReady
             ? step.startAccessibleName
             : step.outOfRangeMessage
           : phase === 'sterilizing'
             ? step.sterilizingMessage
             : `${step.successTitle} ${step.successBody}`;
     setMessage(message);
-  }, [setMessage, phase, isValid, step]);
+  }, [setMessage, phase, isAutoclaveReady, step]);
 
   const handleLoad = () => {
     if (phase !== 'idle') return;
@@ -91,6 +91,18 @@ export function Prosedur05MensterilisasiMedia({ step, runtime }: ProcedureProps<
     );
   };
 
+  const decreasePressure = () => {
+    if (phase !== 'loaded') return;
+    playClick();
+    setPressure((value) => Math.max(step.pressureMin, value - step.pressureStep));
+  };
+
+  const increasePressure = () => {
+    if (phase !== 'loaded') return;
+    playClick();
+    setPressure((value) => Math.min(step.pressureMax, value + step.pressureStep));
+  };
+
   const adjustDuration = (delta: number) => {
     if (phase !== 'loaded') return;
     playClick();
@@ -98,7 +110,7 @@ export function Prosedur05MensterilisasiMedia({ step, runtime }: ProcedureProps<
   };
 
   const handleStart = () => {
-    if (phase !== 'loaded' || !isValid) return;
+    if (phase !== 'loaded' || !isAutoclaveReady) return;
     playClick();
     setPhase('sterilizing');
     if (prefersReducedMotion()) {
@@ -136,7 +148,7 @@ export function Prosedur05MensterilisasiMedia({ step, runtime }: ProcedureProps<
       ) : null}
 
       {phase === 'loaded' || phase === 'sterilizing' ? (
-        <PanelReadout step={step} temperature={temperature} duration={duration} />
+        <PanelReadout step={step} temperature={temperature} pressure={pressure} duration={duration} />
       ) : null}
 
       {phase === 'loaded' && !exiting ? (
@@ -152,6 +164,18 @@ export function Prosedur05MensterilisasiMedia({ step, runtime }: ProcedureProps<
             accessibleName={`Tambah suhu, saat ini ${temperature}${step.temperatureUnit}`}
             disabled={temperature >= step.temperatureMax}
             onSelect={() => adjustTemperature(step.temperatureStep)}
+          />
+          <ControlButton
+            rect={step.pressureMinusRect}
+            accessibleName={`Kurangi tekanan, saat ini ${pressure}${step.pressureUnit}`}
+            disabled={pressure <= step.pressureMin}
+            onSelect={decreasePressure}
+          />
+          <ControlButton
+            rect={step.pressurePlusRect}
+            accessibleName={`Tambah tekanan, saat ini ${pressure}${step.pressureUnit}`}
+            disabled={pressure >= step.pressureMax}
+            onSelect={increasePressure}
           />
           <ControlButton
             rect={step.durationMinusRect}
@@ -172,9 +196,9 @@ export function Prosedur05MensterilisasiMedia({ step, runtime }: ProcedureProps<
         <button
           type="button"
           onClick={handleStart}
-          disabled={!isValid}
-          aria-label={isValid ? step.startAccessibleName : `${step.startAccessibleName}. ${step.outOfRangeMessage}`}
-          aria-disabled={!isValid}
+          disabled={!isAutoclaveReady}
+          aria-label={isAutoclaveReady ? step.startAccessibleName : `${step.startAccessibleName}. ${step.outOfRangeMessage}`}
+          aria-disabled={!isAutoclaveReady}
           style={{
             position: 'absolute',
             left: S(step.startButtonRect.x),
@@ -185,7 +209,7 @@ export function Prosedur05MensterilisasiMedia({ step, runtime }: ProcedureProps<
             padding: 0,
             border: 'none',
             background: 'transparent',
-            cursor: isValid ? 'pointer' : 'not-allowed',
+            cursor: isAutoclaveReady ? 'pointer' : 'not-allowed',
           }}
         >
           <img
@@ -196,8 +220,8 @@ export function Prosedur05MensterilisasiMedia({ step, runtime }: ProcedureProps<
               display: 'block',
               width: '100%',
               height: '100%',
-              filter: isValid ? 'none' : 'grayscale(1)',
-              opacity: isValid ? 1 : 0.55,
+              filter: isAutoclaveReady ? 'none' : 'grayscale(1)',
+              opacity: isAutoclaveReady ? 1 : 0.55,
               transition: 'filter 160ms ease-out, opacity 160ms ease-out',
               pointerEvents: 'none',
             }}
@@ -256,10 +280,18 @@ function ControlButton({
   );
 }
 
-// Navy text over the floating control panel (Figma group "298:2577") - the
-// panel graphic itself carries no text, it's all a DOM overlay like Langkah
-// 3's pH readout.
-function PanelReadout({ step, temperature, duration }: { step: SterilizeStep; temperature: number; duration: number }) {
+// Navy dynamic values over the floating control panel (Figma group "298:2577").
+function PanelReadout({
+  step,
+  temperature,
+  pressure,
+  duration,
+}: {
+  step: SterilizeStep;
+  temperature: number;
+  pressure: number;
+  duration: number;
+}) {
   const centred = (x: number, y: number): CSSProperties => ({
     ...textBase,
     position: 'absolute',
@@ -273,16 +305,13 @@ function PanelReadout({ step, temperature, duration }: { step: SterilizeStep; te
 
   return (
     <>
-      <span aria-hidden="true" style={{ ...centred(PANEL_READOUT.suhuLabel.x, PANEL_READOUT.suhuLabel.y), fontSize: T(24, 11), fontWeight: 800, color: COLOR.titleNavy, letterSpacing: '0.06em' }}>
-        Suhu
-      </span>
-      <span aria-hidden="true" style={{ ...centred(PANEL_READOUT.suhuValue.x, PANEL_READOUT.suhuValue.y), fontSize: T(24, 11), fontWeight: 500, color: COLOR.titleNavy }}>
+      <span aria-hidden="true" style={{ ...centred(PANEL_READOUT.temperature.x, PANEL_READOUT.temperature.y), fontSize: T(24, 11), fontWeight: 700, color: COLOR.titleNavy }}>
         {temperature}{step.temperatureUnit}
       </span>
-      <span aria-hidden="true" style={{ ...centred(PANEL_READOUT.waktuLabel.x, PANEL_READOUT.waktuLabel.y), fontSize: T(24, 11), fontWeight: 800, color: COLOR.titleNavy, letterSpacing: '0.06em' }}>
-        Waktu
+      <span aria-hidden="true" style={{ ...centred(PANEL_READOUT.pressure.x, PANEL_READOUT.pressure.y), fontSize: T(24, 11), fontWeight: 700, color: COLOR.titleNavy }}>
+        {pressure}{step.pressureUnit}
       </span>
-      <span aria-hidden="true" style={{ ...centred(PANEL_READOUT.waktuValue.x, PANEL_READOUT.waktuValue.y), fontSize: T(24, 11), fontWeight: 500, color: COLOR.titleNavy }}>
+      <span aria-hidden="true" style={{ ...centred(PANEL_READOUT.duration.x, PANEL_READOUT.duration.y), fontSize: T(24, 11), fontWeight: 700, color: COLOR.titleNavy }}>
         {duration}{step.durationUnit}
       </span>
     </>

@@ -1,18 +1,9 @@
 import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 
-// Length of assets/sounds/02_scenes/03_case/hook_naration.ogg, read straight
-// off the Ogg Opus container (final page granule 2416632 - 312 pre-skip
-// samples, at the 48kHz Opus output rate). The Case CTA is gated on this file
-// finishing, so any spec that walks past Case is implicitly asserting a ~50s
-// wait exists - and case-narration.spec.ts asserts the number itself, so
-// re-recording the narration fails loudly here instead of silently changing
-// how long the Screen holds the Analyst.
-export const HOOK_NARRATION_SECONDS = 50.34;
-
 // Every journey that starts before Missions has to cross Case, and Case now
-// withholds its only CTA until the hook narration ends. Waiting out ~50s per
-// spec per viewport is not a test - so seek the real element to its end and
+// withholds its only CTA until the hook narration ends. Waiting out the file
+// per spec per viewport is not a test - so seek the real element to its end and
 // let the app's own `ended` handler open the gate. Nothing is stubbed: the
 // audio is the shipped file, playing, and the transition under test is the
 // same one a real Analyst triggers by listening.

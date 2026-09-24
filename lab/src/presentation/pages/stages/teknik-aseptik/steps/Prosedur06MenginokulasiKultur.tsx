@@ -1,24 +1,17 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { MutableRefObject, PointerEvent as ReactPointerEvent } from 'react';
 import { prefersReducedMotion } from '../../../../../core/a11y/motion';
-import type { InoculateAction, InoculateStep } from '../../../../../data/stages/teknikAseptik';
-import { CARD_RADIUS, CARD_SHADOW, COLOR, HAIRLINE, S, T, textBase } from '../geometry';
+import type { InoculateAction, InoculateStep, Rect } from '../../../../../data/stages/teknikAseptik';
+import { CARD_RADIUS, CARD_SHADOW, COLOR, HAIRLINE, S, T, rectStyle, textBase } from '../geometry';
 import type { Animation } from '../geometry';
 import { FloatingTab } from '../FloatingTab';
 import { useTimeouts } from '../hooks';
 import type { ProcedureProps } from '../types';
 
-// Prosedur 6 - "Mengambil dan Menginokulasi Kultur" (Figma frames 61:544,
-// 256:443, 256:582, 256:711, 258:840, 258:975, 259:21, "LANGKAH 6 NEW
-// (1)".."(7)"). Six actions across seven plates: open the culture vessel, pick
-// up a sample with the loop, transfer it to fresh media, reseal both vessels,
-// label the new media, then move it to the incubator.
-//
-// Every action but one is a click on an object already painted into the plate
-// - like Langkah 1's sequence, there is nothing to drag because the object has
-// no isolated asset of its own. The exception is labelling: Figma ships a real
-// sprite for the label + marker tile (node 258:972), so that one action is a
-// proper drag onto the media dish, the same shape as Langkah 5's loop.
+// Prosedur 6 - "Mengambil dan Menginokulasi Kultur". Six ordered actions take
+// inoculum from the source petri dish to one slant-agar tube, then close,
+// label, and incubate that tube. The revised plates are composited art, so the
+// only overlays remain the existing click targets and draggable tools.
 
 const CARD = { x: 1428.649, y: 221.17, width: 443.377 };
 const CARD_TAB_DX = 106.668;
@@ -30,6 +23,11 @@ const CORRECTION_MS = 3200;
 // starts rising, like every other procedure's close.
 const SETTLE_MS = 620;
 const DRAG_THRESHOLD_PX = 6;
+// Sampling's own cover-fade (200-300ms per the revision) and how long its
+// success line holds the correction slot before the ordinary "Berikutnya:"
+// copy would naturally take back over on the next action.
+const SAMPLE_FADE_MS = 260;
+const SAMPLE_BANNER_MS = 2600;
 
 interface DragState {
   x: number;
@@ -44,10 +42,14 @@ export function Prosedur06MenginokulasiKultur({ step, runtime }: ProcedureProps<
   const [drag, setDrag] = useState<DragState | null>(null);
   const [overTarget, setOverTarget] = useState(false);
   const [correction, setCorrection] = useState<string | null>(null);
+  const [successBanner, setSuccessBanner] = useState<string | null>(null);
+  const [fadeCover, setFadeCover] = useState<{ src: string; alt: string } | null>(null);
   const targetRef = useRef<HTMLButtonElement | null>(null);
   const targetBoxRef = useRef<DOMRect | null>(null);
   const suppressClickRef = useRef(false);
   const correctionTimerRef = useRef(0);
+  const bannerTimerRef = useRef(0);
+  const fadeTimerRef = useRef(0);
   const after = useTimeouts();
 
   const frame = step.frames[doneCount];
@@ -58,7 +60,14 @@ export function Prosedur06MenginokulasiKultur({ step, runtime }: ProcedureProps<
     setFrame({ src: frame.src, alt: frame.alt, rect: step.backgroundRect });
   }, [setFrame, frame.src, frame.alt, step.backgroundRect]);
 
-  useEffect(() => () => window.clearTimeout(correctionTimerRef.current), []);
+  useEffect(
+    () => () => {
+      window.clearTimeout(correctionTimerRef.current);
+      window.clearTimeout(bannerTimerRef.current);
+      window.clearTimeout(fadeTimerRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (finished) {
@@ -69,6 +78,10 @@ export function Prosedur06MenginokulasiKultur({ step, runtime }: ProcedureProps<
       setMessage(correction);
       return;
     }
+    // successBanner is a visible-card flash only (see InstructionCard's
+    // sample-feedback slot) - the aria-live announcement stays the plain
+    // per-action progress line every other Langkah 6 action already uses, so
+    // screen-reader guidance to the *next* action is never held up behind it.
     const name = action!.kind === 'click' ? action!.accessibleName : action!.tool.accessibleName;
     setMessage(`Tindakan ${doneCount} dari ${step.actions.length} selesai. Berikutnya: ${name}.`);
   }, [setMessage, finished, correction, doneCount, step, action]);
@@ -86,6 +99,7 @@ export function Prosedur06MenginokulasiKultur({ step, runtime }: ProcedureProps<
 
   const showCorrection = (message: string) => {
     setCorrection(message);
+    setSuccessBanner(null);
     window.clearTimeout(correctionTimerRef.current);
     correctionTimerRef.current = window.setTimeout(() => setCorrection(null), CORRECTION_MS);
   };
@@ -94,18 +108,50 @@ export function Prosedur06MenginokulasiKultur({ step, runtime }: ProcedureProps<
     if (finished || exiting) return;
     playClick();
     setCorrection(null);
+
+    // Sampling's own beat: cover the outgoing plate and hold a green success
+    // line over the ordinary "Berikutnya:" copy for a moment, instead of the
+    // hard cut every other action in this chain uses.
+    if (action?.kind === 'drag' && action.successFeedback) {
+      setFadeCover({ src: frame.src, alt: frame.alt });
+      window.clearTimeout(fadeTimerRef.current);
+      if (prefersReducedMotion()) {
+        setFadeCover(null);
+      } else {
+        fadeTimerRef.current = window.setTimeout(() => setFadeCover(null), SAMPLE_FADE_MS);
+      }
+
+      setSuccessBanner(action.successFeedback);
+      window.clearTimeout(bannerTimerRef.current);
+      bannerTimerRef.current = window.setTimeout(() => setSuccessBanner(null), SAMPLE_BANNER_MS);
+    } else {
+      setSuccessBanner(null);
+    }
+
     setDoneCount((count) => count + 1);
   };
 
   if (!action) {
-    return <InstructionCard step={step} phase={doneCount - 1} correction={null} animation={runtime.cardAnimation} />;
+    return (
+      <>
+        <InstructionCard step={step} phase={doneCount - 1} correction={null} animation={runtime.cardAnimation} />
+        <SampleFadeCover cover={fadeCover} rect={step.backgroundRect} />
+      </>
+    );
   }
 
   if (action.kind === 'click') {
     return (
       <>
         <ClickHotspot armed={!exiting} action={action} onSelect={advance} />
-        <InstructionCard step={step} phase={doneCount} correction={correction} animation={runtime.cardAnimation} />
+        <InstructionCard
+          step={step}
+          phase={doneCount}
+          correction={correction}
+          successBanner={successBanner}
+          animation={runtime.cardAnimation}
+        />
+        <SampleFadeCover cover={fadeCover} rect={step.backgroundRect} />
       </>
     );
   }
@@ -177,6 +223,7 @@ export function Prosedur06MenginokulasiKultur({ step, runtime }: ProcedureProps<
         step={step}
         phase={doneCount}
         correction={correction}
+        successBanner={successBanner}
         animation={runtime.cardAnimation}
         drag={{
           tool: action.tool,
@@ -189,7 +236,26 @@ export function Prosedur06MenginokulasiKultur({ step, runtime }: ProcedureProps<
       />
 
       {drag ? <DragGhost src={action.tool.src} width={action.tool.width} drag={drag} /> : null}
+      <SampleFadeCover cover={fadeCover} rect={step.backgroundRect} />
     </>
+  );
+}
+
+// Sampling's cover-fade: the outgoing plate held on top of the new one
+// (already swapped in underneath via setFrame) and animated to transparent,
+// so the ready -> sampling change reads as a 200-300ms crossfade rather than
+// a hard cut. Local to this one action - Stage's shared background <img>
+// (every other Langkah's swap) is untouched.
+function SampleFadeCover({ cover, rect }: { cover: { src: string; alt: string } | null; rect: Rect }) {
+  if (!cover) return null;
+  return (
+    <img
+      src={cover.src}
+      alt=""
+      aria-hidden="true"
+      className="sterilab-sample-crossfade"
+      style={{ position: 'absolute', ...rectStyle(rect), objectFit: 'cover', zIndex: 3, pointerEvents: 'none' }}
+    />
   );
 }
 
@@ -212,6 +278,7 @@ function ClickHotspot({
       onClick={onSelect}
       disabled={!armed}
       aria-label={action.accessibleName}
+      data-procedure-state={action.state}
       className={armed ? 'sterilab-hotspot-pulse' : undefined}
       style={{
         position: 'absolute',
@@ -221,7 +288,7 @@ function ClickHotspot({
         width: `max(44px, ${S(action.hotspot.width)})`,
         height: `max(44px, ${S(action.hotspot.height)})`,
         // Above the PROSEDUR card (4): three of this step's objects (the
-        // culture dish, the media dish, the label's drop zone) sit design px
+        // culture dish, the selected tube, the label's drop zone) sit design px
         // away from its right edge (556.489) that a floored 44px button
         // still clears at desktop, but the card's own long description wraps
         // tall enough on the smallest supported phone (568x320) to reach
@@ -246,8 +313,8 @@ function ClickHotspot({
   );
 }
 
-// The label's drop zone: the media dish, sized from Figma's own highlight box
-// on that plate. Also a real button, like Langkah 5's flame, so the action
+// A drag target (the source culture or inoculated tube), sized from its revised
+// plate. It is also a real button, like Langkah 5's flame, so the action
 // stays completable from the keyboard alone.
 function DropTarget({
   action,
@@ -274,6 +341,7 @@ function DropTarget({
       onPointerUp={onPointerUp}
       disabled={!armed}
       aria-label={action.tool.accessibleName}
+      data-procedure-state={action.state}
       className={armed ? 'sterilab-hotspot-pulse' : undefined}
       style={{
         position: 'absolute',
@@ -342,12 +410,14 @@ function InstructionCard({
   step,
   phase,
   correction,
+  successBanner = null,
   animation,
   drag,
 }: {
   step: InoculateStep;
   phase: number;
   correction: string | null;
+  successBanner?: string | null;
   animation: Animation;
   drag?: {
     tool: { src: string; width: number; height: number; accessibleName: string };
@@ -451,6 +521,7 @@ function InstructionCard({
 
         <span
           aria-hidden="true"
+          data-testid="sample-feedback"
           className={correction ? 'sterilab-nudge' : undefined}
           style={{
             ...textBase,
@@ -460,12 +531,15 @@ function InstructionCard({
             lineHeight: 1.3,
             fontSize: T(17, 9),
             fontWeight: 600,
-            color: COLOR.correction,
-            opacity: correction ? 1 : 0,
+            // Same slot as the off-target correction, in the design system's
+            // existing success green rather than a new colour, for the
+            // "Sampel kultur berhasil..." line the revision asks for.
+            color: correction ? COLOR.correction : COLOR.successGreen,
+            opacity: correction || successBanner ? 1 : 0,
             transition: 'opacity 180ms ease-out',
           }}
         >
-          {correction ?? ''}
+          {correction ?? successBanner ?? ''}
         </span>
       </div>
 
