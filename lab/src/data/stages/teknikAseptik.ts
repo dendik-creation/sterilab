@@ -28,7 +28,6 @@ import inoculateCloseTubeUrl from '../../../assets/images/02_scenes/04_01_teknik
 import inoculateClosedTubeUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/backgrounds/new_4.png';
 import inoculateLabelTubeUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/backgrounds/new_5.png';
 import inoculateIncubatorUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/backgrounds/new_6.png';
-import labelMarkerUrl from '../../../assets/images/02_scenes/04_01_teknik_kerja_aseptik/step_6/label_marker.png';
 
 // Data for Stage 4 "Teknik Kerja Aseptik" (Figma "Sterilab-APHP" canvas 42:678
 // "Scene 04: Prosedur Panjang Teknik Kerja Aseptik"). Every number here is a
@@ -368,8 +367,8 @@ export interface SterilizeStep extends BaseStep {
 }
 
 // One plate of Langkah 6's composited art. The scientist, bench, culture dish,
-// passive tubes, and incubator are all painted into these assets; only a
-// hotspot or the existing draggable label is layered above them.
+// passive tubes, and incubator are all painted into these assets; only
+// transparent interaction guidance is layered above them.
 export interface InoculateFrame {
   src: string;
   alt: string;
@@ -385,23 +384,16 @@ export interface InoculateClickAction {
   hotspot: Rect;
 }
 
-// A tool tile inside the floating card has to be dropped on a target rect in
-// the scene, exactly like Langkah 5's loop. Labelling is one such action
-// (Figma node 258:972 ships a real isolated sprite rather than an object
-// painted into the plate); sampling is the other, reusing Langkah 5's own
-// loop asset since it is the same physical object.
+// A baked-in object is dragged to another baked-in object. Both rectangles are
+// measured from the current plate, so the UI never draws a second loop, tube,
+// rack, or incubator over the revised composite artwork.
 export interface InoculateDragAction {
   kind: 'drag';
   state: Procedure6State;
-  tool: { src: string; width: number; height: number; accessibleName: string };
+  accessibleName: string;
+  source: Rect;
   target: Rect;
   offTargetCorrection: string;
-  // Sampling only: a short cover-fade crossfades the ready/sampling plates
-  // instead of the usual hard cut, and this text both flashes in the
-  // correction slot (green, not red) and leads the aria-live announcement -
-  // the revision's "tampilkan feedback sukses" requirement. Omitted by the
-  // label action, which keeps the plain instant swap every other action uses.
-  successFeedback?: string;
 }
 
 export type InoculateAction = InoculateClickAction | InoculateDragAction;
@@ -410,12 +402,12 @@ export type InoculateAction = InoculateClickAction | InoculateDragAction;
 // advances solely by index, so a later state has no live hotspot until its
 // prerequisite action has completed.
 export type Procedure6State =
-  | 'collectCulture'
   | 'selectSlantTube'
   | 'inoculateSlant'
   | 'closeTube'
   | 'labelTube'
-  | 'incubateTube'
+  | 'storeTubeInRack'
+  | 'incubateRack'
   | 'completed';
 
 // Card copy for one action: the descriptive sentence Figma writes above the
@@ -425,24 +417,24 @@ export interface InoculatePhaseCopy {
   instructionLabel: string;
 }
 
-// Langkah 6's revised six-action chain: collect from the source petri dish,
-// choose one slant-agar tube, inoculate it, close it, label that tube, then
-// incubate it. The opening culture setup is already composed in new_1; its
-// completion does not create a separate global procedure step.
+// Langkah 6's revised six-action chain: choose one solid slant-agar tube,
+// inoculate it from the Petri source near the flame, close and label it, return
+// it to the rack, then incubate the completed rack. Culture collection is
+// already visibly composed into the first plate; it is not a seventh frame.
 export interface InoculateStep extends BaseStep {
   kind: 'inoculate';
   actions: [
-    InoculateDragAction,
-    InoculateClickAction,
-    InoculateClickAction,
     InoculateClickAction,
     InoculateDragAction,
     InoculateClickAction,
+    InoculateClickAction,
+    InoculateDragAction,
+    InoculateDragAction,
   ];
-  // One plate per action, plus the opening one: frames[n] is shown once n
-  // actions have landed.
+  // One plate per internal state. `frames[n]` is shown while action `n` is
+  // active; once the final rack action succeeds the sixth plate stays visible
+  // beneath the ordinary procedure-success feedback.
   frames: [
-    InoculateFrame,
     InoculateFrame,
     InoculateFrame,
     InoculateFrame,
@@ -875,43 +867,40 @@ export const STERILIZE_OSE_STEP: SterilizeStep = {
   },
 };
 
-// new_1 is used for the aseptic source-culture setup and the immediately
-// following tube-selection phase. All other revised stages have their own
-// composited plate.
+// The six revised plates map one-to-one to Procedure 6's internal states. The
+// first plate already shows the Petri culture as the source and the final plate
+// already shows the completed rack at the incubator; neither needs an extra
+// replacement or duplicate overlay.
 const INOCULATE_FRAMES: InoculateStep['frames'] = [
   {
     src: inoculateCultureUrl,
-    alt: 'Analis mengambil kultur dari cawan petri menggunakan jarum ose steril dengan rak tabung agar miring tersedia di meja',
-  },
-  {
-    src: inoculateCultureUrl,
-    alt: 'Kultur asal telah diambil dari cawan petri dan rak tabung agar miring siap dipilih',
+    alt: 'Cawan Petri sebagai kultur sumber, api bunsen di area kerja tengah, dan rak tabung berisi agar miring padat untuk dipilih',
   },
   {
     src: inoculateSlantUrl,
-    alt: 'Analis memegang satu tabung reaksi berisi agar miring yang siap diinokulasi dengan jarum ose',
+    alt: 'Analis memindahkan kultur dengan jarum ose ke permukaan agar miring padat di dekat api bunsen',
   },
   {
     src: inoculateCloseTubeUrl,
-    alt: 'Analis menutup tabung reaksi yang telah diinokulasi setelah menggores agar miring',
+    alt: 'Analis menutup tabung reaksi berisi agar miring padat yang telah diinokulasi di dekat api bunsen',
   },
   {
     src: inoculateClosedTubeUrl,
-    alt: 'Tabung reaksi hasil inokulasi telah ditutup dan siap diberi label',
+    alt: 'Analis memberi label pada tabung reaksi berisi agar miring padat yang telah diinokulasi',
   },
   {
     src: inoculateLabelTubeUrl,
-    alt: 'Analis memberi label Sampel A, NA, dan tanggal pada tabung reaksi hasil inokulasi',
+    alt: 'Tabung reaksi berlabel siap dikembalikan ke slot kosong pada rak tabung',
   },
   {
     src: inoculateIncubatorUrl,
-    alt: 'Analis menempatkan tabung reaksi berlabel ke dalam inkubator',
+    alt: 'Analis memindahkan seluruh rak berisi tabung agar miring berlabel ke bagian dalam inkubator',
   },
 ];
 
-// Hotspots are measured against each new 1672x941 plate, mapped to the stage's
-// 1920x1080 design grid. They only exist for the current action, which is the
-// guard against skipping the inoculation sequence.
+// Hotspots are measured against each new 1672x941 plate, then normalized to the
+// stage's 1920x1080 design grid. They only exist for the current action, which
+// is the guard against skipping the inoculation sequence.
 export const MENGINOKULASI_KULTUR_STEP: InoculateStep = {
   kind: 'inoculate',
   id: 'menginokulasi-kultur',
@@ -919,83 +908,87 @@ export const MENGINOKULASI_KULTUR_STEP: InoculateStep = {
   eyebrow: 'Langkah 6',
   title: 'Mengambil dan Menginokulasi Kultur',
   description:
-    'Inokulasi adalah proses pemindahan mikroorganisme dari kultur asal ke media pertumbuhan baru secara aseptik untuk memperbanyak atau memurnikan biakan tanpa adanya kontaminasi dari lingkungan sekitar.',
+    'Pindahkan kultur dari cawan Petri ke tabung berisi agar miring padat secara aseptik, lalu inkubasi seluruh rak tabung yang telah disiapkan.',
   initialBackground: INOCULATE_FRAMES[0].src,
   initialBackgroundAlt: INOCULATE_FRAMES[0].alt,
   backgroundRect: FULL_FRAME,
   frames: INOCULATE_FRAMES,
   actions: [
     {
-      kind: 'drag',
-      state: 'collectCulture',
-      tool: {
-        src: jarumOseUrl,
-        width: 142,
-        height: 137,
-        accessibleName: 'Ambil kultur dari cawan petri menggunakan jarum ose steril',
-      },
-      target: { x: 865, y: 510, width: 220, height: 145 },
-      offTargetCorrection: 'Arahkan jarum ose ke koloni pada cawan petri.',
-      successFeedback: 'Sampel kultur berhasil diambil secara aseptik.',
-    },
-    {
       kind: 'click',
       state: 'selectSlantTube',
-      accessibleName: 'Pilih tabung reaksi berisi agar miring untuk diinokulasi',
-      hotspot: { x: 1050, y: 650, width: 115, height: 210 },
+      accessibleName: 'Pilih tabung reaksi berisi agar miring padat untuk diinokulasi',
+      // The leftmost slant tube in Frame 1's rack, not the whole rack.
+      hotspot: { x: 1360, y: 655, width: 105, height: 285 },
     },
     {
-      kind: 'click',
+      kind: 'drag',
       state: 'inoculateSlant',
-      accessibleName: 'Goreskan inokulum pada agar miring di dalam tabung reaksi',
-      hotspot: { x: 1015, y: 490, width: 155, height: 270 },
+      accessibleName: 'Jarum ose berisi kultur, seret ke permukaan agar miring',
+      // Frame 2: loop handle/shaft -> slant surface. The target begins just to
+      // the flame's right, keeping the operation close to, never in, the flame.
+      source: { x: 640, y: 345, width: 335, height: 175 },
+      target: { x: 982, y: 520, width: 112, height: 230 },
+      offTargetCorrection: 'Arahkan jarum ose ke permukaan agar miring di dekat api bunsen.',
     },
     {
       kind: 'click',
       state: 'closeTube',
-      accessibleName: 'Tutup kembali tabung reaksi hasil inokulasi',
-      hotspot: { x: 890, y: 375, width: 135, height: 135 },
-    },
-    {
-      kind: 'drag',
-      state: 'labelTube',
-      tool: {
-        src: labelMarkerUrl,
-        width: 216,
-        height: 144,
-        accessibleName: 'Label dan spidol, seret ke tabung reaksi yang telah diinokulasi',
-      },
-      target: { x: 970, y: 470, width: 125, height: 230 },
-      offTargetCorrection: 'Arahkan label ke tabung reaksi yang telah diinokulasi - hanya tabung ini yang perlu diberi label.',
+      accessibleName: 'Tutup tabung reaksi hasil inokulasi',
+      // Frame 3: cap on the active tube, not the Petri dish.
+      hotspot: { x: 915, y: 385, width: 95, height: 100 },
     },
     {
       kind: 'click',
-      state: 'incubateTube',
-      accessibleName: 'Tempatkan tabung reaksi berlabel ke dalam inkubator',
-      hotspot: { x: 975, y: 430, width: 125, height: 265 },
+      state: 'labelTube',
+      accessibleName: 'Labeli tabung reaksi hasil inokulasi',
+      // Frame 4: label band on the active tube.
+      hotspot: { x: 970, y: 440, width: 90, height: 90 },
+    },
+    {
+      kind: 'drag',
+      state: 'storeTubeInRack',
+      accessibleName: 'Tabung reaksi berlabel, seret ke slot kosong pada rak tabung',
+      // Frame 5: the tube in hand -> the only empty slot at the rack's far right.
+      source: { x: 915, y: 340, width: 120, height: 300 },
+      target: { x: 1745, y: 665, width: 120, height: 285 },
+      offTargetCorrection: 'Kembalikan tabung berlabel ke slot kosong pada rak tabung.',
+    },
+    {
+      kind: 'drag',
+      state: 'incubateRack',
+      accessibleName: 'Rak tabung lengkap, seret ke bagian dalam inkubator',
+      // Frame 6: use the whole rack, never an individual tube. The incubator
+      // interior is the destination shown by the opened door.
+      source: { x: 1030, y: 345, width: 330, height: 235 },
+      target: { x: 960, y: 210, width: 425, height: 550 },
+      offTargetCorrection: 'Arahkan seluruh rak tabung ke bagian dalam inkubator.',
     },
   ],
   phaseCopy: [
-    { hint: 'Ambil kultur dari cawan petri menggunakan jarum ose steril.', instructionLabel: 'Seret jarum ose ke koloni pada cawan petri' },
     {
-      hint: 'Pilih salah satu tabung reaksi berisi media agar miring untuk diinokulasi.',
+      hint: 'Pilih tabung reaksi berisi agar miring padat yang akan diinokulasi.',
       instructionLabel: 'Klik tabung reaksi yang akan diinokulasi',
     },
     {
-      hint: 'Pindahkan inokulum ke media agar miring dengan teknik aseptik.',
-      instructionLabel: 'Klik permukaan agar untuk menggores inokulum dengan jarum ose',
+      hint: 'Pindahkan inokulum ke agar miring dengan teknik aseptik dekat api bunsen.',
+      instructionLabel: 'Seret jarum ose ke permukaan agar miring',
     },
     {
       hint: 'Tutup kembali tabung reaksi setelah proses inokulasi selesai.',
       instructionLabel: 'Klik tutup tabung untuk menutupnya',
     },
     {
-      hint: 'Beri label pada tabung agar sampel dapat diidentifikasi dengan benar.',
-      instructionLabel: 'Drag label ke tabung yang telah diinokulasi',
+      hint: 'Beri label pada tabung hasil inokulasi agar sampel dapat diidentifikasi dengan benar.',
+      instructionLabel: 'Klik area label pada tabung reaksi',
     },
     {
-      hint: 'Tempatkan tabung yang telah diinokulasi ke dalam inkubator sesuai prosedur.',
-      instructionLabel: 'Klik tabung untuk menempatkannya ke dalam inkubator',
+      hint: 'Kembalikan tabung berlabel ke dalam rak tabung.',
+      instructionLabel: 'Seret tabung berlabel ke slot kosong pada rak',
+    },
+    {
+      hint: 'Masukkan rak berisi tabung hasil inokulasi ke dalam inkubator.',
+      instructionLabel: 'Seret seluruh rak tabung ke bagian dalam inkubator',
     },
   ],
   successTitle: 'Inokulasi kultur berhasil!',

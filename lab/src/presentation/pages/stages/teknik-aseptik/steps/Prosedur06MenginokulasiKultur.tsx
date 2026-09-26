@@ -1,17 +1,18 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { MutableRefObject, PointerEvent as ReactPointerEvent } from 'react';
 import { prefersReducedMotion } from '../../../../../core/a11y/motion';
-import type { InoculateAction, InoculateStep, Rect } from '../../../../../data/stages/teknikAseptik';
-import { CARD_RADIUS, CARD_SHADOW, COLOR, HAIRLINE, S, T, rectStyle, textBase } from '../geometry';
+import type { InoculateAction, InoculateStep } from '../../../../../data/stages/teknikAseptik';
+import { CARD_RADIUS, CARD_SHADOW, COLOR, HAIRLINE, S, T, textBase } from '../geometry';
 import type { Animation } from '../geometry';
 import { FloatingTab } from '../FloatingTab';
 import { useTimeouts } from '../hooks';
 import type { ProcedureProps } from '../types';
 
 // Prosedur 6 - "Mengambil dan Menginokulasi Kultur". Six ordered actions take
-// inoculum from the source petri dish to one slant-agar tube, then close,
-// label, and incubate that tube. The revised plates are composited art, so the
-// only overlays remain the existing click targets and draggable tools.
+// culture from the Petri source to a solid slant-agar tube near the flame, then
+// close and label it, return it to the rack, and incubate that whole rack. The
+// revised plates are composited art, so every overlay is an interaction guide,
+// never a duplicate visual object.
 
 const CARD = { x: 1428.649, y: 221.17, width: 443.377 };
 const CARD_TAB_DX = 106.668;
@@ -23,36 +24,31 @@ const CORRECTION_MS = 3200;
 // starts rising, like every other procedure's close.
 const SETTLE_MS = 620;
 const DRAG_THRESHOLD_PX = 6;
-// Sampling's own cover-fade (200-300ms per the revision) and how long its
-// success line holds the correction slot before the ordinary "Berikutnya:"
-// copy would naturally take back over on the next action.
-const SAMPLE_FADE_MS = 260;
-const SAMPLE_BANNER_MS = 2600;
 
 interface DragState {
   x: number;
   y: number;
-  coarse: boolean;
   moved: boolean;
 }
 
 export function Prosedur06MenginokulasiKultur({ step, runtime }: ProcedureProps<InoculateStep>) {
   const { exiting, playClick, setFrame, setMessage, complete } = runtime;
   const [doneCount, setDoneCount] = useState(0);
-  const [drag, setDrag] = useState<DragState | null>(null);
   const [overTarget, setOverTarget] = useState(false);
   const [correction, setCorrection] = useState<string | null>(null);
-  const [successBanner, setSuccessBanner] = useState<string | null>(null);
-  const [fadeCover, setFadeCover] = useState<{ src: string; alt: string } | null>(null);
-  const targetRef = useRef<HTMLButtonElement | null>(null);
+  const targetRef = useRef<HTMLDivElement | null>(null);
   const targetBoxRef = useRef<DOMRect | null>(null);
+  // Pointer events can be batched more slowly than a browser's synthetic
+  // click. Keep the drag origin outside React state so a failed drag cannot be
+  // mistaken for the source button's keyboard/click fallback.
+  const dragRef = useRef<DragState | null>(null);
   const suppressClickRef = useRef(false);
   const correctionTimerRef = useRef(0);
-  const bannerTimerRef = useRef(0);
-  const fadeTimerRef = useRef(0);
   const after = useTimeouts();
 
-  const frame = step.frames[doneCount];
+  // There are six plates for six actions. The last plate remains on screen
+  // while the final rack-to-incubator action settles and success feedback rises.
+  const frame = step.frames[Math.min(doneCount, step.frames.length - 1)];
   const action: InoculateAction | undefined = step.actions[doneCount];
   const finished = doneCount >= step.actions.length;
 
@@ -63,8 +59,6 @@ export function Prosedur06MenginokulasiKultur({ step, runtime }: ProcedureProps<
   useEffect(
     () => () => {
       window.clearTimeout(correctionTimerRef.current);
-      window.clearTimeout(bannerTimerRef.current);
-      window.clearTimeout(fadeTimerRef.current);
     },
     [],
   );
@@ -78,11 +72,7 @@ export function Prosedur06MenginokulasiKultur({ step, runtime }: ProcedureProps<
       setMessage(correction);
       return;
     }
-    // successBanner is a visible-card flash only (see InstructionCard's
-    // sample-feedback slot) - the aria-live announcement stays the plain
-    // per-action progress line every other Langkah 6 action already uses, so
-    // screen-reader guidance to the *next* action is never held up behind it.
-    const name = action!.kind === 'click' ? action!.accessibleName : action!.tool.accessibleName;
+    const name = action!.accessibleName;
     setMessage(`Tindakan ${doneCount} dari ${step.actions.length} selesai. Berikutnya: ${name}.`);
   }, [setMessage, finished, correction, doneCount, step, action]);
 
@@ -99,7 +89,6 @@ export function Prosedur06MenginokulasiKultur({ step, runtime }: ProcedureProps<
 
   const showCorrection = (message: string) => {
     setCorrection(message);
-    setSuccessBanner(null);
     window.clearTimeout(correctionTimerRef.current);
     correctionTimerRef.current = window.setTimeout(() => setCorrection(null), CORRECTION_MS);
   };
@@ -108,26 +97,6 @@ export function Prosedur06MenginokulasiKultur({ step, runtime }: ProcedureProps<
     if (finished || exiting) return;
     playClick();
     setCorrection(null);
-
-    // Sampling's own beat: cover the outgoing plate and hold a green success
-    // line over the ordinary "Berikutnya:" copy for a moment, instead of the
-    // hard cut every other action in this chain uses.
-    if (action?.kind === 'drag' && action.successFeedback) {
-      setFadeCover({ src: frame.src, alt: frame.alt });
-      window.clearTimeout(fadeTimerRef.current);
-      if (prefersReducedMotion()) {
-        setFadeCover(null);
-      } else {
-        fadeTimerRef.current = window.setTimeout(() => setFadeCover(null), SAMPLE_FADE_MS);
-      }
-
-      setSuccessBanner(action.successFeedback);
-      window.clearTimeout(bannerTimerRef.current);
-      bannerTimerRef.current = window.setTimeout(() => setSuccessBanner(null), SAMPLE_BANNER_MS);
-    } else {
-      setSuccessBanner(null);
-    }
-
     setDoneCount((count) => count + 1);
   };
 
@@ -135,7 +104,6 @@ export function Prosedur06MenginokulasiKultur({ step, runtime }: ProcedureProps<
     return (
       <>
         <InstructionCard step={step} phase={doneCount - 1} correction={null} animation={runtime.cardAnimation} />
-        <SampleFadeCover cover={fadeCover} rect={step.backgroundRect} />
       </>
     );
   }
@@ -148,10 +116,8 @@ export function Prosedur06MenginokulasiKultur({ step, runtime }: ProcedureProps<
           step={step}
           phase={doneCount}
           correction={correction}
-          successBanner={successBanner}
           animation={runtime.cardAnimation}
         />
-        <SampleFadeCover cover={fadeCover} rect={step.backgroundRect} />
       </>
     );
   }
@@ -167,26 +133,30 @@ export function Prosedur06MenginokulasiKultur({ step, runtime }: ProcedureProps<
     suppressClickRef.current = false;
     event.currentTarget.setPointerCapture(event.pointerId);
     targetBoxRef.current = targetRef.current?.getBoundingClientRect() ?? null;
-    setDrag({ x: event.clientX, y: event.clientY, coarse: event.pointerType !== 'mouse', moved: false });
+    const origin = { x: event.clientX, y: event.clientY, moved: false };
+    dragRef.current = origin;
   };
 
   const moveDrag = (event: ReactPointerEvent<HTMLElement>) => {
-    setDrag((current) => {
-      if (!current) return current;
-      const moved =
-        current.moved ||
-        Math.abs(event.clientX - current.x) > DRAG_THRESHOLD_PX ||
-        Math.abs(event.clientY - current.y) > DRAG_THRESHOLD_PX;
-      return { x: event.clientX, y: event.clientY, coarse: event.pointerType !== 'mouse', moved };
-    });
+    const current = dragRef.current;
+    if (!current) return;
+    const moved =
+      current.moved ||
+      Math.abs(event.clientX - current.x) > DRAG_THRESHOLD_PX ||
+      Math.abs(event.clientY - current.y) > DRAG_THRESHOLD_PX;
+    const next = { x: event.clientX, y: event.clientY, moved };
+    dragRef.current = next;
     setOverTarget(overTargetAt(event.clientX, event.clientY));
   };
 
   const endDrag = (event: ReactPointerEvent<HTMLElement>) => {
-    const current = drag;
-    setDrag(null);
+    const current = dragRef.current;
+    dragRef.current = null;
     setOverTarget(false);
     if (!current) return;
+    // Do not let a release after any actual drag fall through into onClick.
+    // A stationary press still falls through for keyboard/click accessibility.
+    if (current.moved) suppressClickRef.current = true;
     if (overTargetAt(event.clientX, event.clientY)) {
       suppressClickRef.current = true;
       advance();
@@ -196,7 +166,7 @@ export function Prosedur06MenginokulasiKultur({ step, runtime }: ProcedureProps<
   };
 
   const cancelDrag = () => {
-    setDrag(null);
+    dragRef.current = null;
     setOverTarget(false);
   };
 
@@ -210,52 +180,25 @@ export function Prosedur06MenginokulasiKultur({ step, runtime }: ProcedureProps<
 
   return (
     <>
-      <DropTarget
+      <SceneDrag
         action={action}
         armed={!exiting}
         highlighted={overTarget}
         targetRef={targetRef}
         onSelect={handleTargetClick}
+        onPointerDown={startDrag}
+        onPointerMove={moveDrag}
         onPointerUp={endDrag}
+        onPointerCancel={cancelDrag}
       />
 
       <InstructionCard
         step={step}
         phase={doneCount}
         correction={correction}
-        successBanner={successBanner}
         animation={runtime.cardAnimation}
-        drag={{
-          tool: action.tool,
-          held: drag !== null,
-          onPointerDown: startDrag,
-          onPointerMove: moveDrag,
-          onPointerUp: endDrag,
-          onPointerCancel: cancelDrag,
-        }}
       />
-
-      {drag ? <DragGhost src={action.tool.src} width={action.tool.width} drag={drag} /> : null}
-      <SampleFadeCover cover={fadeCover} rect={step.backgroundRect} />
     </>
-  );
-}
-
-// Sampling's cover-fade: the outgoing plate held on top of the new one
-// (already swapped in underneath via setFrame) and animated to transparent,
-// so the ready -> sampling change reads as a 200-300ms crossfade rather than
-// a hard cut. Local to this one action - Stage's shared background <img>
-// (every other Langkah's swap) is untouched.
-function SampleFadeCover({ cover, rect }: { cover: { src: string; alt: string } | null; rect: Rect }) {
-  if (!cover) return null;
-  return (
-    <img
-      src={cover.src}
-      alt=""
-      aria-hidden="true"
-      className="sterilab-sample-crossfade"
-      style={{ position: 'absolute', ...rectStyle(rect), objectFit: 'cover', zIndex: 3, pointerEvents: 'none' }}
-    />
   );
 }
 
@@ -287,14 +230,9 @@ function ClickHotspot({
         transform: 'translate(-50%, -50%)',
         width: `max(44px, ${S(action.hotspot.width)})`,
         height: `max(44px, ${S(action.hotspot.height)})`,
-        // Above the PROSEDUR card (4): three of this step's objects (the
-        // culture dish, the selected tube, the label's drop zone) sit design px
-        // away from its right edge (556.489) that a floored 44px button
-        // still clears at desktop, but the card's own long description wraps
-        // tall enough on the smallest supported phone (568x320) to reach
-        // down to them, and a floored hotspot is wide enough there to dip
-        // back under it. Winning that overlap is worth the rare cosmetic
-        // overlap; losing the click is not.
+        // The selected tube and the tube-label band can sit close to chrome
+        // once the 44px touch floor applies on a small landscape screen. Keep
+        // the active object above the cards rather than making it unclickable.
         zIndex: 5,
         padding: 0,
         border: armed ? `max(2px, 0.156cqw) solid rgba(52, 113, 199, 0.6)` : 'none',
@@ -313,120 +251,112 @@ function ClickHotspot({
   );
 }
 
-// A drag target (the source culture or inoculated tube), sized from its revised
-// plate. It is also a real button, like Langkah 5's flame, so the action
-// stays completable from the keyboard alone.
-function DropTarget({
+// Drag a baked-in source to a baked-in target. Unlike the old floating-card
+// sprite, this keeps the visual loop, tube, rack, and incubator singular while
+// preserving the existing pointer-capture drag behaviour and keyboard fallback.
+function SceneDrag({
   action,
   armed,
   highlighted,
   targetRef,
   onSelect,
+  onPointerDown,
+  onPointerMove,
   onPointerUp,
+  onPointerCancel,
 }: {
   action: Extract<InoculateAction, { kind: 'drag' }>;
   armed: boolean;
   highlighted: boolean;
-  targetRef: MutableRefObject<HTMLButtonElement | null>;
+  targetRef: MutableRefObject<HTMLDivElement | null>;
   onSelect: () => void;
+  onPointerDown: (event: ReactPointerEvent<HTMLElement>) => void;
+  onPointerMove: (event: ReactPointerEvent<HTMLElement>) => void;
   onPointerUp: (event: ReactPointerEvent<HTMLElement>) => void;
+  onPointerCancel: () => void;
 }) {
-  const { target } = action;
+  const sourceCenter = { x: action.source.x + action.source.width / 2, y: action.source.y + action.source.height / 2 };
+  const targetCenter = { x: action.target.x + action.target.width / 2, y: action.target.y + action.target.height / 2 };
 
   return (
-    <button
-      type="button"
-      ref={targetRef}
-      onClick={onSelect}
-      onPointerUp={onPointerUp}
-      disabled={!armed}
-      aria-label={action.tool.accessibleName}
-      data-procedure-state={action.state}
-      className={armed ? 'sterilab-hotspot-pulse' : undefined}
-      style={{
-        position: 'absolute',
-        left: S(target.x + target.width / 2),
-        top: S(target.y + target.height / 2),
-        transform: 'translate(-50%, -50%)',
-        width: `max(44px, ${S(target.width)})`,
-        height: `max(44px, ${S(target.height)})`,
-        // Same reasoning as ClickHotspot's zIndex: this target sits close
-        // enough to the PROSEDUR card's right edge to need to win over it.
-        zIndex: 5,
-        padding: 0,
-        border: armed ? `max(2px, 0.156cqw) solid rgba(52, 113, 199, 0.6)` : 'none',
-        borderRadius: S(18),
-        background: armed
-          ? highlighted
-            ? 'rgba(109, 215, 253, 0.34)'
-            : 'rgba(109, 215, 253, 0.1)'
-          : 'transparent',
-        cursor: armed ? 'pointer' : 'default',
-        touchAction: 'none',
-        transition: 'background 160ms ease-out',
-      }}
-      onPointerOver={(e) => {
-        if (armed && !highlighted) e.currentTarget.style.background = 'rgba(109, 215, 253, 0.3)';
-      }}
-      onPointerOut={(e) => {
-        if (armed && !highlighted) e.currentTarget.style.background = 'rgba(109, 215, 253, 0.1)';
-      }}
-    />
-  );
-}
-
-function DragGhost({ src, width, drag }: { src: string; width: number; drag: DragState }) {
-  return (
-    <div
-      aria-hidden="true"
-      style={{
-        position: 'fixed',
-        left: drag.x,
-        top: drag.y,
-        transform: `translate(-50%, ${drag.coarse ? '-115%' : '-50%'})`,
-        pointerEvents: 'none',
-        zIndex: 20,
-      }}
-    >
-      <img
-        src={src}
-        alt=""
+    <>
+      <div
+        ref={targetRef}
+        aria-hidden="true"
+        data-testid={`procedure6-${action.state}-target`}
+        data-procedure-state={action.state}
+        className={armed && !highlighted ? 'sterilab-hotspot-pulse' : undefined}
         style={{
-          width: `max(48px, ${S(width)})`,
-          height: 'auto',
-          display: 'block',
-          transform: 'scale(1.06)',
-          filter: 'drop-shadow(0 0.4cqw 0.8cqw rgba(4, 72, 139, 0.35))',
+          position: 'absolute',
+          left: S(targetCenter.x),
+          top: S(targetCenter.y),
+          transform: 'translate(-50%, -50%)',
+          width: `max(44px, ${S(action.target.width)})`,
+          height: `max(44px, ${S(action.target.height)})`,
+          zIndex: 4,
+          border: armed ? `max(2px, 0.156cqw) solid rgba(52, 113, 199, 0.6)` : 'none',
+          borderRadius: S(18),
+          background: armed
+            ? highlighted
+              ? 'rgba(109, 215, 253, 0.34)'
+              : 'rgba(109, 215, 253, 0.08)'
+            : 'transparent',
+          pointerEvents: 'none',
+          transition: 'background 160ms ease-out',
         }}
       />
-    </div>
+      <button
+        type="button"
+        onClick={onSelect}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerCancel}
+        onLostPointerCapture={onPointerCancel}
+        disabled={!armed}
+        aria-label={action.accessibleName}
+        data-testid={`procedure6-${action.state}-source`}
+        data-procedure-state={action.state}
+        className={armed ? 'sterilab-hotspot-pulse' : undefined}
+        style={{
+          position: 'absolute',
+          left: S(sourceCenter.x),
+          top: S(sourceCenter.y),
+          transform: 'translate(-50%, -50%)',
+          width: `max(44px, ${S(action.source.width)})`,
+          height: `max(44px, ${S(action.source.height)})`,
+          zIndex: 5,
+          padding: 0,
+          border: armed ? `max(2px, 0.156cqw) solid rgba(52, 113, 199, 0.6)` : 'none',
+          borderRadius: S(18),
+          background: armed ? 'rgba(109, 215, 253, 0.06)' : 'transparent',
+          cursor: armed ? 'grab' : 'default',
+          touchAction: 'none',
+          transition: 'background 160ms ease-out',
+        }}
+        onPointerOver={(event) => {
+          if (armed) event.currentTarget.style.background = 'rgba(109, 215, 253, 0.22)';
+        }}
+        onPointerOut={(event) => {
+          if (armed) event.currentTarget.style.background = 'rgba(109, 215, 253, 0.06)';
+        }}
+      />
+    </>
   );
 }
 
-// The floating card, shared shape across every plate: the hint sentence Figma
-// writes above the divider, then the short "Instruksi :" line below it, and -
-// only while the label action is live - the draggable tile itself.
+// The floating card remains the shared hint/instruction component for every
+// internal state; objects to manipulate are already painted into the plate.
 function InstructionCard({
   step,
   phase,
   correction,
-  successBanner = null,
   animation,
-  drag,
 }: {
   step: InoculateStep;
   phase: number;
   correction: string | null;
-  successBanner?: string | null;
   animation: Animation;
-  drag?: {
-    tool: { src: string; width: number; height: number; accessibleName: string };
-    held: boolean;
-    onPointerDown: (event: ReactPointerEvent<HTMLElement>) => void;
-    onPointerMove: (event: ReactPointerEvent<HTMLElement>) => void;
-    onPointerUp: (event: ReactPointerEvent<HTMLElement>) => void;
-    onPointerCancel: () => void;
-  };
 }) {
   const copy = step.phaseCopy[Math.min(phase, step.phaseCopy.length - 1)];
 
@@ -487,41 +417,9 @@ function InstructionCard({
           {copy.instructionLabel}
         </span>
 
-        {drag ? (
-          <span
-            role="img"
-            aria-label={drag.tool.accessibleName}
-            data-testid="tool-label-marker"
-            onPointerDown={drag.onPointerDown}
-            onPointerMove={drag.onPointerMove}
-            onPointerUp={drag.onPointerUp}
-            onPointerCancel={drag.onPointerCancel}
-            onLostPointerCapture={drag.onPointerCancel}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minWidth: 44,
-              minHeight: 44,
-              width: `max(88px, ${S(drag.tool.width)})`,
-              height: 'auto',
-              cursor: 'grab',
-              opacity: drag.held ? 0.35 : 1,
-              touchAction: 'none',
-              transition: 'opacity 160ms ease-out',
-            }}
-          >
-            <img
-              src={drag.tool.src}
-              alt=""
-              style={{ width: `min(${S(drag.tool.width)}, 100%)`, height: 'auto', display: 'block', pointerEvents: 'none' }}
-            />
-          </span>
-        ) : null}
-
         <span
           aria-hidden="true"
-          data-testid="sample-feedback"
+          data-testid="procedure6-feedback"
           className={correction ? 'sterilab-nudge' : undefined}
           style={{
             ...textBase,
@@ -531,15 +429,12 @@ function InstructionCard({
             lineHeight: 1.3,
             fontSize: T(17, 9),
             fontWeight: 600,
-            // Same slot as the off-target correction, in the design system's
-            // existing success green rather than a new colour, for the
-            // "Sampel kultur berhasil..." line the revision asks for.
-            color: correction ? COLOR.correction : COLOR.successGreen,
-            opacity: correction || successBanner ? 1 : 0,
+            color: COLOR.correction,
+            opacity: correction ? 1 : 0,
             transition: 'opacity 180ms ease-out',
           }}
         >
-          {correction ?? successBanner ?? ''}
+          {correction ?? ''}
         </span>
       </div>
 
