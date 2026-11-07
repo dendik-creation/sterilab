@@ -8,6 +8,7 @@ import { StagePage } from '../presentation/pages/StagePage';
 import { EvidencePage } from '../presentation/pages/EvidencePage';
 import { EvaluationPage } from '../presentation/pages/EvaluationPage';
 import { Mission1Page } from '../presentation/pages/evaluation/mission_1/Mission1Page';
+import { Mission2Page } from '../presentation/pages/evaluation/misson_2/Mission2Page';
 import { ReflectionPage } from '../presentation/pages/ReflectionPage';
 import { CompletionPage } from '../presentation/pages/CompletionPage';
 
@@ -36,6 +37,8 @@ export function ScreenRouter() {
       return <EvaluationPage />;
     case 'evaluation-mission-1':
       return <Mission1Page />;
+    case 'evaluation-mission-2':
+      return <Mission2Page />;
     case 'reflection':
       return <ReflectionPage />;
     case 'completion':
