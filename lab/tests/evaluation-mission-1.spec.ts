@@ -4,6 +4,7 @@ import { skipCaseNarration } from './case';
 import { waitForMotionSettled } from './settle';
 
 const STORAGE_KEY = 'sterilab:levelProgress';
+const EVALUATION_STORAGE_KEY = 'sterilab:evaluationProgress';
 const IMAGE_SIZE = { width: 1186, height: 645 };
 const AREAS = [
   { id: 'mask', x: 449, y: 164, width: 260, height: 156, asset: 'problem-found-not-wearing-mask' },
@@ -18,10 +19,11 @@ test.beforeEach(({ viewport }) => {
 
 async function openMission1(page: Page): Promise<void> {
   await page.addInitScript(
-    ([key, completed]) => {
+    ([key, completed, evaluationKey]) => {
       window.localStorage.setItem(key as string, JSON.stringify({ version: 1, completed }));
+      window.localStorage.setItem(evaluationKey as string, JSON.stringify({ version: 1, completed: 0 }));
     },
-    [STORAGE_KEY, 3] as const,
+    [STORAGE_KEY, 3, EVALUATION_STORAGE_KEY] as const,
   );
   await page.goto('/');
   await page.getByRole('button', { name: 'Ketuk di mana saja untuk melanjutkan' }).click({ timeout: 15_000 });
@@ -222,4 +224,12 @@ test('Mission 1 reveals only mapped problems, uses matching assets, and stays al
   await page.screenshot({ path: testInfo.outputPath('mission-1-complete.png') });
   await page.getByRole('button', { name: 'Lanjut Misi' }).click();
   await expect(page.getByRole('heading', { name: 'EVALUASI STERILAB' })).toBeVisible();
+  await expect(page.getByTestId('evaluation-progress-count')).toHaveText('1/4 misi selesai');
+  await expect(page.getByTestId('evaluation-progress-mission-1')).toHaveAttribute('data-status', 'completed');
+  await expect(page.getByTestId('evaluation-progress-mission-2')).toHaveAttribute('data-status', 'available');
+  await expect(page.getByTestId('evaluation-progress-mission-3')).toHaveAttribute('data-status', 'locked');
+  await expect(page.getByTestId('evaluation-mission-card-1')).toHaveAttribute('data-status', 'completed');
+  await expect(page.getByRole('button', { name: 'Mulai Misi 2: Susun Prosedur PDA' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Misi 3: Investigasi Mutu Media, terkunci' })).toBeDisabled();
+  await expect.poll(() => page.evaluate((key) => window.localStorage.getItem(key), EVALUATION_STORAGE_KEY)).toBe(JSON.stringify({ version: 1, completed: 1 }));
 });

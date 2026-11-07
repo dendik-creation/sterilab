@@ -16,6 +16,7 @@ import clickSfxUrl from '../../../../assets/sounds/01_reusable/short/click.webm'
 import { useNavigation } from '../../../app/navigation';
 import { isAudioEnabled, toggleAudioEnabled } from '../../../core/audio/audioSettings';
 import { prefersReducedMotion } from '../../../core/a11y/motion';
+import { EVALUATION_MISSION_COUNT, evaluationMissionStatusFor, getCompletedEvaluationMissionCount, onEvaluationProgressChange } from '../../../core/progress/evaluationProgress';
 import { Stage } from '../../components/Stage';
 import { IconButton } from '../../components/IconButton';
 import { COLOR, S, T, textBase } from '../stages/teknik-aseptik/geometry';
@@ -70,6 +71,7 @@ export function EvaluationPage() {
   const [audioOn, setAudioOn] = useState(isAudioEnabled());
   const [exiting, setExiting] = useState(false);
   const [startedMission, setStartedMission] = useState<number | null>(null);
+  const [completedMissions, setCompletedMissions] = useState(getCompletedEvaluationMissionCount);
   const clickAudioRef = useRef<HTMLAudioElement | null>(null);
   const exitTimerRef = useRef(0);
 
@@ -77,6 +79,8 @@ export function EvaluationPage() {
     clickAudioRef.current = new Audio(clickSfxUrl);
     return () => window.clearTimeout(exitTimerRef.current);
   }, []);
+
+  useEffect(() => onEvaluationProgressChange(setCompletedMissions), []);
 
   const playClick = () => {
     if (!isAudioEnabled() || !clickAudioRef.current) return;
@@ -165,18 +169,18 @@ export function EvaluationPage() {
         }}
       />
 
-      <ProgressCard animation={animation(1)} />
+      <ProgressCard animation={animation(1)} completed={completedMissions} />
       {MISSIONS.map((mission, index) => (
         <MissionCard
           key={mission.n}
           mission={mission}
-          locked={mission.n !== 1}
+          status={evaluationMissionStatusFor(completedMissions, mission.n)}
           started={startedMission === mission.n}
           animation={animation(index + 1)}
            top={CARD_TOPS[Math.floor(index / 2)]}
           onStart={() => {
             setStartedMission(mission.n);
-            leaveTo(() => goTo('evaluation-mission-1'));
+             if (mission.n === 1) leaveTo(() => goTo('evaluation-mission-1'));
           }}
         />
       ))}
@@ -192,7 +196,7 @@ export function EvaluationPage() {
   );
 }
 
-function ProgressCard({ animation }: { animation: { className: string; delay: number } }) {
+function ProgressCard({ animation, completed }: { animation: { className: string; delay: number }; completed: number }) {
   return (
     <div className={animation.className} style={{ position: 'absolute', left: '1.563%', top: '45.648%', width: '19.845%', zIndex: 4, animationDelay: `${animation.delay}ms` }}>
       <div style={{ background: '#04488B', borderRadius: '1.51cqw 1.51cqw 0 0', padding: '3.2% 0', textAlign: 'center' }}>
@@ -200,23 +204,39 @@ function ProgressCard({ animation }: { animation: { className: string; delay: nu
       </div>
       <div style={{ background: '#FFFFFF', borderRadius: '0 0 1.51cqw 1.51cqw', padding: '8% 8% 8.5%' }}>
         <div style={{ margin: '0 auto 8%', width: '60%', borderRadius: 999, background: '#3471C7', padding: '3% 0', textAlign: 'center' }}>
-          <span style={progressText}>0/4 misi selesai</span>
+          <span data-testid="evaluation-progress-count" role="status" style={progressText}>{completed}/{EVALUATION_MISSION_COUNT} misi selesai</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          {[1, 2, 3, 4].map((n) => <span key={n} style={dotText}>{n}</span>)}
+          {[1, 2, 3, 4].map((n) => {
+            const status = evaluationMissionStatusFor(completed, n);
+            return (
+              <span
+                key={n}
+                data-testid={`evaluation-progress-mission-${n}`}
+                data-status={status}
+                aria-label={`Misi ${n}: ${status}`}
+                style={{ ...dotText, background: status === 'completed' ? '#008C3B' : status === 'available' ? '#C3E5FE' : 'transparent', borderColor: status === 'completed' ? '#008C3B' : status === 'available' ? '#3471C7' : '#7A9CC4', color: status === 'completed' ? '#FFFFFF' : '#232D84' }}
+              >
+                {n}
+              </span>
+            );
+          })}
         </div>
       </div>
     </div>
   );
 }
 
-function MissionCard({ mission, locked, started, animation, top, onStart }: { mission: Mission; locked: boolean; started: boolean; animation: { className: string; delay: number }; top: string; onStart: () => void }) {
+function MissionCard({ mission, status, started, animation, top, onStart }: { mission: Mission; status: 'completed' | 'available' | 'locked'; started: boolean; animation: { className: string; delay: number }; top: string; onStart: () => void }) {
+  const locked = status === 'locked';
   return (
     <div className={animation.className} style={{ position: 'absolute', top, left: mission.left, width: mission.width, zIndex: 3, animationDelay: `${animation.delay}ms` }}>
       <button
         type="button"
         disabled={locked}
-        aria-label={locked ? `Misi ${mission.n}: ${mission.title}, terkunci` : `Mulai Misi ${mission.n}: ${mission.title}`}
+        data-testid={`evaluation-mission-card-${mission.n}`}
+        data-status={status}
+        aria-label={locked ? `Misi ${mission.n}: ${mission.title}, terkunci` : status === 'completed' ? `Ulangi Misi ${mission.n}: ${mission.title}` : `Mulai Misi ${mission.n}: ${mission.title}`}
         onClick={locked ? undefined : onStart}
         style={{ display: 'block', width: '100%', aspectRatio: mission.aspect, padding: 0, border: 0, background: 'transparent', cursor: locked ? 'not-allowed' : 'pointer', transition: 'transform 120ms ease-out, filter 120ms ease-out' }}
         onPointerOver={(event) => { if (!locked) event.currentTarget.style.transform = 'scale(1.015)'; }}

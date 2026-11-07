@@ -14,6 +14,7 @@ import clickSfxUrl from '../../../../../assets/sounds/01_reusable/short/click.we
 import { useNavigation } from '../../../../app/navigation';
 import { isAudioEnabled, toggleAudioEnabled } from '../../../../core/audio/audioSettings';
 import { prefersReducedMotion } from '../../../../core/a11y/motion';
+import { markEvaluationMissionCompleted } from '../../../../core/progress/evaluationProgress';
 import { Stage } from '../../../components/Stage';
 import { IconButton } from '../../../components/IconButton';
 import { BUBBLE_MS, COLOR, S, STAGGER_MS, T, textBase } from '../geometry';
@@ -83,6 +84,7 @@ export function Mission1Page() {
 
   const finishMission = () => {
     if (!allFound || exiting) return;
+    markEvaluationMissionCompleted(1);
     playClick();
     if (prefersReducedMotion()) {
       setShowCompletion(true);
