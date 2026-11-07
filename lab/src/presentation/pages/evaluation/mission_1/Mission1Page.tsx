@@ -7,6 +7,9 @@ import backBtnUrl from '../../../../../assets/images/01_reusable/buttons/back_bt
 import bgmOnBtnUrl from '../../../../../assets/images/01_reusable/buttons/bgm_on_btn.png';
 import bgmOffBtnUrl from '../../../../../assets/images/01_reusable/buttons/bgm_off_btn.png';
 import arrowRightUrl from '../../../../../assets/images/01_reusable/icons/arrow_right.png';
+import checkSuccessUrl from '../../../../../assets/images/01_reusable/icons/check_success.png';
+import problemsetCompleteUrl from '../../../../../assets/images/02_scenes/04_04_evaluasi/04_04_01_misi_1/problemset-complete-lab.png';
+import missionCompleteInfoUrl from '../../../../../assets/images/02_scenes/04_04_evaluasi/04_04_01_misi_1/mission-1-complete-info.png';
 import clickSfxUrl from '../../../../../assets/sounds/01_reusable/short/click.webm';
 import { useNavigation } from '../../../../app/navigation';
 import { isAudioEnabled, toggleAudioEnabled } from '../../../../core/audio/audioSettings';
@@ -14,6 +17,7 @@ import { prefersReducedMotion } from '../../../../core/a11y/motion';
 import { Stage } from '../../../components/Stage';
 import { IconButton } from '../../../components/IconButton';
 import { BUBBLE_MS, COLOR, S, STAGGER_MS, T, textBase } from '../geometry';
+import type { Animation } from '../geometry';
 import { findProblemAt, IMAGE_SIZE, PROBLEMS } from './mission1';
 import type { Problem } from './mission1';
 import './mission1.css';
@@ -33,6 +37,7 @@ export function Mission1Page() {
   const { goBack, goTo } = useNavigation();
   const [audioOn, setAudioOn] = useState(isAudioEnabled());
   const [exiting, setExiting] = useState(false);
+  const [showCompletion, setShowCompletion] = useState(false);
   const [found, setFound] = useState<Set<string>>(() => new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const clickAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -76,7 +81,22 @@ export function Mission1Page() {
     delay: exiting ? exitDelay(step) : enterDelay(step),
   });
 
+  const finishMission = () => {
+    if (!allFound || exiting) return;
+    playClick();
+    if (prefersReducedMotion()) {
+      setShowCompletion(true);
+      return;
+    }
+    setExiting(true);
+    exitTimerRef.current = window.setTimeout(() => {
+      setShowCompletion(true);
+      setExiting(false);
+    }, EXIT_TOTAL_MS);
+  };
+
   const reveal = (problem: Problem) => {
+    playClick();
     setFound((current) => {
       if (current.has(problem.id)) return current;
       return new Set(current).add(problem.id);
@@ -150,6 +170,9 @@ export function Mission1Page() {
         onClick={handleToggleSound}
       />
 
+      {showCompletion ? (
+        <Mission1Completion animation={animation} onContinue={() => leaveTo(goBack)} />
+      ) : (
       <main aria-label="Misi 1: Temukan Kesalahan" style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
         <div
           aria-hidden="true"
@@ -344,13 +367,12 @@ export function Mission1Page() {
           <span style={{ color: '#0023E9' }}>{found.size}/4</span>
         </div>
 
-        {/* shortcut: return to Evaluation until Mission 1 has a result/progress flow. */}
         <button
           type="button"
           className={`mission1-finish-button ${animation(4).className}`}
           disabled={!allFound || exiting}
           aria-label="Selesai"
-          onClick={() => leaveTo(goBack)}
+          onClick={finishMission}
           style={{
             position: 'absolute',
             left: S(1554),
@@ -377,6 +399,70 @@ export function Mission1Page() {
           <img src={arrowRightUrl} alt="" aria-hidden="true" style={{ width: S(29), height: S(19), objectFit: 'contain' }} />
         </button>
       </main>
+      )}
     </Stage>
+  );
+}
+
+function Mission1Completion({ animation, onContinue }: { animation: (step: number) => Animation; onContinue: () => void }) {
+  const labAnimation = animation(1);
+  const infoAnimation = animation(1);
+  const footerAnimation = animation(2);
+
+  return (
+    <main data-testid="mission1-completion" aria-label="Misi 1 selesai" style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
+      <h2 style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
+        Misi 1 selesai
+      </h2>
+      <div
+        data-testid="mission1-completion-lab"
+        className={labAnimation.className}
+        style={{ position: 'absolute', left: S(66), top: S(188), width: S(780), height: S(666), overflow: 'hidden', borderRadius: S(46), animationDelay: `${labAnimation.delay}ms` }}
+      >
+        <img
+          src={problemsetCompleteUrl}
+          alt="Ilustrasi analis laboratorium yang telah memperbaiki tindakan penyebab kontaminasi."
+          draggable={false}
+          style={{ position: 'absolute', left: `-${S(66)}`, top: `-${S(188)}`, width: S(1920), height: S(1080), maxWidth: 'none' }}
+        />
+      </div>
+      <img
+        data-testid="mission1-completion-info"
+        src={missionCompleteInfoUrl}
+        alt="Bagus! Kamu berhasil mengenali sumber kontaminasi. Kesalahan yang ditemukan: tidak memakai masker, cawan Petri terbuka terlalu lama, tabung reaksi diletakkan sembarangan, dan tumpahan media dibiarkan. Menjaga kondisi aseptik berarti mencegah kontaminasi dari operator, alat, udara, dan area kerja."
+        className={infoAnimation.className}
+        draggable={false}
+        style={{ position: 'absolute', left: S(881), top: S(188), width: S(933), height: S(666), objectFit: 'contain', animationDelay: `${infoAnimation.delay}ms` }}
+      />
+      <div
+        data-testid="mission1-completion-footer"
+        className={footerAnimation.className}
+        style={{ position: 'absolute', left: S(428), top: S(896), width: S(1065), height: S(100), border: `${T(2, 1)} solid ${COLOR.navy}`, borderRadius: S(50), background: '#FFFFFF', animationDelay: `${footerAnimation.delay}ms` }}
+      >
+        <div
+          role="status"
+          aria-live="polite"
+          data-testid="mission1-completion-count"
+          style={{ position: 'absolute', left: S(28), top: S(18), width: S(536), height: S(59), fontFamily: textBase.fontFamily }}
+        >
+          <div style={{ position: 'absolute', inset: `${S(1)} auto auto 0`, width: S(459), height: S(58), display: 'flex', alignItems: 'center', gap: S(16), paddingInline: S(23), borderRadius: 999, background: '#C3E5FE', color: '#062683', fontSize: T(28, 8), fontWeight: 800, lineHeight: 1, whiteSpace: 'nowrap' }}>
+            <span aria-hidden="true" className="mission1-target-icon"><span /></span>
+            <span>Kesalahan ditemukan:</span>
+            <span style={{ color: '#0023E9' }}>4/4</span>
+          </div>
+          <img src={checkSuccessUrl} alt="" aria-hidden="true" style={{ position: 'absolute', left: S(479), top: 0, width: S(57), height: S(57), objectFit: 'contain' }} />
+        </div>
+        <button
+          type="button"
+          className="mission1-continue-button"
+          aria-label="Lanjut Misi"
+          onClick={onContinue}
+          style={{ position: 'absolute', left: S(733), top: S(20), width: S(284), height: S(56), display: 'flex', alignItems: 'center', justifyContent: 'center', gap: S(12), border: `${T(2, 1)} solid #1F6FB5`, borderRadius: S(28), background: '#357EC1', boxShadow: '2px 3px 3px rgba(4, 72, 139, 0.35)', color: '#FFFFFF', fontFamily: textBase.fontFamily, fontSize: T(28, 8), fontWeight: 800, lineHeight: 1, cursor: 'pointer' }}
+        >
+          LANJUT MISI
+          <img src={arrowRightUrl} alt="" aria-hidden="true" style={{ width: S(32), height: S(21), objectFit: 'contain' }} />
+        </button>
+      </div>
+    </main>
   );
 }

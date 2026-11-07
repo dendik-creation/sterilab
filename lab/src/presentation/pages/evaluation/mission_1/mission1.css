@@ -50,6 +50,15 @@ button[aria-pressed]:focus-visible,
   filter: brightness(1.08);
 }
 
+.mission1-continue-button:hover {
+  filter: brightness(1.08);
+}
+
+.mission1-continue-button:focus-visible {
+  outline: max(2px, 0.1563cqw) solid #005acd;
+  outline-offset: max(2px, 0.1042cqw);
+}
+
 .mission1-target-icon {
   display: grid;
   flex: 0 0 auto;
@@ -69,7 +78,8 @@ button[aria-pressed]:focus-visible,
 
 @media (prefers-reduced-motion: reduce) {
   .mission1-hotspot,
-  .mission1-finish-button {
+  .mission1-finish-button,
+  .mission1-continue-button {
     transition: none;
   }
 }

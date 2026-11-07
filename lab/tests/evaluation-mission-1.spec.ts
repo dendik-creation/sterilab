@@ -39,6 +39,22 @@ async function openMission1(page: Page): Promise<void> {
   });
 }
 
+async function installAudioPlaySpy(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const spyWindow = window as Window & { mission1AudioPlayCount?: number };
+    spyWindow.mission1AudioPlayCount = 0;
+    HTMLMediaElement.prototype.play = () => {
+      const target = window as Window & { mission1AudioPlayCount?: number };
+      target.mission1AudioPlayCount = (target.mission1AudioPlayCount ?? 0) + 1;
+      return Promise.resolve();
+    };
+  });
+}
+
+async function audioPlayCount(page: Page): Promise<number> {
+  return page.evaluate(() => (window as Window & { mission1AudioPlayCount?: number }).mission1AudioPlayCount ?? 0);
+}
+
 async function expectArtworkPosition(page: Page): Promise<{ x: number; y: number; width: number; height: number }> {
   const viewport = page.viewportSize()!;
   const stageWidth = Math.min(viewport.width, (viewport.height * 16) / 9);
@@ -103,6 +119,7 @@ test('Mission 1 reveals only mapped problems, uses matching assets, and stays al
   await expect(mutedButton).toHaveAttribute('aria-pressed', 'false');
   await expect(mutedButton.locator('img')).toHaveAttribute('src', /bgm_off_btn\.(?:png|webp)$/);
   await mutedButton.click();
+  await installAudioPlaySpy(page);
 
   for (const area of AREAS) await expect(page.getByTestId(`mission1-area-${area.id}`)).toHaveCSS('opacity', '0');
 
@@ -130,6 +147,7 @@ test('Mission 1 reveals only mapped problems, uses matching assets, and stays al
   await image.click({ position: { x: imageBox.width * 0.05, y: imageBox.height * 0.05 } });
   await expect(page.getByTestId('mission1-count')).toContainText('0/4');
   await expect(page.getByTestId('mission1-problem-found')).toHaveCount(0);
+  expect(await audioPlayCount(page), 'incorrect selections do not play the correct-answer sound').toBe(0);
 
   const checks = [
     { viewport: { width: 1366, height: 768 }, areaIndex: 0 },
@@ -151,6 +169,7 @@ test('Mission 1 reveals only mapped problems, uses matching assets, and stays al
     found.add(area.id);
 
     await expect(page.getByTestId('mission1-count')).toContainText(`${found.size}/4`);
+    await expect.poll(() => audioPlayCount(page), { message: 'each newly found problem plays one click sound' }).toBe(found.size);
     if (found.size < 4) await expect(finishButton).toBeDisabled();
     const popup = page.getByTestId('mission1-problem-found');
     await expect(popup).toHaveAttribute('data-problem-id', area.id);
@@ -172,7 +191,10 @@ test('Mission 1 reveals only mapped problems, uses matching assets, and stays al
   });
   await expect(page.getByTestId('mission1-count')).toContainText('4/4');
   await expect(page.getByTestId('mission1-problem-found')).toHaveAttribute('data-problem-id', 'mask');
+  expect(await audioPlayCount(page), 'correct selections play the click sound').toBe(5);
   await expect(finishButton).toBeEnabled();
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await expectArtworkPosition(page);
 
   const imagesLoaded = await page.evaluate(() => Array.from(document.images).every((img) => img.complete && img.naturalWidth > 0));
   expect(imagesLoaded, 'all visible and discovered image assets load').toBe(true);
@@ -180,5 +202,24 @@ test('Mission 1 reveals only mapped problems, uses matching assets, and stays al
 
   await finishButton.click();
   await expect(finishButton).toHaveClass(/sterilab-bubble-out/);
+  const completion = page.getByTestId('mission1-completion');
+  await expect(completion).toBeVisible();
+  await waitForMotionSettled(page);
+  await expect(page.getByRole('heading', { name: 'EVALUASI STERILAB' })).toHaveCount(0);
+  await expect(page.getByTestId('mission1-completion-count')).toContainText('4/4');
+  const labSlice = page.getByTestId('mission1-completion-lab');
+  const infoSlice = page.getByTestId('mission1-completion-info');
+  await expect(labSlice.locator('img')).toHaveJSProperty('naturalWidth', 1776);
+  await expect(infoSlice).toHaveJSProperty('naturalWidth', 933);
+  const labBox = (await labSlice.boundingBox())!;
+  const infoBox = (await infoSlice.boundingBox())!;
+  const stageWidth = Math.min(1366, (768 * 16) / 9);
+  expect(Math.abs(labBox.x - (66 / 1920) * stageWidth), 'completion lab slice matches FigCraft').toBeLessThan(1.5);
+  expect(Math.abs(labBox.y - (188 / 1080) * 768), 'completion lab slice y matches FigCraft').toBeLessThan(1.5);
+  expect(Math.abs(infoBox.x - (881 / 1920) * stageWidth), 'completion info slice matches FigCraft').toBeLessThan(1.5);
+  expect(Math.abs(infoBox.width - (933 / 1920) * stageWidth), 'completion info width matches FigCraft').toBeLessThan(1.5);
+  await expect(page.getByRole('button', { name: 'Lanjut Misi' })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('mission-1-complete.png') });
+  await page.getByRole('button', { name: 'Lanjut Misi' }).click();
   await expect(page.getByRole('heading', { name: 'EVALUASI STERILAB' })).toBeVisible();
 });
