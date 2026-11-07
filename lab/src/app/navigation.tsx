@@ -16,6 +16,7 @@ export type ScreenId =
   | 'evaluation-mission-1'
   | 'evaluation-mission-2'
   | 'evaluation-mission-3'
+  | 'evaluation-mission-4'
   | 'reflection'
   | 'completion';
 

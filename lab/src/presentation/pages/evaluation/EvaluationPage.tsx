@@ -183,6 +183,7 @@ export function EvaluationPage() {
              if (mission.n === 1) leaveTo(() => goTo('evaluation-mission-1'));
               if (mission.n === 2) leaveTo(() => goTo('evaluation-mission-2'));
               if (mission.n === 3) leaveTo(() => goTo('evaluation-mission-3'));
+              if (mission.n === 4) leaveTo(() => goTo('evaluation-mission-4'));
           }}
         />
       ))}

@@ -32,7 +32,14 @@ const listeners = new Set<(completed: number) => void>();
 
 function persist(): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: VERSION, completed } satisfies StoredProgress));
+    let existing: Record<string, unknown> = {};
+    try {
+      const parsed: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) existing = parsed as Record<string, unknown>;
+    } catch {
+      // Replace malformed progress with the current valid state.
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...existing, version: VERSION, completed } satisfies StoredProgress));
   } catch {
     // Keep the in-memory progress for this session when storage is unavailable.
   }
@@ -54,6 +61,7 @@ export function evaluationMissionStatusFor(completedCount: number, mission: numb
 }
 
 export function markEvaluationMissionCompleted(mission: number): void {
+  completed = Math.max(completed, readStored());
   if (evaluationMissionStatusFor(completed, mission) === 'locked') return;
   const next = clamp(Math.max(completed, mission));
   if (next === completed) return;
