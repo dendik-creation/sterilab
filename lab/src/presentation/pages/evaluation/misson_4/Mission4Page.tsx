@@ -6,18 +6,15 @@ import case1 from '../../../../../assets/images/02_scenes/04_04_evaluasi/04_04_0
 import case2 from '../../../../../assets/images/02_scenes/04_04_evaluasi/04_04_04_misi_4/case_2.png';
 import case3 from '../../../../../assets/images/02_scenes/04_04_evaluasi/04_04_04_misi_4/case_3.png';
 import completeArt from '../../../../../assets/images/02_scenes/04_04_evaluasi/04_04_04_misi_4/complete_mission.png';
-import home from '../../../../../assets/images/01_reusable/buttons/home_btn.png';
-import back from '../../../../../assets/images/01_reusable/buttons/back_btn.png';
-import soundOn from '../../../../../assets/images/01_reusable/buttons/bgm_on_btn.png';
-import soundOff from '../../../../../assets/images/01_reusable/buttons/bgm_off_btn.png';
 import arrow from '../../../../../assets/images/01_reusable/icons/arrow_right.png';
 import click from '../../../../../assets/sounds/01_reusable/short/click.webm';
 import { useNavigation } from '../../../../app/navigation';
 import { isAudioEnabled, toggleAudioEnabled } from '../../../../core/audio/audioSettings';
 import { markEvaluationMissionCompleted } from '../../../../core/progress/evaluationProgress';
 import { Stage } from '../../../components/Stage';
-import { IconButton } from '../../../components/IconButton';
-import { COLOR, S, T, textBase } from '../geometry';
+import { EvaluationHeader } from '../components/EvaluationHeader';
+import { useMissionTransition } from '../components/useMissionTransition';
+import { S } from '../geometry';
 import './mission4.css';
 
 const choices = [
@@ -50,6 +47,7 @@ function CardContent({ choice }: { choice: Choice }) {
 
 export function Mission4Page() {
   const { goBack, goTo } = useNavigation();
+  const { exiting, transition } = useMissionTransition();
   const [choiceOrder] = useState(() => {
     const shuffled = [...choices];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -81,7 +79,7 @@ export function Mission4Page() {
     if (choices.every(item => next[item.target] === item.id)) {
       completed.current = true;
       markEvaluationMissionCompleted(4);
-      setComplete(true);
+      transition(() => setComplete(true));
     }
   };
   const targetAt = (x: number, y: number) => document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-mission4-target]')?.dataset.mission4Target ?? null;
@@ -96,13 +94,8 @@ export function Mission4Page() {
     setDrag(null);
   };
   return <Stage background={<img src={background} alt="" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}>
-    <header className="sterilab-bubble-in" style={{ position: 'absolute', inset: '0 0 auto', height: T(146, 60), background: COLOR.band, borderBottom: `${T(2, 1)} solid ${COLOR.navy}`, zIndex: 5 }}>
-      <div style={{ position: 'absolute', left: `max(116px, ${S(260)})`, top: S(32), whiteSpace: 'nowrap' }}><h1 style={{ ...textBase, color: COLOR.navy, fontSize: T(36, 15), fontWeight: 800 }}>MISI 04 — EVALUASI LIMBAH!</h1><p style={{ ...textBase, color: COLOR.navy, fontSize: T(24, 10), fontWeight: 500 }}>Identifikasi kesalahan penanganan limbah laboratorium</p></div>
-    </header>
-    <IconButton src={home} alt="Menu Utama" label="Menu Utama" top="3.574%" left="max(12px, 2.499%)" size="3.791%" zIndex={6} animationClassName="sterilab-bubble-in" onClick={() => { play(); goTo('splash'); }} />
-    <IconButton src={back} alt="Kembali" label="Kembali" top="3.574%" left="max(64px, 7.609%)" size="3.791%" zIndex={6} animationClassName="sterilab-bubble-in" onClick={() => { play(); goBack(); }} />
-    <IconButton src={audioOn ? soundOn : soundOff} alt={audioOn ? 'Matikan suara' : 'Nyalakan suara'} label={audioOn ? 'Matikan suara' : 'Nyalakan suara'} pressed={audioOn} top="3.574%" left="min(93.931%, 100% - 52px)" size="3.791%" zIndex={6} animationClassName="sterilab-bubble-in" onClick={() => { const enabled = toggleAudioEnabled(); setAudioOn(enabled); if (enabled) play(); }} />
-    {complete ? <main className="mission4-complete sterilab-bubble-in" data-testid="mission4-completion" aria-label="Misi 4 selesai" style={rect(141, 190, 1638, 835)}><img src={completeArt} alt="Misi 4 selesai: evaluasi limbah laboratorium." /><button type="button" onClick={() => { play(); goBack(); }}>SELESAI <img src={arrow} alt="" /></button></main> : <main data-testid="mission4-main" aria-label="Misi 4: Evaluasi Limbah" style={{ position: 'absolute', inset: 0 }}>
+    <EvaluationHeader title="MISI 04 — EVALUASI LIMBAH!" subtitle="Identifikasi kesalahan penanganan limbah laboratorium" audioOn={audioOn} exiting={exiting} onHome={() => { play(); transition(() => goTo('splash')); }} onBack={() => { play(); transition(goBack); }} onToggle={() => { if (exiting) return; const enabled = toggleAudioEnabled(); setAudioOn(enabled); if (enabled) play(); }} />
+    {complete ? <main className={`mission4-complete ${exiting ? 'sterilab-bubble-out' : 'sterilab-bubble-in'}`} data-testid="mission4-completion" aria-label="Misi 4 selesai" style={rect(141, 190, 1638, 835)}><img src={completeArt} alt="Misi 4 selesai: evaluasi limbah laboratorium." /><button type="button" onClick={() => { play(); transition(goBack); }}>SELESAI <img src={arrow} alt="" /></button></main> : <main className={exiting ? 'sterilab-bubble-out' : undefined} inert={exiting} data-testid="mission4-main" aria-label="Misi 4: Evaluasi Limbah" style={{ position: 'absolute', inset: 0 }}>
       <section className="mission4-intro sterilab-bubble-in" style={rect(132, 176, 1195, 206)}><div><h2>Pengantar</h2><p>Amati ketiga kasus kesalahan pembuangan limbah laboratorium mikrobiologi berikut. Analisis risikonya dan tentukan prosedur penanganan yang tepat sesuai SOP keselamatan kerja.</p></div><div><h2>Tugas Siswa</h2><ol><li>Identifikasi bentuk kesalahan pada masing-masing kasus.</li><li>Analisis dampak risiko bahaya yang dapat ditimbulkan.</li><li>Tarik (drag &amp; drop) kartu Kesalahan, Risiko, dan Penanganan yang benar ke kolom kasus yang tepat.</li></ol></div></section>
       <div className="mission4-cases sterilab-bubble-in" style={rect(62, 400, 1335, 565)}>{cases.map((item, index) => <section className="mission4-case" key={item.text}><div className="mission4-case-art"><p>{item.text}</p><img src={item.image} alt="" /><strong>Kasus {index + 1}</strong></div><div className="mission4-slots">{(['error', 'risk', 'solution'] as const).map(category => { const target = `case-${index + 1}-${category}`; const choice = choices.find(c => c.id === placed[target]); return <button type="button" key={target} data-mission4-target={target} data-testid={target} data-over={drag?.over === target} className={`mission4-slot ${choice ? 'is-filled' : ''}`} aria-label={`Kasus ${index + 1}, ${labels[category]}${choice ? `: ${choice.text}` : ', kosong'}`} onClick={() => { if (selected) place(selected, target); }}>{choice ? <CardContent choice={choice} /> : <><span className="mission4-slot-label">{labels[category]}</span><span>Drop di sini</span></>}</button>; })}</div></section>)}</div>
       <aside className="mission4-analysis sterilab-bubble-in" style={rect(1415, 177, 443, 798)}><h2>ANALISIS SESUAI KASUS</h2><div className="mission4-list" tabIndex={0} aria-label="Pilihan analisis">{choiceOrder.filter(choice => !Object.values(placed).includes(choice.id)).map(choice => <button key={choice.id} type="button" data-id={choice.id} data-testid={choice.id} className={`mission4-choice ${selected === choice.id ? 'is-selected' : ''} ${drag?.id === choice.id && drag.moved ? 'is-dragging' : ''}`} onPointerDown={event => { if (event.button !== 0) return; const bounds = event.currentTarget.getBoundingClientRect(); const fontSize = getComputedStyle(event.currentTarget).fontSize; event.currentTarget.setPointerCapture(event.pointerId); setDrag({ id: choice.id, x: event.clientX, y: event.clientY, dx: 0, dy: 0, left: bounds.left, top: bounds.top, width: bounds.width, height: bounds.height, fontSize, moved: false, over: null }); }} onPointerMove={move} onPointerUp={end} onPointerCancel={() => setDrag(null)} onLostPointerCapture={() => setDrag(null)} onClick={event => { if (event.detail === 0 || !drag?.moved) setSelected(choice.id); }}><CardContent choice={choice} /></button>)}</div></aside>

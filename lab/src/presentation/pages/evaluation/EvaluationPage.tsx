@@ -116,6 +116,7 @@ export function EvaluationPage() {
       }
     >
       <header
+        className={animation(0).className}
         style={{
           position: 'absolute',
           top: 0,
@@ -130,7 +131,6 @@ export function EvaluationPage() {
         }}
       >
         <div
-          className={animation(0).className}
           style={{
             marginLeft: HEADER_TEXT_LEFT,
             display: 'flex',
@@ -146,7 +146,7 @@ export function EvaluationPage() {
           </p>
         </div>
       </header>
-      <img src={mascotUrl} alt="" aria-hidden="true" style={{ position: 'absolute', left: '77.76%', top: '26.389%', width: '22.917%', zIndex: 2 }} />
+      <img src={mascotUrl} alt="" aria-hidden="true" className={animation(1).className} style={{ position: 'absolute', left: '77.76%', top: '26.389%', width: '22.917%', zIndex: 2, animationDelay: `${animation(1).delay}ms` }} />
 
       <p style={srOnly}>Selesaikan empat misi untuk menguji kemampuanmu dalam menerapkan prosedur laboratorium mikrobiologi.</p>
 
@@ -156,6 +156,7 @@ export function EvaluationPage() {
         src={audioOn ? bgmOnBtnUrl : bgmOffBtnUrl}
         alt={audioOn ? 'Matikan suara' : 'Nyalakan suara'}
         label={audioOn ? 'Matikan suara' : 'Nyalakan suara'}
+        pressed={audioOn}
         top={TOP_BAR_TOP}
         left={SOUND_LEFT}
         size={ICON_SIZE}

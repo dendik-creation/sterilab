@@ -10,17 +10,14 @@ import step5 from '../../../../../assets/images/02_scenes/04_04_evaluasi/04_04_0
 import step6 from '../../../../../assets/images/02_scenes/04_04_evaluasi/04_04_02_misi_2/procedural_step_image/step_6.png';
 import step7 from '../../../../../assets/images/02_scenes/04_04_evaluasi/04_04_02_misi_2/procedural_step_image/step_7.png';
 import complete from '../../../../../assets/images/02_scenes/04_04_evaluasi/04_04_02_misi_2/complete_mission.png';
-import home from '../../../../../assets/images/01_reusable/buttons/home_btn.png';
-import back from '../../../../../assets/images/01_reusable/buttons/back_btn.png';
-import soundOn from '../../../../../assets/images/01_reusable/buttons/bgm_on_btn.png';
-import soundOff from '../../../../../assets/images/01_reusable/buttons/bgm_off_btn.png';
 import click from '../../../../../assets/sounds/01_reusable/short/click.webm';
 import { useNavigation } from '../../../../app/navigation';
 import { isAudioEnabled, toggleAudioEnabled } from '../../../../core/audio/audioSettings';
 import { prefersReducedMotion } from '../../../../core/a11y/motion';
 import { markEvaluationMissionCompleted } from '../../../../core/progress/evaluationProgress';
 import { Stage } from '../../../components/Stage';
-import { IconButton } from '../../../components/IconButton';
+import { EvaluationHeader } from '../components/EvaluationHeader';
+import { useMissionTransition } from '../components/useMissionTransition';
 import { COLOR, S, T, textBase } from '../geometry';
 import './mission2.css';
 
@@ -41,6 +38,7 @@ type Drag = { id: string; startX: number; startY: number; dx: number; dy: number
 
 export function Mission2Page() {
   const { goBack, goTo } = useNavigation();
+  const { exiting, transition } = useMissionTransition();
   const [step, setStep] = useState(0);
   const [completeShown, setCompleteShown] = useState(false);
   const [drag, setDrag] = useState<Drag | null>(null);
@@ -95,20 +93,12 @@ export function Mission2Page() {
   };
 
   return <Stage background={<img src={bg} alt="" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}>
-    <header style={{ position: 'absolute', inset: '0 0 auto', height: T(146, 60), background: COLOR.band, borderBottom: `${T(2, 1)} solid ${COLOR.navy}`, zIndex: 5 }}>
-      <div style={{ position: 'absolute', left: `max(116px, ${S(260)})`, top: S(32), whiteSpace: 'nowrap' }}>
-        <h1 style={{ ...textBase, color: COLOR.navy, fontSize: T(36, 15), fontWeight: 800 }}>MISI 02 — SUSUN PROSEDUR PDA!</h1>
-        <p style={{ ...textBase, color: COLOR.navy, fontSize: T(24, 10), fontWeight: 500 }}>Susun tahapan pembuatan media PDA sesuai urutan yang benar</p>
-      </div>
-    </header>
-    <IconButton src={home} alt="Menu Utama" label="Menu Utama" top="3.574%" left="max(12px, 2.499%)" size="3.791%" zIndex={6} onClick={() => { play(); goTo('splash'); }} />
-    <IconButton src={back} alt="Kembali" label="Kembali" top="3.574%" left="max(64px, 7.609%)" size="3.791%" zIndex={6} onClick={() => { play(); goBack(); }} />
-    <IconButton src={audioOn ? soundOn : soundOff} alt={audioOn ? 'Matikan suara' : 'Nyalakan suara'} label={audioOn ? 'Matikan suara' : 'Nyalakan suara'} pressed={audioOn} top="3.574%" left="min(93.931%, 100% - 52px)" size="3.791%" zIndex={6} onClick={() => { const enabled = toggleAudioEnabled(); setAudioOn(enabled); if (enabled) play(); }} />
-    {completeShown ? <main className="sterilab-bubble-in" data-testid="mission2-completion" aria-label="Misi 2 selesai" style={{ ...rect(214, 197, 1492, 783), borderRadius: S(50), background: '#fff' }}>
+    <EvaluationHeader title="MISI 02 — SUSUN PROSEDUR PDA!" subtitle="Susun tahapan pembuatan media PDA sesuai urutan yang benar" audioOn={audioOn} exiting={exiting} onHome={() => { play(); transition(() => goTo('splash')); }} onBack={() => { play(); transition(goBack); }} onToggle={() => { if (exiting) return; const enabled = toggleAudioEnabled(); setAudioOn(enabled); if (enabled) play(); }} />
+    {completeShown ? <main inert={exiting} className={exiting ? 'sterilab-bubble-out' : 'sterilab-bubble-in'} data-testid="mission2-completion" aria-label="Misi 2 selesai" style={{ ...rect(214, 197, 1492, 783), borderRadius: S(50), background: '#fff' }}>
       <img src={complete} alt="Misi 2 selesai. Kamu berhasil menyusun prosedur pembuatan media PDA dengan benar." style={{ ...rect(37, 35, 1419, 606), objectFit: 'contain' }} />
       <p style={{ ...rect(37, 680, 450, 60), ...textBase, color: COLOR.navy, fontWeight: 800, fontSize: T(26, 10) }}>Urutan benar: 7/7</p>
-      <button className="mission2-continue" style={{ ...rect(1090, 680, 284, 56), fontSize: T(26, 10) }} onClick={() => { play(); goBack(); }}>LANJUT MISI</button>
-    </main> : <main aria-label="Misi 2: Susun Prosedur PDA" data-testid="mission2-scene" data-step={step} style={{ position: 'absolute', inset: 0 }}>
+      <button className="mission2-continue" style={{ ...rect(1090, 680, 284, 56), fontSize: T(26, 10) }} onClick={() => { play(); transition(goBack); }}>LANJUT MISI</button>
+    </main> : <main inert={exiting} className={exiting ? 'sterilab-bubble-out' : 'sterilab-bubble-in'} aria-label="Misi 2: Susun Prosedur PDA" data-testid="mission2-scene" data-step={step} style={{ position: 'absolute', inset: 0 }}>
       <aside className="mission2-panel sterilab-bubble-in" style={rect(62, 197, 348, 438)}>
         <h2>Pengantar</h2><p>Susun tahapan pembuatan media PDA berikut agar sesuai dengan prosedur yang benar.</p><p>Seret setiap kartu ke posisi urutan yang tepat.</p><hr /><h2>Tugas Siswa</h2><p>Susun tahapan pembuatan media PDA secara berurutan.</p>
       </aside>
@@ -133,7 +123,7 @@ export function Mission2Page() {
       </button></div>; })}
       </div>
       <div className="mission2-count" role="status" data-testid="mission2-count" style={rect(483, 943, 316, 53)}>Urutan benar: <strong>{step}/7</strong></div>
-      <button type="button" className="mission2-status" style={rect(1178, 943, 209, 52)} disabled={step !== 7 || transitioning} onClick={() => { play(); markEvaluationMissionCompleted(2); setCompleteShown(true); }}>{step === 7 ? 'Selesai' : 'Belum selesai'}</button>
+      <button type="button" className="mission2-status" style={rect(1178, 943, 209, 52)} disabled={step !== 7 || transitioning || exiting} onClick={() => { play(); markEvaluationMissionCompleted(2); transition(() => setCompleteShown(true)); }}>{step === 7 ? 'Selesai' : 'Belum selesai'}</button>
       {invalid && <div role="alert" className="mission2-invalid" style={rect(52, 684, 368, 105)}><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" /><path d="M14 14l12 12m0-12L14 26" /></svg><div><strong>URUTAN BELUM TEPAT</strong><p>Periksa kembali tahapan alur pembuatan media PDA dari penimbangan hingga penuangan aseptik.</p></div></div>}
     </main>}
   </Stage>;

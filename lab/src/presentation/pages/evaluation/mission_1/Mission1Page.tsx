@@ -2,10 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
 import evaluationBgUrl from '../../../../../assets/images/02_scenes/04_04_evaluasi/backgrounds/evaluasi_bg.png';
 import problemsetUrl from '../../../../../assets/images/02_scenes/04_04_evaluasi/04_04_01_misi_1/problemset-images-lab.png';
-import homeBtnUrl from '../../../../../assets/images/01_reusable/buttons/home_btn.png';
-import backBtnUrl from '../../../../../assets/images/01_reusable/buttons/back_btn.png';
-import bgmOnBtnUrl from '../../../../../assets/images/01_reusable/buttons/bgm_on_btn.png';
-import bgmOffBtnUrl from '../../../../../assets/images/01_reusable/buttons/bgm_off_btn.png';
 import arrowRightUrl from '../../../../../assets/images/01_reusable/icons/arrow_right.png';
 import checkSuccessUrl from '../../../../../assets/images/01_reusable/icons/check_success.png';
 import problemsetCompleteUrl from '../../../../../assets/images/02_scenes/04_04_evaluasi/04_04_01_misi_1/problemset-complete-lab.png';
@@ -16,18 +12,13 @@ import { isAudioEnabled, toggleAudioEnabled } from '../../../../core/audio/audio
 import { prefersReducedMotion } from '../../../../core/a11y/motion';
 import { markEvaluationMissionCompleted } from '../../../../core/progress/evaluationProgress';
 import { Stage } from '../../../components/Stage';
-import { IconButton } from '../../../components/IconButton';
+import { EvaluationHeader } from '../components/EvaluationHeader';
 import { BUBBLE_MS, COLOR, S, STAGGER_MS, T, textBase } from '../geometry';
 import type { Animation } from '../geometry';
 import { findProblemAt, IMAGE_SIZE, PROBLEMS } from './mission1';
 import type { Problem } from './mission1';
 import './mission1.css';
 
-const HOME_LEFT = 'max(12px, 2.499%)';
-const BACK_LEFT = 'max(64px, 7.609%)';
-const SOUND_LEFT = 'min(93.931%, 100% - 52px)';
-const TOP_BAR_TOP = '3.574%';
-const ICON_SIZE = '3.791%';
 const ANIMATION_STEPS = 4;
 const EXIT_TOTAL_MS = ANIMATION_STEPS * STAGGER_MS + BUBBLE_MS;
 
@@ -75,10 +66,8 @@ export function Mission1Page() {
     exitTimerRef.current = window.setTimeout(navigate, EXIT_TOTAL_MS);
   };
 
-  const animation = (step: number, fade = false) => ({
-    className: exiting
-      ? fade ? 'sterilab-fade-out' : 'sterilab-bubble-out'
-      : fade ? 'sterilab-fade-in' : 'sterilab-bubble-in',
+  const animation = (step: number, _fade = false) => ({
+    className: exiting ? 'sterilab-bubble-out' : 'sterilab-bubble-in',
     delay: exiting ? exitDelay(step) : enterDelay(step),
   });
 
@@ -129,48 +118,7 @@ export function Mission1Page() {
         />
       }
     >
-      <header
-        style={{
-          position: 'absolute',
-          inset: '0 0 auto',
-          height: T(146, 60),
-          background: COLOR.band,
-          borderBottom: `${T(2, 1)} solid ${COLOR.navy}`,
-          zIndex: 5,
-        }}
-      >
-        <div style={{ position: 'absolute', left: `max(116px, ${S(260)})`, top: S(32), display: 'flex', flexDirection: 'column', gap: S(2), whiteSpace: 'nowrap' }}>
-          <h1
-            data-testid="mission1-title"
-            className={animation(0, true).className}
-            style={{ ...textBase, fontSize: T(36, 15), lineHeight: 1.25, fontWeight: 800, color: COLOR.navy, animationDelay: `${animation(0, true).delay}ms` }}
-          >
-            MISI 01 — TEMUKAN KESALAHAN!
-          </h1>
-          <p
-            className={animation(1, true).className}
-            style={{ ...textBase, fontSize: T(24, 10), lineHeight: 1.25, fontWeight: 500, color: COLOR.navy, animationDelay: `${animation(1, true).delay}ms` }}
-          >
-            Temukan tindakan yang berpotensi menyebabkan kontaminasi
-          </p>
-        </div>
-      </header>
-
-      <IconButton src={homeBtnUrl} alt="Menu Utama" label="Menu Utama" top={TOP_BAR_TOP} left={HOME_LEFT} size={ICON_SIZE} animationClassName={animation(0).className} animationDelayMs={animation(0).delay} zIndex={6} onClick={() => leaveTo(() => goTo('splash'))} />
-      <IconButton src={backBtnUrl} alt="Kembali" label="Kembali" top={TOP_BAR_TOP} left={BACK_LEFT} size={ICON_SIZE} animationClassName={animation(0).className} animationDelayMs={animation(0).delay} zIndex={6} onClick={() => leaveTo(goBack)} />
-      <IconButton
-        src={audioOn ? bgmOnBtnUrl : bgmOffBtnUrl}
-        alt={audioOn ? 'Matikan suara' : 'Nyalakan suara'}
-        label={audioOn ? 'Matikan suara' : 'Nyalakan suara'}
-        pressed={audioOn}
-        top={TOP_BAR_TOP}
-        left={SOUND_LEFT}
-        size={ICON_SIZE}
-        animationClassName={animation(0).className}
-        animationDelayMs={animation(0).delay}
-        zIndex={6}
-        onClick={handleToggleSound}
-      />
+      <EvaluationHeader title="MISI 01 — TEMUKAN KESALAHAN!" titleTestId="mission1-title" subtitle="Temukan tindakan yang berpotensi menyebabkan kontaminasi" audioOn={audioOn} exiting={exiting} onHome={() => leaveTo(() => goTo('splash'))} onBack={() => leaveTo(goBack)} onToggle={handleToggleSound} />
 
       {showCompletion ? (
         <Mission1Completion animation={animation} onContinue={() => leaveTo(goBack)} />

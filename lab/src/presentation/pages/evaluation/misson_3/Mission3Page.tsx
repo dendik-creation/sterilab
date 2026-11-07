@@ -6,10 +6,6 @@ import illustration from '../../../../../assets/images/02_scenes/04_04_evaluasi/
 import incorrectArt from '../../../../../assets/images/02_scenes/04_04_evaluasi/04_04_03_misi_3/incorrect_dialog_modal.png';
 import correctArt from '../../../../../assets/images/02_scenes/04_04_evaluasi/04_04_03_misi_3/correct_dialog_modal.png';
 import completeArt from '../../../../../assets/images/02_scenes/04_04_evaluasi/04_04_03_misi_3/complete_mission_card.png';
-import home from '../../../../../assets/images/01_reusable/buttons/home_btn.png';
-import back from '../../../../../assets/images/01_reusable/buttons/back_btn.png';
-import soundOn from '../../../../../assets/images/01_reusable/buttons/bgm_on_btn.png';
-import soundOff from '../../../../../assets/images/01_reusable/buttons/bgm_off_btn.png';
 import arrow from '../../../../../assets/images/01_reusable/icons/arrow_right.png';
 import check from '../../../../../assets/images/01_reusable/icons/check_success.png';
 import clickSound from '../../../../../assets/sounds/01_reusable/short/click.webm';
@@ -17,8 +13,9 @@ import { useNavigation } from '../../../../app/navigation';
 import { isAudioEnabled, toggleAudioEnabled } from '../../../../core/audio/audioSettings';
 import { markEvaluationMissionCompleted } from '../../../../core/progress/evaluationProgress';
 import { Stage } from '../../../components/Stage';
-import { IconButton } from '../../../components/IconButton';
-import { COLOR, S, T, textBase } from '../geometry';
+import { EvaluationHeader } from '../components/EvaluationHeader';
+import { useMissionTransition } from '../components/useMissionTransition';
+import { S } from '../geometry';
 import './mission3.css';
 
 const choices = [
@@ -33,6 +30,7 @@ const rect = (x: number, y: number, width: number, height: number): CSSPropertie
 
 export function Mission3Page() {
   const { goBack, goTo } = useNavigation();
+  const { exiting, transition } = useMissionTransition();
   const [selected, setSelected] = useState<Choice[]>([]);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [complete, setComplete] = useState(false);
@@ -61,7 +59,7 @@ export function Mission3Page() {
     play();
     if (feedback === 'correct') {
       markEvaluationMissionCompleted(3);
-      setComplete(true);
+      transition(() => setComplete(true));
     } else {
       requestAnimationFrame(() => checkButton.current?.focus());
     }
@@ -69,21 +67,13 @@ export function Mission3Page() {
   };
 
   return <Stage background={<img src={background} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}>
-    <div inert={!!feedback} style={{ position: 'absolute', inset: 0 }}>
-      <header style={{ position: 'absolute', inset: '0 0 auto', height: T(146, 60), background: COLOR.band, borderBottom: `${T(2, 1)} solid ${COLOR.navy}`, zIndex: 5 }}>
-        <div className="mission3-header-text" style={{ position: 'absolute', left: `max(116px, ${S(260)})`, top: S(32), whiteSpace: 'nowrap' }}>
-          <h1 style={{ ...textBase, fontSize: T(36, 15), lineHeight: 1.25, fontWeight: 800, color: COLOR.navy }}>MISI 03 — INVESTIGASI MUTU MEDIA!</h1>
-          <p style={{ ...textBase, fontSize: T(24, 10), lineHeight: 1.25, fontWeight: 500, color: COLOR.navy }}>Analisis data formulasi dan temukan dua kelompok yang benar</p>
-        </div>
-      </header>
-      <IconButton src={home} alt="Menu Utama" label="Menu Utama" top="3.574%" left="max(12px, 2.499%)" size="3.791%" zIndex={6} animationClassName="sterilab-bubble-in" animationDelayMs={0} onClick={() => { play(); goTo('splash'); }} />
-      <IconButton src={back} alt="Kembali" label="Kembali" top="3.574%" left="max(64px, 7.609%)" size="3.791%" zIndex={6} animationClassName="sterilab-bubble-in" animationDelayMs={80} onClick={() => { play(); goBack(); }} />
-      <IconButton src={audioOn ? soundOn : soundOff} alt={audioOn ? 'Matikan suara' : 'Nyalakan suara'} label={audioOn ? 'Matikan suara' : 'Nyalakan suara'} pressed={audioOn} top="3.574%" left="min(93.931%, 100% - 52px)" size="3.791%" zIndex={6} animationClassName="sterilab-bubble-in" animationDelayMs={160} onClick={() => { const enabled = toggleAudioEnabled(); setAudioOn(enabled); if (enabled) play(); }} />
-      {complete ? <main aria-label="Misi 3 selesai" data-testid="mission3-completion" className="mission3-completion" style={{ position: 'absolute', inset: 0 }}>
+    <div inert={!!feedback || exiting} style={{ position: 'absolute', inset: 0 }}>
+      <EvaluationHeader title="MISI 03 — INVESTIGASI MUTU MEDIA!" subtitle="Analisis data formulasi dan temukan dua kelompok yang benar" audioOn={audioOn} exiting={exiting} onHome={() => { play(); transition(() => goTo('splash')); }} onBack={() => { play(); transition(goBack); }} onToggle={() => { if (exiting) return; const enabled = toggleAudioEnabled(); setAudioOn(enabled); if (enabled) play(); }} />
+      {complete ? <main aria-label="Misi 3 selesai" data-testid="mission3-completion" className={`mission3-completion ${exiting ? 'sterilab-bubble-out' : ''}`} style={{ position: 'absolute', inset: 0 }}>
         <img src={completeArt} alt="Hebat! Misi 03 selesai. Kelompok A dan D memiliki formulasi yang benar. Perhitungan mengikuti petunjuk produk dan volume akhir." style={{ ...rect(190, 191, 1541, 831), objectFit: 'contain' }} />
         <img src={check} alt="" style={{ ...rect(1094, 861, 97, 97), objectFit: 'contain' }} />
-        <button className="mission3-cta" style={rect(1233, 868, 416, 82)} onClick={() => { play(); goBack(); }}>LANJUT MISI <img src={arrow} alt="" /></button>
-      </main> : <main aria-label="Misi 3: Investigasi Mutu Media" data-testid="mission3-main" className="mission3-main" style={{ position: 'absolute', inset: 0 }}>
+        <button className="mission3-cta" style={rect(1233, 868, 416, 82)} onClick={() => { play(); transition(goBack); }}>LANJUT MISI <img src={arrow} alt="" /></button>
+      </main> : <main aria-label="Misi 3: Investigasi Mutu Media" data-testid="mission3-main" className={`mission3-main ${exiting ? 'sterilab-bubble-out' : ''}`} style={{ position: 'absolute', inset: 0 }}>
         <div className="mission3-panel" style={rect(76, 197, 348, 831)} />
         <div className="mission3-panel" style={rect(464, 197, 1381, 831)} />
         <aside className="mission3-instructions" style={rect(98, 228, 305, 780)} tabIndex={0} aria-label="Pengantar dan tugas siswa">

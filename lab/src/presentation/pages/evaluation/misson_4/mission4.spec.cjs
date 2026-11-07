@@ -8,6 +8,10 @@ test('nine mappings, invalid drops and persisted completion', async ({ page }) =
   await expect(page.getByTestId('evaluation-progress-count')).toContainText('3/4');
   await page.getByTestId('evaluation-mission-card-4').click();
   await expect(page.getByTestId('mission4-main')).toBeVisible();
+  await expect(page.getByRole('banner')).toHaveClass(/sterilab-bubble-in/);
+  await page.getByRole('button', { name: 'Matikan suara' }).click();
+  await expect(page.getByRole('button', { name: 'Nyalakan suara' })).toHaveAttribute('aria-pressed', 'false');
+  await page.getByRole('button', { name: 'Nyalakan suara' }).click();
   await page.waitForTimeout(800);
   const list = page.getByLabel('Pilihan analisis');
   await expect(list.locator('button')).toHaveCount(9);
@@ -35,6 +39,10 @@ test('nine mappings, invalid drops and persisted completion', async ({ page }) =
   for (const category of ['error', 'risk', 'solution']) for (let n = 1; n <= 3; n++) {
     if (category === 'error' && n === 1) continue;
     await drop(`${category}-case-${n}`, `case-${n}-${category}`);
+    if (category === 'solution' && n === 3) {
+      await expect(page.getByTestId('mission4-main')).toHaveClass(/sterilab-bubble-out/);
+      await expect(page.getByRole('banner')).toHaveClass(/sterilab-bubble-out/);
+    }
   }
   await expect(page.getByTestId('mission4-completion')).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('sterilab:evaluationProgress')))).toEqual({ version: 1, completed: 4, extra: 'keep' });
@@ -48,4 +56,14 @@ test('nine mappings, invalid drops and persisted completion', async ({ page }) =
   await page.reload();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('sterilab:evaluationProgress')).completed)).toBe(4);
   await expect(page.getByTestId('evaluation-progress-count')).toContainText('4/4');
+});
+
+test('navigation remains immediate with reduced motion', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.addInitScript(() => localStorage.setItem('sterilab:evaluationProgress', JSON.stringify({ version: 1, completed: 3 })));
+  await page.goto('/src/presentation/pages/evaluation/misson_4/audit.html');
+  await page.getByTestId('evaluation-mission-card-4').click();
+  await expect(page.getByTestId('mission4-main')).toBeVisible();
+  await page.getByRole('button', { name: 'Kembali' }).click();
+  await expect(page.getByTestId('evaluation-progress-count')).toHaveText('3/4 misi selesai');
 });

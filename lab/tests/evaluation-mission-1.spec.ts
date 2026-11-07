@@ -110,7 +110,7 @@ test('Mission 1 reveals only mapped problems, uses matching assets, and stays al
   await expect(page.getByTestId('mission1-problem-found')).toHaveCount(0);
   const finishButton = page.getByRole('button', { name: 'Selesai' });
   await expect(finishButton).toBeDisabled();
-  await expect(page.getByTestId('mission1-title')).toHaveClass(/sterilab-fade-in/);
+  await expect(page.getByTestId('mission1-title').locator('..').locator('..')).toHaveClass(/sterilab-bubble-in/);
   await expect(image).toHaveClass(/sterilab-bubble-in/);
 
   const soundButton = page.getByRole('button', { name: 'Matikan suara' });
