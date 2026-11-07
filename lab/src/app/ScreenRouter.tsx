@@ -9,6 +9,7 @@ import { EvidencePage } from '../presentation/pages/EvidencePage';
 import { EvaluationPage } from '../presentation/pages/EvaluationPage';
 import { Mission1Page } from '../presentation/pages/evaluation/mission_1/Mission1Page';
 import { Mission2Page } from '../presentation/pages/evaluation/misson_2/Mission2Page';
+import { Mission3Page } from '../presentation/pages/evaluation/misson_3/Mission3Page';
 import { ReflectionPage } from '../presentation/pages/ReflectionPage';
 import { CompletionPage } from '../presentation/pages/CompletionPage';
 
@@ -39,6 +40,8 @@ export function ScreenRouter() {
       return <Mission1Page />;
     case 'evaluation-mission-2':
       return <Mission2Page />;
+    case 'evaluation-mission-3':
+      return <Mission3Page />;
     case 'reflection':
       return <ReflectionPage />;
     case 'completion':
