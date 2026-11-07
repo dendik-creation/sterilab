@@ -1,0 +1,126 @@
+.mission1-pill {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  border-radius: 999px;
+  background: #3471c7;
+  color: #fff;
+  font-family: 'Plus Jakarta Sans Variable', system-ui, sans-serif;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+}
+
+.mission1-instruction-scroll {
+  pointer-events: none;
+}
+
+.mission1-instruction-scroll:focus-visible {
+  outline: max(2px, 0.1563cqw) solid #005acd;
+  outline-offset: max(2px, 0.1042cqw);
+}
+
+.mission1-hotspot {
+  position: absolute;
+  appearance: none;
+  padding: 0;
+  border: max(1px, 0.1042cqw) solid #f00;
+  border-radius: 0.9375cqw;
+  background: rgb(252 161 161 / 34%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 280ms ease-out;
+}
+
+.mission1-hotspot[data-found='true'],
+.mission1-hotspot:focus-visible {
+  opacity: 1 !important;
+}
+
+.mission1-hotspot:focus-visible,
+button[aria-pressed]:focus-visible,
+.mission1-finish-button:focus-visible {
+  outline: max(2px, 0.1563cqw) solid #005acd;
+  outline-offset: max(2px, 0.1042cqw);
+}
+
+.mission1-finish-button:not(:disabled):hover {
+  filter: brightness(1.08);
+}
+
+.mission1-target-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 1.7823cqw;
+  aspect-ratio: 1;
+  border: max(1px, 0.1563cqw) solid #0f61d2;
+  border-radius: 50%;
+}
+
+.mission1-target-icon span {
+  width: 0.5344cqw;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #0f61d2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mission1-hotspot,
+  .mission1-finish-button {
+    transition: none;
+  }
+}
+
+@media (max-width: 667px) and (orientation: landscape) {
+  .mission1-instruction-scroll {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    height: 36.3021cqw !important;
+    padding-block: 0.3646cqw;
+    pointer-events: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+    scrollbar-width: thin;
+    scrollbar-color: #7a9cc4 transparent;
+  }
+
+  .mission1-instruction-scroll > * {
+    position: static !important;
+  }
+
+  .mission1-instruction-copy {
+    width: auto !important;
+    margin: 0 0.9375cqw !important;
+  }
+
+  .mission1-instruction-divider {
+    width: auto !important;
+    margin: 0.4167cqw 0 !important;
+  }
+
+  .mission1-task-heading {
+    width: 11.9792cqw !important;
+    height: 2.3958cqw !important;
+    margin: 0 auto 0.3125cqw !important;
+  }
+
+  .mission1-task-list {
+    width: auto !important;
+    margin: 0 0.46875cqw !important;
+  }
+}
+
+@media (max-width: 600px) and (orientation: landscape) {
+  .mission1-instruction-card {
+    height: 33.8542cqw !important;
+  }
+
+  .mission1-instruction-scroll {
+    height: 29.4271cqw !important;
+  }
+}

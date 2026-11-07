@@ -13,6 +13,7 @@ export type ScreenId =
   | 'stage'
   | 'evidence'
   | 'evaluation'
+  | 'evaluation-mission-1'
   | 'reflection'
   | 'completion';
 

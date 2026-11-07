@@ -175,8 +175,8 @@ export function EvaluationPage() {
           animation={animation(index + 1)}
            top={CARD_TOPS[Math.floor(index / 2)]}
           onStart={() => {
-            playClick();
             setStartedMission(mission.n);
+            leaveTo(() => goTo('evaluation-mission-1'));
           }}
         />
       ))}

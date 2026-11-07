@@ -10,6 +10,7 @@ export interface IconButtonProps {
   alt: string;
   label: string;
   onClick: () => void;
+  pressed?: boolean;
   top: string;
   left: string;
   size: string;
@@ -30,6 +31,7 @@ export function IconButton({
   alt,
   label,
   onClick,
+  pressed,
   top,
   left,
   size,
@@ -57,6 +59,7 @@ export function IconButton({
       type="button"
       onClick={onClick}
       aria-label={label}
+      aria-pressed={pressed}
       className={animationClassName}
       style={style}
       onPointerOver={(e) => (e.currentTarget.style.transform = 'scale(1.08)')}
