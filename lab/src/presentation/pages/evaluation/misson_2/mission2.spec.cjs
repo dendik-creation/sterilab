@@ -23,7 +23,12 @@ test('Mission 2 validates drops, completes in sequence, and preserves progress',
   await expect(page.getByTestId('evaluation-progress-count')).toContainText('1/4');
   await page.getByTestId('evaluation-mission-card-2').click();
   await expect(page.getByTestId('mission2-scene')).toHaveAttribute('data-step', '0');
-  await page.waitForTimeout(900);
+  const entrances = page.locator('.mission2-choice-entrance');
+  await expect(entrances).toHaveCount(7);
+  await expect(entrances.first()).toHaveCSS('animation-name', 'sterilab-bubble-in');
+  await expect(entrances.first()).toHaveCSS('animation-delay', '0.6s');
+  await expect(entrances.last()).toHaveCSS('animation-delay', '1.02s');
+  await page.waitForTimeout(1700);
   await expect(page.getByTestId('mission2-choices')).toHaveCSS('grid-template-columns', /\S+ \S+ \S+/);
   await expect(page.getByRole('button', { name: 'Belum selesai' })).toBeDisabled();
   expect(await page.getByTestId('mission2-image').evaluate(el => el.complete && el.naturalWidth > 0)).toBe(true);

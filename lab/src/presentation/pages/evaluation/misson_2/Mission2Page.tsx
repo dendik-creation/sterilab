@@ -125,12 +125,12 @@ export function Mission2Page() {
         </div>
       </div>)}
       <div className="mission2-choices" data-testid="mission2-choices" style={rect(478, 605, 919, 306)}>
-      {choiceOrder.map((index) => { const procedure = procedures[index]; return index < step ? null : <button key={procedure.id} type="button" data-id={procedure.id} data-testid={`mission2-card-${procedure.id}`} className={`mission2-card ${drag?.id === procedure.id && drag.moved ? 'is-dragging' : ''}`} style={{ transform: drag?.id === procedure.id ? `translate(${drag.dx}px, ${drag.dy}px)${drag.over ? ' scale(.97)' : ''}` : undefined, zIndex: drag?.id === procedure.id ? 4 : 2 }}
+      {choiceOrder.map((index, position) => { const procedure = procedures[index]; return index < step ? null : <div key={procedure.id} className="mission2-choice-entrance sterilab-bubble-in" style={{ animationDelay: `${600 + position * 70}ms`, zIndex: drag?.id === procedure.id ? 4 : 2 }}><button type="button" data-id={procedure.id} data-testid={`mission2-card-${procedure.id}`} className={`mission2-card ${drag?.id === procedure.id && drag.moved ? 'is-dragging' : ''}`} style={{ transform: drag?.id === procedure.id ? `translate(${drag.dx}px, ${drag.dy}px)${drag.over ? ' scale(.97)' : ''}` : undefined }}
         onPointerDown={(event) => { if (locked.current || event.button !== 0) return; event.currentTarget.setPointerCapture(event.pointerId); setDrag({ id: procedure.id, startX: event.clientX, startY: event.clientY, dx: 0, dy: 0, over: false, moved: false }); }}
         onPointerMove={move} onPointerUp={end} onPointerCancel={() => setDrag(null)} onLostPointerCapture={() => setDrag(null)}
         onClick={(event) => { if (event.detail === 0 && !locked.current) place(procedure.id, true); }} disabled={transitioning}>
         <span aria-hidden="true" className="mission2-grip">⠿</span>{procedure.label}
-      </button>; })}
+      </button></div>; })}
       </div>
       <div className="mission2-count" role="status" data-testid="mission2-count" style={rect(483, 943, 316, 53)}>Urutan benar: <strong>{step}/7</strong></div>
       <button type="button" className="mission2-status" style={rect(1178, 943, 209, 52)} disabled={step !== 7 || transitioning} onClick={() => { play(); markEvaluationMissionCompleted(2); setCompleteShown(true); }}>{step === 7 ? 'Selesai' : 'Belum selesai'}</button>

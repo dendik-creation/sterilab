@@ -17,7 +17,8 @@ aside.mission2-panel { padding: 1.6cqw 1.4cqw; color: #04488b; text-align: cente
 .mission2-slot svg rect { fill: none; stroke: #1f6fb5; stroke-width: 3; stroke-dasharray: 14 9; animation: mission2-trail .7s linear infinite; }
 @keyframes mission2-trail { to { stroke-dashoffset: -23; } }
 .mission2-choices { display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 4.27cqw; gap: 1.56cqw 1.2cqw; align-content: start; }
-.mission2-card { position: relative; display: flex; align-items: center; gap: .8cqw; padding: .4cqw .7cqw; border-style: solid; background: #fff; color: #111; font-family: inherit; font-size: max(7px, .88cqw); font-weight: 700; line-height: 1.2; text-align: left; cursor: grab; touch-action: none; user-select: none; }
+.mission2-choice-entrance { position: relative; }
+.mission2-card { position: relative; width: 100%; height: 100%; display: flex; align-items: center; gap: .8cqw; padding: .4cqw .7cqw; border-style: solid; background: #fff; color: #111; font-family: inherit; font-size: max(7px, .88cqw); font-weight: 700; line-height: 1.2; text-align: left; cursor: grab; touch-action: none; user-select: none; }
 .mission2-card:focus-visible, .mission2-continue:focus-visible, .mission2-status:focus-visible { outline: 3px solid #0069db; outline-offset: 2px; }
 .mission2-card.is-dragging { cursor: grabbing; box-shadow: 0 5px 15px #04488b55; }
 .mission2-card:disabled { cursor: wait; }
