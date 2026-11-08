@@ -17,10 +17,10 @@ import bgAutoklafLoadedUrl from '../../../assets/images/02_scenes/04_02_pembuata
 import bgAutoklafDoneUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_5/backgrounds/3.png';
 import autoklafPanelUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_5/new_autoclave_panel.png';
 import mulaiProsesBtnUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_5/mulai_proses_btn.png';
-import bgPetriIdleUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_6/backgrounds/1.png';
-import bgPetriStartedUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_6/backgrounds/2.png';
-import bgPetriPouringUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_6/backgrounds/3.png';
-import bgPetriDoneUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_6/backgrounds/4.png';
+import bgPetriIdleUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_6/backgrounds/1.png?url';
+import bgPetriStartedUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_6/backgrounds/2.png?url';
+import bgPetriPouringUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_6/backgrounds/3.png?url';
+import bgPetriDoneUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_6/backgrounds/4.png?url';
 
 // Data for Stage 2 "Pembuatan Media Kultur Mikroba" (Figma "Sterilab-APHP"
 // frames "5.1 - A/B/C", "5.2 - A/B/C/D", "5.3 - A/B/C", "5.4 - A/B/C/D",
@@ -517,34 +517,29 @@ export const MENSTERILISASI_MEDIA_STEP: SterilizeStep = {
   successBody: 'Anda siap melanjutkan ke langkah berikutnya.',
 };
 
-// Hotspots measured off Figma's own highlight boxes: node 305:612 on the
-// idle plate (the Erlenmeyer and closed dishes, left 997, top 839, 524x165),
-// 305:614 on the started plate (the Erlenmeyer, now held over the first open
-// dish, left 599, top 702, 209x269) and 305:615 on the pouring plate (the
-// whole pour - Erlenmeyer and first dish together, left 655, top 588,
-// 430x371).
+// Hotspots follow the flask and receiving dish in the revised 16:9 plates.
 const MENUANGKAN_FRAMES: [AssembleFrame, AssembleFrame, AssembleFrame, AssembleFrame] = [
   {
     src: bgPetriIdleUrl,
-    alt: 'Analis berdiri di meja kerja dengan labu Erlenmeyer berisi media steril di samping empat cawan Petri kosong yang masih tertutup',
-    hotspot: { x: 997, y: 839, width: 524, height: 165 },
+    alt: 'Analis berdiri di meja kerja dengan labu Erlenmeyer berisi media steril, cawan Petri, dan dua lampu spirtus menyala',
+    hotspot: { x: 790, y: 733, width: 145, height: 227 },
     hotspotAccessibleName: 'Erlenmeyer, klik untuk mulai menuangkan media ke cawan Petri',
   },
   {
     src: bgPetriStartedUrl,
-    alt: 'Analis memegang tutup cawan Petri sambil mulai menuangkan media dari labu Erlenmeyer ke cawan Petri pertama yang terbuka',
-    hotspot: { x: 599, y: 702, width: 209, height: 269 },
+    alt: 'Analis memegang tutup cawan Petri yang terbuka dengan labu Erlenmeyer di atas meja dan dua lampu spirtus menyala',
+    hotspot: { x: 501, y: 740, width: 102, height: 125 },
     hotspotAccessibleName: 'Erlenmeyer, klik untuk melanjutkan menuangkan media ke cawan Petri',
   },
   {
     src: bgPetriPouringUrl,
-    alt: 'Analis menuangkan media dari labu Erlenmeyer ke cawan Petri pertama, dengan keempat cawan Petri berisi media steril',
-    hotspot: { x: 655, y: 588, width: 430, height: 371 },
+    alt: 'Analis menuangkan media dari labu Erlenmeyer ke cawan Petri terbuka di antara dua lampu spirtus menyala',
+    hotspot: { x: 850, y: 860, width: 160, height: 75 },
     hotspotAccessibleName: 'Cawan Petri, klik untuk menuntaskan penuangan media',
   },
   {
     src: bgPetriDoneUrl,
-    alt: 'Analis mengacungkan jempol di meja kerja dengan empat cawan Petri berisi media steril, dengan catatan pembuatan media berhasil',
+    alt: 'Analis mengacungkan jempol di meja kerja dengan cawan Petri berisi media steril dan dua lampu spirtus menyala',
   },
 ];
 
