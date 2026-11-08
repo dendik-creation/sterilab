@@ -6,11 +6,13 @@ import bgmOffBtnUrl from '../../../../assets/images/01_reusable/buttons/bgm_off_
 import clickSfxUrl from '../../../../assets/sounds/01_reusable/short/click.webm';
 import { useNavigation } from '../../../app/navigation';
 import { isAudioEnabled, toggleAudioEnabled } from '../../../core/audio/audioSettings';
+import { stopVoiceOver } from '../../../core/audio/voiceOver';
 import { markLevelCompleted } from '../../../core/progress/levelProgress';
 import { prefersReducedMotion } from '../../../core/a11y/motion';
 import { PROCEDURE_STEPS } from '../../../data/stages/kulturMikroba';
 import type { ProcedureStep } from '../../../data/stages/kulturMikroba';
 import { Stage } from '../../components/Stage';
+import { AiDisclosureBadge } from '../../components/AiDisclosureBadge';
 import { IconButton } from '../../components/IconButton';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import {
@@ -114,6 +116,7 @@ export function KulturMikroba() {
 
   const leaveTo = (navigate: () => void) => {
     if (exiting) return;
+    stopVoiceOver();
     playClick();
     if (prefersReducedMotion()) {
       navigate();
@@ -261,6 +264,7 @@ export function KulturMikroba() {
       <p aria-live="polite" style={srOnly}>
         {message}
       </p>
+      <AiDisclosureBadge exiting={exiting} />
     </Stage>
   );
 }

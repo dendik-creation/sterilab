@@ -8,6 +8,9 @@ import { expect } from '@playwright/test';
 // audio is the shipped file, playing, and the transition under test is the
 // same one a real Analyst triggers by listening.
 export async function skipCaseNarration(page: Page): Promise<void> {
+  const objectives = page.getByRole('heading', { name: /Setelah mengikuti pembelajaran/ });
+  await objectives.or(page.getByTestId('case-narration')).first().waitFor({ state: 'attached' });
+  if (await objectives.isVisible()) await page.getByRole('button', { name: 'Lanjut', exact: true }).click();
   const narration = page.getByTestId('case-narration');
   await narration.waitFor({ state: 'attached' });
 
@@ -32,5 +35,6 @@ export async function reachCase(page: Page): Promise<void> {
   await page.goto('/');
   await page.getByRole('button', { name: 'Ketuk di mana saja untuk melanjutkan' }).click({ timeout: 15_000 });
   await page.getByRole('button', { name: 'Mulai Menjelajah' }).click();
+  await page.getByRole('button', { name: 'Lanjut', exact: true }).click();
   await expect(page.getByAltText(/Ruang laboratorium/)).toBeVisible({ timeout: 5000 });
 }

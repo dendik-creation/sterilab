@@ -8,6 +8,10 @@
 .mission3-instructions hr { border: 0; border-top: 1px solid #a3c5dc; margin: 1.3cqw 0; }
 .mission3-instructions ol { text-align: left; padding-left: 1.5cqw; }
 .mission3-instructions li { margin-bottom: 1cqw; }
+@container (max-width: 700px) {
+  .mission3-instruction-panel { height: 21cqw !important; }
+  .mission3-instructions { height: 17.5cqw !important; }
+}
 .mission3-choice-heading { margin: 0; color: #062683; font-size: max(10px, 1.25cqw); font-weight: 700; }
 .mission3-choice { border: max(1px, .104cqw) solid #0d44b7; border-radius: .94cqw; padding: 0 1.2cqw; background: #eaf6fe; color: #062683; font: 700 max(10px, 1.25cqw)/1.2 'Plus Jakarta Sans Variable', sans-serif; cursor: pointer; }
 .mission3-choice[aria-pressed="true"] { background: #0d44b7; color: white; }

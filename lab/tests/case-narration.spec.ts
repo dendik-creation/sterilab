@@ -2,16 +2,12 @@ import { test, expect } from '@playwright/test';
 import { waitForMotionSettled } from './settle';
 import { reachCase, skipCaseNarration } from './case';
 
-// Revised Case (Figma frame 20:1296): the "Baca Selengkapnya" reveal is gone
-// - case_bg.png bakes the whole news monitor - and what paces the Screen now
-// is the hook narration. These specs cover the three things that revision
-// depends on: the audio really plays and really gates the CTA, the BGM ducks
-// underneath it, and both bottom-edge pieces land inside the stage.
+// Hook narration plays independently of navigation, with BGM ducked beneath it.
 test.beforeEach(({ viewport }) => {
   test.skip(!viewport || viewport.width <= viewport.height, 'landscape-only app');
 });
 
-test('the shipped narration can be decoded for the CTA gate', async ({ page }) => {
+test('the shipped narration can be decoded', async ({ page }) => {
   await reachCase(page);
 
   const duration = await page
@@ -32,7 +28,7 @@ test('the shipped narration can be decoded for the CTA gate', async ({ page }) =
   expect(duration).toBeGreaterThan(0);
 });
 
-test('narration plays on mount, controls mark progress, and the CTA only arrives when it ends', async ({ page }) => {
+test('narration plays while navigation remains available without progress controls', async ({ page }) => {
   await reachCase(page);
 
   const controls = page.getByRole('progressbar', { name: 'Kemajuan narasi' });
@@ -40,8 +36,8 @@ test('narration plays on mount, controls mark progress, and the CTA only arrives
 
   await expect(page.getByTestId('case-scientist')).toBeVisible();
   await expect(page.getByTestId('case-speaking-mouth')).toBeVisible();
-  await expect(controls).toBeVisible();
-  await expect(lanjut).not.toBeAttached();
+  await expect(controls).not.toBeAttached();
+  await expect(lanjut).toBeVisible();
 
   const firstMouthFrame = await page.getByTestId('case-speaking-mouth').getAttribute('src');
   await expect.poll(() => page.getByTestId('case-speaking-mouth').getAttribute('src')).not.toBe(firstMouthFrame);
@@ -52,10 +48,8 @@ test('narration plays on mount, controls mark progress, and the CTA only arrives
     .evaluate((el: HTMLAudioElement) => !el.paused && !el.ended);
   expect(playing).toBe(true);
 
-  await skipCaseNarration(page);
-
-  await expect(controls).not.toBeAttached();
-  await expect(lanjut).toBeVisible();
+  await lanjut.click();
+  await expect(page.getByAltText(/Dashboard SteriLab/)).toBeVisible();
 });
 
 test('dialogue follows narration timestamps and stays above the scientist', async ({ page }) => {
@@ -85,7 +79,7 @@ test('dialogue follows narration timestamps and stays above the scientist', asyn
   }
 });
 
-test('the global BGM ducks for Case and is restored on the way to Missions', async ({ page }) => {
+test('the global BGM remains ducked when dashboard narration takes over', async ({ page }) => {
   await reachCase(page);
 
   const bgmVolume = () =>
@@ -101,10 +95,10 @@ test('the global BGM ducks for Case and is restored on the way to Missions', asy
   await page.getByRole('button', { name: 'Lanjut Briefing' }).click();
   await expect(page.getByAltText(/Dashboard SteriLab/)).toBeVisible({ timeout: 4000 });
 
-  await expect.poll(bgmVolume, { timeout: 3000 }).toBeGreaterThan(0.95);
+  await expect.poll(bgmVolume, { timeout: 3000 }).toBeLessThan(0.3);
 });
 
-test('narration controls and CTA stay inside the stage and clear of the top bar at every landscape size', async ({ page }) => {
+test('CTA stays inside the stage and clear of the top bar at every landscape size', async ({ page }) => {
   await reachCase(page);
   await waitForMotionSettled(page);
 
@@ -114,14 +108,7 @@ test('narration controls and CTA stay inside the stage and clear of the top bar 
     return { top: r.top, left: r.left, right: r.right, bottom: r.bottom };
   });
 
-  const controlsBox = await page.getByRole('progressbar', { name: 'Kemajuan narasi' }).boundingBox();
-  expect(controlsBox).not.toBeNull();
-  expect(controlsBox!.x).toBeGreaterThanOrEqual(stage.left - 1);
-  expect(controlsBox!.x + controlsBox!.width).toBeLessThanOrEqual(stage.right + 1);
-  expect(controlsBox!.y + controlsBox!.height).toBeLessThanOrEqual(stage.bottom + 1);
-
-  await skipCaseNarration(page);
-  await waitForMotionSettled(page);
+  await expect(page.getByRole('progressbar', { name: 'Kemajuan narasi' })).not.toBeAttached();
 
   const ctaBox = await page.getByRole('button', { name: 'Lanjut Briefing' }).boundingBox();
   expect(ctaBox).not.toBeNull();

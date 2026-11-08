@@ -1,11 +1,11 @@
 {
     "schema_version": 2,
-    "commit": "a1506d14312f24db99e21376a0c0eecfc57f6262",
-    "indexed_at": "2026-11-07T05:22:55Z",
+    "commit": "8ee4e08f6a6ea9ba8f84e7d33f26213e964a6764",
+    "indexed_at": "2026-11-07T11:05:47Z",
     "project": "D-projects-multimedia_interactive-sterilab",
-    "nodes": 1569,
-    "edges": 4476,
-    "original_size": 9633792,
-    "compressed_size": 1787902,
+    "nodes": 1594,
+    "edges": 4556,
+    "original_size": 9699328,
+    "compressed_size": 1802750,
     "compression_level": 3
 }

@@ -12,6 +12,7 @@ import { isAudioEnabled, toggleAudioEnabled } from '../../../../core/audio/audio
 import { prefersReducedMotion } from '../../../../core/a11y/motion';
 import { markEvaluationMissionCompleted } from '../../../../core/progress/evaluationProgress';
 import { Stage } from '../../../components/Stage';
+import { AiDisclosureBadge, AiDisclosureBox } from '../../../components/AiDisclosureBadge';
 import { EvaluationHeader } from '../components/EvaluationHeader';
 import { BUBBLE_MS, COLOR, S, STAGGER_MS, T, textBase } from '../geometry';
 import type { Animation } from '../geometry';
@@ -350,6 +351,7 @@ export function Mission1Page() {
         </button>
       </main>
       )}
+      {showCompletion ? <AiDisclosureBadge key="complete" exiting={exiting} /> : <AiDisclosureBox key="task" mission={1} exiting={exiting} />}
     </Stage>
   );
 }
@@ -387,7 +389,7 @@ function Mission1Completion({ animation, onContinue }: { animation: (step: numbe
       <div
         data-testid="mission1-completion-footer"
         className={footerAnimation.className}
-        style={{ position: 'absolute', left: S(428), top: S(896), width: S(1065), height: S(100), border: `${T(2, 1)} solid ${COLOR.navy}`, borderRadius: S(50), background: '#FFFFFF', animationDelay: `${footerAnimation.delay}ms` }}
+        style={{ position: 'absolute', left: S(62), top: S(896), width: S(1065), height: S(100), border: `${T(2, 1)} solid ${COLOR.navy}`, borderRadius: S(50), background: '#FFFFFF', animationDelay: `${footerAnimation.delay}ms` }}
       >
         <div
           role="status"

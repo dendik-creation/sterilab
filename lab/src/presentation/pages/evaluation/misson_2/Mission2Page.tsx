@@ -16,6 +16,7 @@ import { isAudioEnabled, toggleAudioEnabled } from '../../../../core/audio/audio
 import { prefersReducedMotion } from '../../../../core/a11y/motion';
 import { markEvaluationMissionCompleted } from '../../../../core/progress/evaluationProgress';
 import { Stage } from '../../../components/Stage';
+import { AiDisclosureBadge, AiDisclosureBox } from '../../../components/AiDisclosureBadge';
 import { EvaluationHeader } from '../components/EvaluationHeader';
 import { useMissionTransition } from '../components/useMissionTransition';
 import { COLOR, S, T, textBase } from '../geometry';
@@ -126,5 +127,6 @@ export function Mission2Page() {
       <button type="button" className="mission2-status" style={rect(1178, 943, 209, 52)} disabled={step !== 7 || transitioning || exiting} onClick={() => { play(); markEvaluationMissionCompleted(2); transition(() => setCompleteShown(true)); }}>{step === 7 ? 'Selesai' : 'Belum selesai'}</button>
       {invalid && <div role="alert" className="mission2-invalid" style={rect(52, 684, 368, 105)}><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" /><path d="M14 14l12 12m0-12L14 26" /></svg><div><strong>URUTAN BELUM TEPAT</strong><p>Periksa kembali tahapan alur pembuatan media PDA dari penimbangan hingga penuangan aseptik.</p></div></div>}
     </main>}
+    {completeShown ? <AiDisclosureBadge key="complete" exiting={exiting} /> : <AiDisclosureBox key="task" mission={2} exiting={exiting} />}
   </Stage>;
 }

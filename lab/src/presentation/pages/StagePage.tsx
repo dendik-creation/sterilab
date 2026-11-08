@@ -5,6 +5,7 @@ import type { StageId } from '../../core/types';
 import { TeknikAseptikPage } from './stages/TeknikAseptikPage';
 import { KulturMikroba } from './stages/KulturMikroba';
 import { PengelolaanLimbah } from './stages/PengelolaanLimbah';
+import { useVoiceOver } from '../../core/audio/voiceOver';
 
 // One Screen for all five practice Stages, selected by `params.stageId`
 // (docs/adr/0005-single-path-spa-navigation.md).
@@ -20,6 +21,7 @@ import { PengelolaanLimbah } from './stages/PengelolaanLimbah';
 export function StagePage() {
   const { params } = useNavigation();
   const stageId = params.stageId;
+  useVoiceOver(stageId === 'teknik-aseptik' ? 'aseptic' : stageId === 'media-kultur' ? 'media' : stageId === 'pengelolaan-limbah' ? 'waste' : null);
 
   if (stageId === 'teknik-aseptik') return <TeknikAseptikPage />;
   if (stageId === 'media-kultur') return <KulturMikroba />;

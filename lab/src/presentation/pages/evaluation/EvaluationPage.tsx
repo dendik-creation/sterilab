@@ -15,9 +15,11 @@ import bgmOffBtnUrl from '../../../../assets/images/01_reusable/buttons/bgm_off_
 import clickSfxUrl from '../../../../assets/sounds/01_reusable/short/click.webm';
 import { useNavigation } from '../../../app/navigation';
 import { isAudioEnabled, toggleAudioEnabled } from '../../../core/audio/audioSettings';
+import { stopVoiceOver, useVoiceOver } from '../../../core/audio/voiceOver';
 import { prefersReducedMotion } from '../../../core/a11y/motion';
 import { EVALUATION_MISSION_COUNT, evaluationMissionStatusFor, getCompletedEvaluationMissionCount, onEvaluationProgressChange } from '../../../core/progress/evaluationProgress';
 import { Stage } from '../../components/Stage';
+import { AiDisclosureBadge } from '../../components/AiDisclosureBadge';
 import { IconButton } from '../../components/IconButton';
 import { COLOR, S, T, textBase } from '../stages/teknik-aseptik/geometry';
 
@@ -67,6 +69,7 @@ const enterDelay = (step: number) => step * STAGGER_MS;
 const exitDelay = (step: number) => (ENTER_STEPS - step) * STAGGER_MS;
 
 export function EvaluationPage() {
+  useVoiceOver('evaluation');
   const { goBack, goTo } = useNavigation();
   const [audioOn, setAudioOn] = useState(isAudioEnabled());
   const [exiting, setExiting] = useState(false);
@@ -90,6 +93,7 @@ export function EvaluationPage() {
 
   const leaveTo = (navigate: () => void) => {
     if (exiting) return;
+    stopVoiceOver();
     playClick();
     if (prefersReducedMotion()) {
       navigate();
@@ -183,7 +187,7 @@ export function EvaluationPage() {
             setStartedMission(mission.n);
              if (mission.n === 1) leaveTo(() => goTo('evaluation-mission-1'));
               if (mission.n === 2) leaveTo(() => goTo('evaluation-mission-2'));
-              if (mission.n === 3) leaveTo(() => goTo('evaluation-mission-3'));
+               if (mission.n === 3) leaveTo(() => goTo('evaluation-mission-3'));
               if (mission.n === 4) leaveTo(() => goTo('evaluation-mission-4'));
           }}
         />
@@ -196,6 +200,7 @@ export function EvaluationPage() {
       >
         {startedMission ? `Misi ${startedMission} dipilih.` : ''}
       </p>
+      <AiDisclosureBadge exiting={exiting} />
     </Stage>
   );
 }
@@ -261,5 +266,5 @@ function MissionCard({ mission, status, started, animation, top, onStart }: { mi
   );
 }
 
-const progressText: CSSProperties = { color: '#FFFFFF', fontFamily: "'Plus Jakarta Sans Variable', system-ui, sans-serif", fontSize: 'max(10px, 1.25cqw)', fontWeight: 800, lineHeight: 1 };
+const progressText: CSSProperties = { color: '#FFFFFF', fontFamily: "'Plus Jakarta Sans Variable', system-ui, sans-serif", fontSize: 'max(10px, 1cqw)', fontWeight: 800, lineHeight: 1 };
 const dotText: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '2.35cqw', aspectRatio: '1', border: 'max(1px, .08cqw) solid #7A9CC4', borderRadius: '50%', color: '#232D84', fontFamily: "'Plus Jakarta Sans Variable', system-ui, sans-serif", fontSize: 'max(10px, 1.1cqw)', fontWeight: 700 };

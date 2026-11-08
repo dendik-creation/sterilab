@@ -73,8 +73,10 @@ test('menu navigation persists mission 3 completion across reload', async ({ pag
   await expect(page.getByTestId('evaluation-progress-mission-2')).toHaveAttribute('data-status', 'completed');
   await expect(page.getByTestId('evaluation-progress-mission-3')).toHaveAttribute('data-status', 'completed');
   await expect(page.getByTestId('evaluation-progress-mission-4')).toHaveAttribute('data-status', 'available');
+  await expect(page.getByTestId('evaluation-mission-card-4')).toBeEnabled();
   await page.reload();
   await expect(page.getByTestId('evaluation-progress-count')).toContainText('3/4');
+  await expect(page.getByTestId('evaluation-mission-card-4')).toBeEnabled();
 });
 
 test('entrances are staggered and respect reduced motion', async ({ page }) => {

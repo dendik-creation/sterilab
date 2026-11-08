@@ -149,10 +149,10 @@ const srOnly: CSSProperties = {
 };
 
 export function MissionsPage() {
-  useVoiceOver('dashboard');
   const { goTo, goBack } = useNavigation();
   const [audioOn, setAudioOn] = useState(isAudioEnabled());
   const [completed, setCompleted] = useState(getCompletedLevelCount);
+  useVoiceOver(completed < 1 ? 'dashboard' : null);
   const [exiting, setExiting] = useState(false);
   const clickAudioRef = useRef<HTMLAudioElement | null>(null);
   const exitTimeoutRef = useRef(0);

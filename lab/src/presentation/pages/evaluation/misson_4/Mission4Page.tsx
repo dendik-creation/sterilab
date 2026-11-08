@@ -12,6 +12,7 @@ import { useNavigation } from '../../../../app/navigation';
 import { isAudioEnabled, toggleAudioEnabled } from '../../../../core/audio/audioSettings';
 import { markEvaluationMissionCompleted } from '../../../../core/progress/evaluationProgress';
 import { Stage } from '../../../components/Stage';
+import { AiDisclosureBadge } from '../../../components/AiDisclosureBadge';
 import { EvaluationHeader } from '../components/EvaluationHeader';
 import { useMissionTransition } from '../components/useMissionTransition';
 import { S } from '../geometry';
@@ -103,5 +104,6 @@ export function Mission4Page() {
       <p className="mission4-sr" role="status">{Object.keys(placed).length} dari 9 analisis benar. {selected ? 'Pilih kolom kasus untuk menempatkan kartu.' : ''}</p>
       {!!toast && <div key={toast} className="mission4-toast" role="alert">Jawaban belum tepat. Periksa kembali kesesuaian analisis dengan kasusnya.</div>}
     </main>}
+    <AiDisclosureBadge key={complete ? 'complete' : 'task'} exiting={exiting} />
   </Stage>;
 }

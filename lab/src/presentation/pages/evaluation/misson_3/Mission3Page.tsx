@@ -13,6 +13,7 @@ import { useNavigation } from '../../../../app/navigation';
 import { isAudioEnabled, toggleAudioEnabled } from '../../../../core/audio/audioSettings';
 import { markEvaluationMissionCompleted } from '../../../../core/progress/evaluationProgress';
 import { Stage } from '../../../components/Stage';
+import { AiDisclosureBadge, AiDisclosureBox } from '../../../components/AiDisclosureBadge';
 import { EvaluationHeader } from '../components/EvaluationHeader';
 import { useMissionTransition } from '../components/useMissionTransition';
 import { S } from '../geometry';
@@ -74,9 +75,9 @@ export function Mission3Page() {
         <img src={check} alt="" style={{ ...rect(1094, 861, 97, 97), objectFit: 'contain' }} />
         <button className="mission3-cta" style={rect(1233, 868, 416, 82)} onClick={() => { play(); transition(goBack); }}>LANJUT MISI <img src={arrow} alt="" /></button>
       </main> : <main aria-label="Misi 3: Investigasi Mutu Media" data-testid="mission3-main" className={`mission3-main ${exiting ? 'sterilab-bubble-out' : ''}`} style={{ position: 'absolute', inset: 0 }}>
-        <div className="mission3-panel" style={rect(76, 197, 348, 831)} />
+        <div className="mission3-panel mission3-instruction-panel" style={rect(76, 197, 348, 610)} />
         <div className="mission3-panel" style={rect(464, 197, 1381, 831)} />
-        <aside className="mission3-instructions" style={rect(98, 228, 305, 780)} tabIndex={0} aria-label="Pengantar dan tugas siswa">
+        <aside className="mission3-instructions" style={rect(98, 228, 305, 555)} tabIndex={0} aria-label="Pengantar dan tugas siswa">
           <h2>Pengantar</h2>
           <p>Seorang analis laboratorium akan membuat media PDA untuk pengujian mikrobiologi.</p>
           <p>Berdasarkan petunjuk produk, setiap 1.000 mL media membutuhkan 39 gram bubuk PDA.</p>
@@ -94,6 +95,7 @@ export function Mission3Page() {
         <button ref={checkButton} className="mission3-cta" style={rect(1434, 941, 372, 56)} disabled={selected.length !== 2} onClick={submit}>PERIKSA JAWABAN <img src={arrow} alt="" /></button>
       </main>}
     </div>
+    {complete ? <AiDisclosureBadge key="complete" exiting={exiting} /> : <AiDisclosureBox key="task" mission={3} exiting={exiting} />}
     {feedback && <div className="mission3-overlay" onKeyDown={event => { if (event.key === 'Tab') { event.preventDefault(); feedbackButton.current?.focus(); } }}>
       <section role="dialog" aria-modal="true" aria-label={feedback === 'correct' ? 'Jawaban benar' : 'Jawaban belum tepat'} className="mission3-dialog" style={feedback === 'correct' ? rect(691, 209, 539, 662) : rect(672, 231, 576, 630)}>
         <img src={feedback === 'correct' ? correctArt : incorrectArt} alt={feedback === 'correct' ? 'Jawaban benar! Kelompok A dan D sesuai dengan acuan 39 gram PDA per 1.000 mL.' : 'Jawaban belum tepat. Periksa kembali perhitungan berdasarkan volume akhir dan acuan 39 gram PDA per 1.000 mL.'} className="mission3-dialog-art" />

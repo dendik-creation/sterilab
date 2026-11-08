@@ -65,3 +65,6 @@ lab/assets-optimized/
 # AI
 .claude/
 .cursor/
+
+# Figcraft
+Sterilab.figcraft
