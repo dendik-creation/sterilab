@@ -40,7 +40,7 @@ export function AboutPage() {
       <p className="about-description">SteriLab adalah game edukasi interaktif untuk simulasi teknik aseptik, pembuatan media kultur, dan pengelolaan limbah laboratorium bagi siswa SMK secara aman dan kontekstual.</p>
       <section className="about-profile"><h2>PROFIL PENGEMBANG</h2><dl>
         <dt>Judul</dt><dd>SteriLab: Lab Maya Teknik Kerja Aseptik, Pembuatan Media Kultur Mikroba, dan Pengelolaan Limbah</dd>
-        <dt>Pengembang</dt><dd>Creator (-)<br />Programmer (Dendi' Setiawan)<br />Desain Asset (Alvino Lana Denta)</dd>
+        <dt>Pengembang</dt><dd>Creator (Risatul Munawaroh, S.TP., Gr)<br />Programmer (Dendi' Setiawan)<br />Desain Asset (Alvino Lana Denta)</dd>
         <dt>Program Keahlian</dt><dd>Agribisnis Pengolahan Hasil Pertanian (APHP)</dd>
         <dt>Instansi</dt><dd>SMK</dd>
       </dl></section>
