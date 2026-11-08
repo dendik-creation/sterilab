@@ -1,4 +1,66 @@
 import { test, expect } from '@playwright/test';
+import { skipCaseNarration } from './case';
+
+test('Mission 4 completion opens closing About and normal About remains isolated', async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.addInitScript(() => {
+    localStorage.setItem('requireRestartProgress', 'false');
+    localStorage.setItem('sterilab:levelProgress', JSON.stringify({ version: 1, completed: 3 }));
+    localStorage.setItem('sterilab:evaluationProgress', JSON.stringify({ version: 1, completed: 3, extra: 'keep' }));
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Ketuk di mana saja untuk melanjutkan' }).click({ timeout: 30000 });
+  await page.getByRole('button', { name: 'Tentang SteriLab' }).click();
+  await expect(page.getByRole('heading', { name: 'TENTANG STERILAB' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Menu Utama' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Kembali' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Kembali ke Home' })).toHaveCount(0);
+  const normalTitleX = (await page.getByRole('heading', { name: 'TENTANG STERILAB' }).boundingBox())!.x;
+  const content = await page.locator('.about-card').innerText();
+  await page.screenshot({ path: testInfo.outputPath('about-normal.png') });
+  await page.getByRole('button', { name: 'Kembali' }).click();
+  await page.getByRole('button', { name: 'Mulai Menjelajah' }).click();
+  await skipCaseNarration(page);
+  await page.getByRole('button', { name: 'Lanjut Briefing' }).click();
+  await page.getByRole('button', { name: /^Mulai Misi 4: Evaluasi$/ }).click();
+  await page.getByTestId('evaluation-mission-card-4').click();
+  for (const category of ['error', 'risk', 'solution']) for (let n = 1; n <= 3; n++) {
+    await page.getByTestId(`${category}-case-${n}`).click();
+    await page.getByTestId(`case-${n}-${category}`).click();
+  }
+  await expect(page.getByTestId('mission4-completion')).toBeVisible();
+  const progress = await page.evaluate(() => localStorage.getItem('sterilab:evaluationProgress'));
+  expect(JSON.parse(progress!)).toEqual({ version: 1, completed: 4, extra: 'keep' });
+  await page.screenshot({ path: testInfo.outputPath('mission4-complete.png') });
+  await page.getByRole('button', { name: /selesai/i }).click();
+  await expect(page.getByRole('heading', { name: 'TENTANG STERILAB' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Menu Utama' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Kembali', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /(?:Matikan|Nyalakan) suara/ })).toBeVisible();
+  expect((await page.getByRole('heading', { name: 'TENTANG STERILAB' }).boundingBox())!.x).toBeLessThan(normalTitleX);
+  expect(await page.locator('.about-card').innerText()).toBe(content);
+  const button = page.getByRole('button', { name: 'Kembali ke Home' });
+  await expect(button.locator('img')).toHaveAttribute('src', /back_to_home_btn/);
+  const buttonBox = (await button.boundingBox())!;
+  const cardBox = (await page.locator('.about-card').boundingBox())!;
+  const badgeBox = (await page.locator('.ai-disclosure').boundingBox())!;
+  expect(buttonBox.x + buttonBox.width).toBeLessThan(cardBox.x);
+  expect(buttonBox.x + buttonBox.width).toBeLessThan(badgeBox.x);
+  await page.screenshot({ path: testInfo.outputPath('about-closing.png') });
+  await button.click();
+  await expect(page.getByRole('button', { name: 'Mulai Menjelajah' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Ketuk di mana saja untuk melanjutkan' })).toHaveCount(0);
+  expect(await page.evaluate(() => localStorage.getItem('sterilab:evaluationProgress'))).toBe(progress);
+  await page.screenshot({ path: testInfo.outputPath('home-after-closing.png') });
+  await page.getByRole('button', { name: 'Tentang SteriLab' }).click();
+  await expect(page.getByRole('button', { name: 'Menu Utama' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Kembali' })).toBeVisible();
+  await expect(button).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
 
 test('About returns to each origin and Home bypasses startup', async ({ page }, testInfo) => {
   const errors: string[] = [];

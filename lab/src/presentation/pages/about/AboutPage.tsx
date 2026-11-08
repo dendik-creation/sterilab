@@ -11,10 +11,12 @@ import home from '../../../../assets/images/01_reusable/buttons/home_btn.png';
 import back from '../../../../assets/images/01_reusable/buttons/back_btn.png';
 import soundOn from '../../../../assets/images/01_reusable/buttons/bgm_on_btn.png';
 import soundOff from '../../../../assets/images/01_reusable/buttons/bgm_off_btn.png';
+import backToHome from '../../../../assets/images/01_reusable/buttons/back_to_home_btn.png';
 import './about.css';
 
 export function AboutPage() {
-  const { goTo, goBack } = useNavigation();
+  const { goTo, goBack, params } = useNavigation();
+  const isClosing = params.aboutMode === 'closing';
   const [sound, setSound] = useState(isAudioEnabled());
   const [exiting, setExiting] = useState(false);
   const leaving = useRef(false);
@@ -29,11 +31,11 @@ export function AboutPage() {
   };
   const animation = exiting ? 'sterilab-bubble-out' : 'sterilab-bubble-in';
   return <Stage background={<img src={background} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}>
-    <header className="about-header">
+    <header className={`about-header${isClosing ? ' about-header--closing' : ''}`}>
       <div className={animation} style={{ animationDelay: exiting ? '110ms' : '0ms' }}><h1>TENTANG STERILAB</h1><p>Lab Maya Teknik Kerja Aseptik, Pembuatan Media Kultur Mikroba, dan Pengelolaan Limbah</p></div>
     </header>
-    <IconButton src={home} alt="Menu Utama" label="Menu Utama" top="3.574%" left="max(12px, 2.499%)" size="3.791%" zIndex={6} animationClassName={animation} animationDelayMs={exiting ? 110 : 0} onClick={() => leaveTo(() => goTo('splash', { showCover: true }))} />
-    <IconButton src={back} alt="Kembali" label="Kembali" top="3.574%" left="max(64px, 7.609%)" size="3.791%" zIndex={6} animationClassName={animation} animationDelayMs={exiting ? 110 : 0} onClick={() => leaveTo(goBack)} />
+    {!isClosing && <IconButton src={home} alt="Menu Utama" label="Menu Utama" top="3.574%" left="max(12px, 2.499%)" size="3.791%" zIndex={6} animationClassName={animation} animationDelayMs={exiting ? 110 : 0} onClick={() => leaveTo(() => goTo('splash', { showCover: true }))} />}
+    {!isClosing && <IconButton src={back} alt="Kembali" label="Kembali" top="3.574%" left="max(64px, 7.609%)" size="3.791%" zIndex={6} animationClassName={animation} animationDelayMs={exiting ? 110 : 0} onClick={() => leaveTo(goBack)} />}
     <IconButton src={sound ? soundOn : soundOff} alt={sound ? 'Matikan suara' : 'Nyalakan suara'} label={sound ? 'Matikan suara' : 'Nyalakan suara'} top="3.574%" left="min(93.931%, 100% - 52px)" size="3.791%" zIndex={6} animationClassName={animation} animationDelayMs={exiting ? 110 : 0} onClick={() => { if (!leaving.current) setSound(toggleAudioEnabled()); }} />
     <main className={`about-card ${animation}`} tabIndex={0} aria-label="Informasi tentang SteriLab">
       <img className="about-logo" src={logo} alt="SteriLab" />
@@ -50,6 +52,7 @@ export function AboutPage() {
         <dt>DAFTAR PUSTAKA</dt><dd>Materi mengacu pada pedoman keselamatan kerja, teknik aseptik, pembuatan media kultur, dan pengelolaan limbah laboratorium dari sumber yang relevan.</dd>
       </dl></section>
     </main>
+    {isClosing && <button type="button" className={`about-return-home ${animation}`} aria-label="Kembali ke Home" onClick={() => leaveTo(() => goTo('splash', { showCover: true }))}><img src={backToHome} alt="" /></button>}
     <AiDisclosureBadge exiting={exiting} />
   </Stage>;
 }

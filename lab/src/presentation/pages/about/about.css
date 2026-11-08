@@ -1,5 +1,8 @@
 .about-header { position:absolute; inset:0 0 auto; height:max(60px, 7.682cqw); background:#f1f8fe; border-bottom:max(1px, .1cqw) solid #04488b; display:flex; align-items:center; z-index:5; color:#04488b; }
 .about-header div { margin-left:max(116px, 13.75cqw); }
+.about-header--closing div { margin-left:max(12px, 2.499cqw); }
+.about-return-home { position:absolute; left:2.5%; bottom:1.5%; width:18.5%; min-height:44px; padding:0; border:0; background:transparent; cursor:pointer; z-index:5; }
+.about-return-home img { display:block; width:100%; height:auto; }
 .about-header h1, .about-header p { margin:0; }
 .about-header h1 { font-size:max(15px, 1.98cqw); font-weight:800; }
 .about-header p { font-size:max(8px, 1.3cqw); font-weight:500; }

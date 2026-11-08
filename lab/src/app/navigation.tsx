@@ -26,6 +26,7 @@ export type ScreenId =
 export interface ScreenParams {
   stageId?: StageId;
   showCover?: boolean;
+  aboutMode?: 'normal' | 'closing';
 }
 
 interface ScreenEntry {

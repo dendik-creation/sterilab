@@ -51,8 +51,9 @@ test('nine mappings, invalid drops and persisted completion', async ({ page }) =
   await page.waitForTimeout(700);
   await page.screenshot({ path: 'src/presentation/pages/evaluation/misson_4/completion.png' });
   await page.getByRole('button', { name: /selesai/i }).click();
-  await expect(page.getByTestId('evaluation-progress-count')).toContainText('4/4');
-  await expect(page.getByTestId('evaluation-mission-card-4')).toHaveAttribute('data-status', 'completed');
+  await expect(page.getByRole('heading', { name: 'TENTANG STERILAB' })).toBeVisible();
+  await page.getByRole('button', { name: 'Kembali ke Home' }).click();
+  await expect(page.getByRole('button', { name: 'Mulai Menjelajah' })).toBeVisible();
   await page.reload();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('sterilab:evaluationProgress')).completed)).toBe(4);
   await expect(page.getByTestId('evaluation-progress-count')).toContainText('4/4');
