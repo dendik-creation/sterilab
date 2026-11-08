@@ -17,10 +17,10 @@ import bgAutoklafLoadedUrl from '../../../assets/images/02_scenes/04_02_pembuata
 import bgAutoklafDoneUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_5/backgrounds/3.png';
 import autoklafPanelUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_5/new_autoclave_panel.png';
 import mulaiProsesBtnUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_5/mulai_proses_btn.png';
-import bgPetriIdleUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_6/backgrounds/1.png?url';
-import bgPetriStartedUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_6/backgrounds/2.png?url';
-import bgPetriPouringUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_6/backgrounds/3.png?url';
-import bgPetriDoneUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_6/backgrounds/4.png?url';
+import bgPetriIdleUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_6/backgrounds/1.png';
+import bgPetriStartedUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_6/backgrounds/2.png';
+import bgPetriPouringUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_6/backgrounds/3.png';
+import bgPetriDoneUrl from '../../../assets/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_6/backgrounds/4.png';
 
 // Data for Stage 2 "Pembuatan Media Kultur Mikroba" (Figma "Sterilab-APHP"
 // frames "5.1 - A/B/C", "5.2 - A/B/C/D", "5.3 - A/B/C", "5.4 - A/B/C/D",

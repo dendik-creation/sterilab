@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { existsSync } from 'node:fs';
 import type { Page } from '@playwright/test';
 import { skipCaseNarration } from './case';
 
@@ -76,7 +77,8 @@ test('Langkah 6 targets the visible objects in each updated background', async (
   for (const [index, frame] of frames.entries()) {
     const image = page.getByAltText(frame.alt);
     await expect(image).toBeVisible();
-    await expect(image).toHaveAttribute('src', new RegExp(`step_6/backgrounds/${index + 1}\\.png`));
+    const optimized = existsSync(`assets-optimized/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_6/backgrounds/${index + 1}.webp`);
+    await expect(image).toHaveAttribute('src', new RegExp(`step_6/backgrounds/${index + 1}\\.${optimized ? 'webp' : 'png'}`));
     await image.evaluate((element: HTMLImageElement) => element.decode());
     const bounds = (await image.boundingBox())!;
     const hotspot = page.getByRole('button', { name: frame.name });
@@ -100,7 +102,8 @@ test('Langkah 6 targets the visible objects in each updated background', async (
     await page.mouse.click(target.x, target.y);
   }
   const completedImage = page.getByAltText(/Analis mengacungkan jempol di meja kerja/);
-  await expect(completedImage).toHaveAttribute('src', /step_6\/backgrounds\/4\.png/);
+  const optimizedDone = existsSync('assets-optimized/images/02_scenes/04_02_pembuatan_kultur_mikroba/step_6/backgrounds/4.webp');
+  await expect(completedImage).toHaveAttribute('src', new RegExp(`step_6/backgrounds/4\\.${optimizedDone ? 'webp' : 'png'}`));
   await completedImage.evaluate((element: HTMLImageElement) => element.decode());
   for (const frame of frames) await expect(page.getByRole('button', { name: frame.name })).toHaveCount(0);
   await expect(page.getByRole('group', { name: 'Pembuatan media berhasil!' })).toBeVisible();
