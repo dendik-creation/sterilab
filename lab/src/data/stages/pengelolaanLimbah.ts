@@ -11,7 +11,7 @@ import bgSortIdleUrl from '../../../assets/images/02_scenes/04_03_pengelolaan_li
 import bgSortDoneUrl from '../../../assets/images/02_scenes/04_03_pengelolaan_limbah_laboratorium/step_4/backgrounds/2.png';
 import itemBotolCairanKimiaUrl from '../../../assets/images/02_scenes/04_03_pengelolaan_limbah_laboratorium/step_4/items/botol-cairan-kimia.png';
 import itemTabungCairanUrl from '../../../assets/images/02_scenes/04_03_pengelolaan_limbah_laboratorium/step_4/items/tabung-cairan.png';
-import itemKertasUrl from '../../../assets/images/02_scenes/04_03_pengelolaan_limbah_laboratorium/step_4/items/kertas.png';
+import itemTisuUrl from '../../../assets/images/02_scenes/04_03_pengelolaan_limbah_laboratorium/step_4/items/tisu_bekas_kusut.png';
 import itemCawanPetriUrl from '../../../assets/images/02_scenes/04_03_pengelolaan_limbah_laboratorium/step_4/items/cawan-petri.png';
 import itemBotolAkuadesUrl from '../../../assets/images/02_scenes/04_03_pengelolaan_limbah_laboratorium/step_4/items/botol-akuades.png';
 
@@ -296,9 +296,9 @@ export const PROCEDURE_STEPS: ProcedureStep[] = [
     instructionLabel: 'Instruksi :',
     instruction: 'Seret setiap limbah ke tempat penampungan yang sesuai.',
     bins: [
-      { id: 'non-infeksius', label: 'non-infeksius', rect: { x: 30, y: 550, width: 200, height: 245 }, accessibleName: 'Tempat sampah non-infeksius' },
-      { id: 'infeksius', label: 'infeksius/biologis', rect: { x: 255, y: 550, width: 205, height: 245 }, accessibleName: 'Tempat sampah infeksius/biologis' },
-      { id: 'cair', label: 'cair', rect: { x: 480, y: 550, width: 200, height: 245 }, accessibleName: 'Tempat pembuangan limbah cair' },
+      { id: 'non-infeksius', label: 'non-infeksius', rect: { x: 30, y: 500, width: 200, height: 295 }, accessibleName: 'Tempat sampah non-infeksius' },
+      { id: 'infeksius', label: 'infeksius/biologis', rect: { x: 255, y: 500, width: 205, height: 295 }, accessibleName: 'Tempat sampah infeksius/biologis' },
+      { id: 'cair', label: 'B3', rect: { x: 480, y: 500, width: 200, height: 295 }, accessibleName: 'Tempat pembuangan limbah B3' },
     ],
     items: [
       {
@@ -318,9 +318,9 @@ export const PROCEDURE_STEPS: ProcedureStep[] = [
       {
         id: 'kertas',
         rect: { x: 436, y: 859, width: 254, height: 129 },
-        accessibleName: 'Tumpukan kertas bersih',
-        bin: 'non-infeksius',
-        src: itemKertasUrl,
+        accessibleName: 'Tisu bekas terkontaminasi',
+        bin: 'infeksius',
+        src: itemTisuUrl,
       },
       {
         id: 'cawan-petri',
@@ -332,8 +332,8 @@ export const PROCEDURE_STEPS: ProcedureStep[] = [
       {
         id: 'botol-akuades',
         rect: { x: 948, y: 792, width: 141, height: 196 },
-        accessibleName: 'Botol berisi sisa akuades',
-        bin: 'cair',
+        accessibleName: 'Botol berisi air bersih tidak terkontaminasi',
+        bin: 'non-infeksius',
         src: itemBotolAkuadesUrl,
       },
     ],

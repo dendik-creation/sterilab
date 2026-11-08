@@ -128,6 +128,7 @@ export function Prosedur04MemilahLimbahLaboratorium({ step, runtime }: Procedure
 
   const handleItemPointerDown = (event: ReactPointerEvent<HTMLButtonElement>, item: SortItem) => {
     if (allPlaced || !event.isPrimary) return;
+    suppressClickRef.current = false;
     event.currentTarget.setPointerCapture(event.pointerId);
     dragOriginRef.current = { x: event.clientX, y: event.clientY, moved: false };
     setDrag({ id: item.id, x: event.clientX, y: event.clientY, coarse: event.pointerType !== 'mouse' });

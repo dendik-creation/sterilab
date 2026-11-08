@@ -78,12 +78,12 @@ async function gotoStep3(page: Page): Promise<void> {
 
 const BOTTLE_CAIRAN_KIMIA = 'Botol berisi limbah cair kimia';
 const TABUNG_CAIRAN = 'Tabung reaksi berisi sisa cairan';
-const KERTAS = 'Tumpukan kertas bersih';
+const KERTAS = 'Tisu bekas terkontaminasi';
 const CAWAN_PETRI_LIMBAH = 'Cawan petri berisi media agar bekas';
-const BOTOL_AKUADES_LIMBAH = 'Botol berisi sisa akuades';
+const BOTOL_AKUADES_LIMBAH = 'Botol berisi air bersih tidak terkontaminasi';
 const BIN_NON_INFEKSIUS = 'Tempat sampah non-infeksius';
 const BIN_INFEKSIUS = 'Tempat sampah infeksius/biologis';
-const BIN_CAIR = 'Tempat pembuangan limbah cair';
+const BIN_CAIR = 'Tempat pembuangan limbah B3';
 
 async function gotoStep4(page: Page): Promise<void> {
   await gotoStep3(page);
@@ -531,19 +531,19 @@ test('Langkah 4 opens with all five items on the bench and every bin disabled un
 test('dragging an item onto its correct bin sorts it, and the wrong bin refuses it with a reason', async ({ page }) => {
   await gotoStep4(page);
 
-  // Wrong bin first: paper (non-infeksius) dropped on the liquid bin.
+  // Used tissue is infectious, not non-infectious.
   const paperFrom = await center(page.getByRole('button', { name: KERTAS }));
-  const wrongTo = await center(page.getByRole('button', { name: BIN_CAIR }));
+  const wrongTo = await center(page.getByRole('button', { name: BIN_NON_INFEKSIUS }));
   await page.mouse.move(paperFrom.x, paperFrom.y);
   await page.mouse.down();
   await page.mouse.move(wrongTo.x, wrongTo.y, { steps: 16 });
   await page.mouse.up();
 
-  await expect(page.locator('[aria-live="polite"]')).toHaveText('Tumpukan kertas bersih adalah limbah non-infeksius, bukan cair.');
+  await expect(page.locator('[aria-live="polite"]')).toHaveText('Tisu bekas terkontaminasi adalah limbah infeksius/biologis, bukan non-infeksius.');
   await expect(page.getByRole('button', { name: KERTAS })).toBeVisible();
 
-  // Correct bin: same item onto the non-infeksius bin.
-  const correctTo = await center(page.getByRole('button', { name: BIN_NON_INFEKSIUS }));
+  // Correct bin: same item onto the infectious bin.
+  const correctTo = await center(page.getByRole('button', { name: BIN_INFEKSIUS }));
   await page.mouse.move(paperFrom.x, paperFrom.y);
   await page.mouse.down();
   await page.mouse.move(correctTo.x, correctTo.y, { steps: 16 });
@@ -564,8 +564,9 @@ test('an item can be sorted by tapping it, then tapping its bin (keyboard-equiva
   await expect(page.getByRole('button', { name: CAWAN_PETRI_LIMBAH })).not.toBeAttached();
 });
 
-test('sorting every item finishes the step, raises the note, and LANJUT returns to Missions', async ({ page }) => {
+test('sorting every item finishes the step, raises the note, and LANJUT returns to Missions', async ({ page }, testInfo) => {
   await gotoStep4(page);
+  await page.screenshot({ path: testInfo.outputPath('step4-initial.png') });
 
   async function drag(itemName: string, binName: string) {
     const from = await center(page.getByRole('button', { name: itemName }));
@@ -577,14 +578,16 @@ test('sorting every item finishes the step, raises the note, and LANJUT returns 
   }
 
   await drag(BOTTLE_CAIRAN_KIMIA, BIN_CAIR);
+  await page.screenshot({ path: testInfo.outputPath('step4-first-drop.png') });
   await drag(TABUNG_CAIRAN, BIN_CAIR);
-  await drag(KERTAS, BIN_NON_INFEKSIUS);
+  await drag(KERTAS, BIN_INFEKSIUS);
   await drag(CAWAN_PETRI_LIMBAH, BIN_INFEKSIUS);
-  await drag(BOTOL_AKUADES_LIMBAH, BIN_CAIR);
+  await drag(BOTOL_AKUADES_LIMBAH, BIN_NON_INFEKSIUS);
 
   expect(await backgroundFrame(page)).toBe('2');
   const note = page.getByRole('group', { name: 'PENGELOLAAN LIMBAH SELESAI!' });
   await expect(note).toBeVisible({ timeout: 4000 });
+  await page.screenshot({ path: testInfo.outputPath('step4-complete.png') });
   await expect(page.getByText('Seluruh limbah telah ditangani sesuai prosedur laboratorium.', { exact: true })).toBeVisible();
   await waitForMotionSettled(page);
 
@@ -602,6 +605,40 @@ test('sorting every item finishes the step, raises the note, and LANJUT returns 
   await page.getByRole('button', { name: 'Lanjut ke langkah berikutnya' }).click();
   await expect(page.getByAltText(/Dashboard SteriLab/)).toBeVisible({ timeout: 5000 });
   await expect(page.getByRole('button', { name: /^Ulangi Misi 3:/ })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('mission-complete.png') });
+});
+
+test('wrong bins preserve progress and items can be sorted in any order', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await gotoStep4(page);
+  const live = page.locator('[aria-live="polite"]');
+  async function drag(item: string, bin: string) {
+    const from = await center(page.getByRole('button', { name: item, exact: true }));
+    const to = await center(page.getByRole('button', { name: bin, exact: true }));
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(to.x, to.y, { steps: 10 });
+    await page.mouse.up();
+  }
+
+  for (const [item, bin] of [[KERTAS, BIN_NON_INFEKSIUS], [BOTOL_AKUADES_LIMBAH, BIN_CAIR], [CAWAN_PETRI_LIMBAH, BIN_NON_INFEKSIUS], [BOTTLE_CAIRAN_KIMIA, BIN_INFEKSIUS]]) {
+    await drag(item, bin);
+    await expect(page.getByRole('button', { name: item, exact: true })).toBeVisible();
+    await expect(live).toContainText('bukan');
+  }
+  await drag(CAWAN_PETRI_LIMBAH, BIN_INFEKSIUS);
+  await expect(live).toHaveText('1 dari 5 limbah sudah dipilah.');
+  await drag(BOTOL_AKUADES_LIMBAH, BIN_CAIR);
+  await expect(page.getByRole('button', { name: CAWAN_PETRI_LIMBAH, exact: true })).not.toBeAttached();
+  await drag(BOTOL_AKUADES_LIMBAH, BIN_NON_INFEKSIUS);
+  await drag(TABUNG_CAIRAN, BIN_CAIR);
+  await drag(KERTAS, BIN_INFEKSIUS);
+  // A click after a successful drag must still select the last item.
+  await page.getByRole('button', { name: BOTTLE_CAIRAN_KIMIA, exact: true }).click();
+  await page.getByRole('button', { name: BIN_CAIR }).click();
+  await expect(page.getByRole('group', { name: 'PENGELOLAAN LIMBAH SELESAI!' })).toBeVisible({ timeout: 4000 });
+  expect(errors).toEqual([]);
 });
 
 test('Langkah 4 progress is announced through the live region', async ({ page }) => {
@@ -610,7 +647,7 @@ test('Langkah 4 progress is announced through the live region', async ({ page })
 
   await expect(live).toHaveText('0 dari 5 limbah sudah dipilah.');
   await page.getByRole('button', { name: KERTAS }).click();
-  await page.getByRole('button', { name: BIN_NON_INFEKSIUS }).click();
+  await page.getByRole('button', { name: BIN_INFEKSIUS }).click();
   await expect(live).toHaveText('1 dari 5 limbah sudah dipilah.');
 });
 
