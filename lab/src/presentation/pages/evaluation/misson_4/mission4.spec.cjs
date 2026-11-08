@@ -3,7 +3,7 @@ const { test, expect } = require('@playwright/test');
 test('nine mappings, invalid drops and persisted completion', async ({ page }) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.addInitScript(() => { Math.random = () => 0; if (!sessionStorage.getItem('mission4-audit-initialized')) { localStorage.setItem('sterilab:evaluationProgress', JSON.stringify({ version: 1, completed: 3, extra: 'keep' })); localStorage.setItem('mission4-audit-unrelated', 'keep'); sessionStorage.setItem('mission4-audit-initialized', 'yes'); } });
+  await page.addInitScript(() => { localStorage.setItem('requireRestartProgress', 'false'); Math.random = () => 0; if (!sessionStorage.getItem('mission4-audit-initialized')) { localStorage.setItem('sterilab:evaluationProgress', JSON.stringify({ version: 1, completed: 3, extra: 'keep' })); localStorage.setItem('mission4-audit-unrelated', 'keep'); sessionStorage.setItem('mission4-audit-initialized', 'yes'); } });
   await page.goto('/src/presentation/pages/evaluation/misson_4/audit.html');
   await expect(page.getByTestId('evaluation-progress-count')).toContainText('3/4');
   await page.getByTestId('evaluation-mission-card-4').click();
@@ -60,7 +60,7 @@ test('nine mappings, invalid drops and persisted completion', async ({ page }) =
 
 test('navigation remains immediate with reduced motion', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.addInitScript(() => localStorage.setItem('sterilab:evaluationProgress', JSON.stringify({ version: 1, completed: 3 })));
+  await page.addInitScript(() => { localStorage.setItem('requireRestartProgress', 'false'); localStorage.setItem('sterilab:evaluationProgress', JSON.stringify({ version: 1, completed: 3 })); });
   await page.goto('/src/presentation/pages/evaluation/misson_4/audit.html');
   await page.getByTestId('evaluation-mission-card-4').click();
   await expect(page.getByTestId('mission4-main')).toBeVisible();

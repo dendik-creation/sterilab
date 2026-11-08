@@ -1,3 +1,5 @@
+import './restartProgress';
+
 const STORAGE_KEY = 'sterilab:evaluationProgress';
 const VERSION = 1;
 

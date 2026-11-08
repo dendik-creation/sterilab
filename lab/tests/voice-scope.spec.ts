@@ -3,7 +3,7 @@ import { skipCaseNarration } from './case';
 
 async function dashboard(page: Page, completed: number) {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.addInitScript(value => { if (!localStorage.getItem('sterilab:levelProgress')) localStorage.setItem('sterilab:levelProgress', JSON.stringify({ version: 1, completed: value })); }, completed);
+  await page.addInitScript(value => { localStorage.setItem('requireRestartProgress', 'false'); if (!localStorage.getItem('sterilab:levelProgress')) localStorage.setItem('sterilab:levelProgress', JSON.stringify({ version: 1, completed: value })); }, completed);
   await page.goto('/');
   await page.getByRole('button', { name: 'Ketuk di mana saja untuk melanjutkan' }).click({ timeout: 30000 });
   await page.getByRole('button', { name: 'Mulai Menjelajah' }).click();

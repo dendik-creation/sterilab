@@ -5,6 +5,7 @@ test('Mission 2 validates drops, completes in sequence, and preserves progress',
   page.on('pageerror', error => errors.push(error.message));
   page.on('requestfailed', request => { if (request.url().includes('/assets/') && !request.failure()?.errorText.includes('ABORTED')) errors.push(request.url()); });
   await page.addInitScript(() => {
+    localStorage.setItem('requireRestartProgress', 'false');
     localStorage.setItem('sterilab:levelProgress', JSON.stringify({ version: 1, completed: 3 }));
     localStorage.setItem('sterilab:evaluationProgress', JSON.stringify({ version: 1, completed: 1 }));
   });

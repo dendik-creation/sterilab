@@ -22,6 +22,7 @@ async function gotoMissions(page: Page, completedLevels?: number): Promise<void>
   if (completedLevels !== undefined) {
     await page.addInitScript(
       ([key, completed]) => {
+        window.localStorage.setItem('requireRestartProgress', 'false');
         window.localStorage.setItem(key as string, JSON.stringify({ version: 1, completed }));
       },
       [STORAGE_KEY, completedLevels] as const,

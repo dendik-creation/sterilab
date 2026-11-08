@@ -1,4 +1,5 @@
 import type { StageStatus } from '../types';
+import './restartProgress';
 
 // Sequential unlock state for the Missions dashboard (Figma "Sterilab-APHP"
 // node 29:2435 "Scene 03: Navigasi (Menu Utama)"): menu N+1 only opens once

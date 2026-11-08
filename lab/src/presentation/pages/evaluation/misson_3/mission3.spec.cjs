@@ -3,7 +3,7 @@ const { test, expect } = require('@playwright/test');
 test('selection, feedback, and completion', async ({ page }, testInfo) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.addInitScript(() => localStorage.setItem('sterilab:evaluationProgress', JSON.stringify({ version: 1, completed: 2 })));
+  await page.addInitScript(() => { localStorage.setItem('requireRestartProgress', 'false'); localStorage.setItem('sterilab:evaluationProgress', JSON.stringify({ version: 1, completed: 2 })); });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/src/presentation/pages/evaluation/misson_3/audit.html');
   await page.screenshot({ path: testInfo.outputPath('initial.png') });
@@ -51,6 +51,7 @@ test('selection, feedback, and completion', async ({ page }, testInfo) => {
 
 test('menu navigation persists mission 3 completion across reload', async ({ page }) => {
   await page.addInitScript(() => {
+    localStorage.setItem('requireRestartProgress', 'false');
     if (!localStorage.getItem('sterilab:evaluationProgress')) {
       localStorage.setItem('sterilab:evaluationProgress', JSON.stringify({ version: 1, completed: 2 }));
     }

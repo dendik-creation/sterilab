@@ -24,6 +24,7 @@ const BOTTLE = 'Botol akuades';
 async function gotoStage(page: Page): Promise<void> {
   await page.addInitScript(
     ([key]) => {
+      window.localStorage.setItem('requireRestartProgress', 'false');
       window.localStorage.setItem(key as string, JSON.stringify({ version: 1, completed: 2 }));
     },
     [STORAGE_KEY] as const,

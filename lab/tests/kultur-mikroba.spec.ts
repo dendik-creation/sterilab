@@ -4,7 +4,7 @@ import { skipCaseNarration } from './case';
 
 async function gotoStep5(page: Page) {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.addInitScript(() => localStorage.setItem('sterilab:levelProgress', JSON.stringify({ version: 1, completed: 1 })));
+  await page.addInitScript(() => { localStorage.setItem('requireRestartProgress', 'false'); localStorage.setItem('sterilab:levelProgress', JSON.stringify({ version: 1, completed: 1 })); });
   await page.goto('/');
   await page.getByRole('button', { name: 'Ketuk di mana saja untuk melanjutkan' }).click();
   await page.getByRole('button', { name: 'Mulai Menjelajah' }).click();

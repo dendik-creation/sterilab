@@ -20,6 +20,7 @@ test.beforeEach(({ viewport }) => {
 async function openMission1(page: Page): Promise<void> {
   await page.addInitScript(
     ([key, completed, evaluationKey]) => {
+      window.localStorage.setItem('requireRestartProgress', 'false');
       window.localStorage.setItem(key as string, JSON.stringify({ version: 1, completed }));
       window.localStorage.setItem(evaluationKey as string, JSON.stringify({ version: 1, completed: 0 }));
     },
