@@ -1,0 +1,12 @@
+.objectives { position:absolute; inset:0; color:#001e64; }
+.objectives-sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+.objectives-info { position:absolute; left:3.75%; top:16.48%; width:75.16%; height:auto; }
+.objectives-next { position:absolute; top:87.2%; right:2.5%; width:20%; min-height:44px; height:7.6%; border:1px solid #005a9d; border-radius:999px; background:#357ec1; color:white; font:800 max(13px,2.15cqw) 'Plus Jakarta Sans Variable',sans-serif; cursor:pointer; box-shadow:0 .25cqw 0 #07538e; }
+.objectives-next:hover { background:#176bb0; }
+.objectives-retry { position:absolute; right:3%; top:14%; z-index:5; padding:.5em 1em; border:0; border-radius:999px; background:#005acd; color:white; cursor:pointer; }
+.objectives .objectives-disclosure { left:2.1%; bottom:6%; }
+.objectives .objectives-disclosure .ai-disclosure { width:38cqw; }
+@container (max-width:700px) {
+  .objectives .objectives-disclosure { bottom:1%; }
+  .objectives .objectives-disclosure .ai-disclosure { width:58cqw; font-size:8px; }
+}

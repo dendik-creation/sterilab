@@ -13,10 +13,13 @@ import clickSfxUrl from '../../../assets/sounds/01_reusable/short/click.webm';
 import { useNavigation } from '../../app/navigation';
 import { isAudioEnabled, toggleAudioEnabled } from '../../core/audio/audioSettings';
 import { startGlobalBgm } from '../../core/audio/bgmPlayer';
+import { stopVoiceOver, useVoiceOver } from '../../core/audio/voiceOver';
 import { prefersReducedMotion } from '../../core/a11y/motion';
 import { preloadApplicationAssets } from '../../core/assets/preload';
 import { Stage } from '../components/Stage';
 import { IconButton } from '../components/IconButton';
+import { AiDisclosureBadge } from '../components/AiDisclosureBadge';
+import { AboutButton } from '../components/AboutButton';
 
 // Screen 1 - Splash & Cover, merged into a single Screen/component (was two
 // chained Phaser scenes, BootScene -> HomeScene; ADR-0001 scopes Phaser to
@@ -71,8 +74,9 @@ function Centered({ top, left, width, children }: { top: string; left: string; w
 }
 
 export function SplashPage() {
-  const { goTo } = useNavigation();
-  const [phase, setPhase] = useState<Phase>('loading');
+  const { goTo, params } = useNavigation();
+  const [phase, setPhase] = useState<Phase>(params.showCover ? 'home' : 'loading');
+  const voice = useVoiceOver(phase === 'home' ? 'cover' : null);
   const [percent, setPercent] = useState(0);
   const [audioOn, setAudioOn] = useState(isAudioEnabled());
   const [homeExiting, setHomeExiting] = useState(false);
@@ -124,6 +128,7 @@ export function SplashPage() {
   // splash/home art. The progress callback is invoked only by browser asset
   // load completion, so this bar reflects real application readiness.
   useEffect(() => {
+    if (params.showCover) return;
     let cancelled = false;
     preloadApplicationAssets(({ percent: loadedPercent }) => {
       if (!cancelled) setPercent(loadedPercent);
@@ -164,18 +169,20 @@ export function SplashPage() {
     if (enabled) playClick();
   };
 
-  const handleExplore = () => {
+  const leaveHome = (destination: 'objectives' | 'about') => {
     if (homeExiting) return;
+    stopVoiceOver();
     playClick();
     if (prefersReducedMotion()) {
-      goTo('case');
+      goTo(destination);
       return;
     }
     setHomeExiting(true);
-    exitTimeoutRef.current = window.setTimeout(() => goTo('case'), HOME_EXIT_TOTAL_MS);
+    exitTimeoutRef.current = window.setTimeout(() => goTo(destination), HOME_EXIT_TOTAL_MS);
   };
 
   const handleExit = () => {
+    stopVoiceOver();
     playClick();
     window.close();
   };
@@ -191,6 +198,7 @@ export function SplashPage() {
           />
         }
       >
+        {(voice.status === 'ready' || voice.status === 'paused' || voice.status === 'error') && <button type="button" onClick={voice.toggle} style={{ position: 'absolute', top: '13%', right: '3%', zIndex: 5 }}>Putar narasi</button>}
         <Centered top="44.4%" left="50%" width="57.1%">
           <img
             src={mainLogoUrl}
@@ -210,13 +218,14 @@ export function SplashPage() {
         </Centered>
 
         <Centered top="81.2%" left="50%" width="max(220px, 28.5%)">
-          <BubbleButton src={exploreBtnUrl} alt="Mulai Menjelajah" delayMs={240} exiting={homeExiting} onClick={handleExplore} />
+          <BubbleButton src={exploreBtnUrl} alt="Mulai Menjelajah" delayMs={240} exiting={homeExiting} onClick={() => leaveHome('objectives')} />
         </Centered>
 
         <Centered top="93.2%" left="7.76%" width="max(88px, 10.5%)">
           <BubbleButton src={exitBtnUrl} alt="Keluar" delayMs={360} exiting={homeExiting} onClick={handleExit} />
         </Centered>
 
+        <AboutButton exiting={homeExiting} delayMs={480} onClick={() => leaveHome('about')} />
         <IconButton
           src={audioOn ? bgmOnBtnUrl : bgmOffBtnUrl}
           alt={audioOn ? 'Matikan suara' : 'Nyalakan suara'}
@@ -228,6 +237,7 @@ export function SplashPage() {
           animationDelayMs={480}
           onClick={handleToggleSound}
         />
+        <AiDisclosureBadge exiting={homeExiting} />
       </Stage>
     );
   }

@@ -11,15 +11,16 @@ import backBtnUrl from '../../../assets/images/01_reusable/buttons/back_btn.png'
 import bgmOnBtnUrl from '../../../assets/images/01_reusable/buttons/bgm_on_btn.png';
 import bgmOffBtnUrl from '../../../assets/images/01_reusable/buttons/bgm_off_btn.png';
 import clickSfxUrl from '../../../assets/sounds/01_reusable/short/click.webm';
-import hookNarrationUrl from '../../../assets/sounds/02_scenes/03_case/hook_naration.ogg';
+import { coordinateVoice, stopVoiceOver, voiceSources } from '../../core/audio/voiceOver';
 import { useNavigation } from '../../app/navigation';
-import { isAudioEnabled, onAudioEnabledChange, toggleAudioEnabled } from '../../core/audio/audioSettings';
-import { duckGlobalBgm, restoreGlobalBgm } from '../../core/audio/bgmPlayer';
+import { isAudioEnabled, toggleAudioEnabled } from '../../core/audio/audioSettings';
 import { prefersReducedMotion } from '../../core/a11y/motion';
 import { palette } from '../../core/theme/palette';
 import { Stage } from '../components/Stage';
+import { AiDisclosureBadge } from '../components/AiDisclosureBadge';
 import { PulseButton } from '../components/PulseButton';
 import { IconButton } from '../components/IconButton';
+import { AboutButton } from '../components/AboutButton';
 
 // Staggered entrance on mount, and the exact reverse on the way out - same
 // ladder Home (SplashPage) and Missions use, so a Screen change reads as one
@@ -27,18 +28,10 @@ import { IconButton } from '../components/IconButton';
 const STAGGER_MS = 110;
 const BUBBLE_MS = 550;
 
-// Mount entrance: top bar left-to-right, then the narration panel. The
-// "Lanjut Briefing" CTA is not here - it does not exist until the hook
-// narration finishes, so its entrance is timed from that `ended` event.
 const ENTER_DELAY_MS = { home: 0, back: STAGGER_MS, sound: 2 * STAGGER_MS, badge: 3 * STAGGER_MS } as const;
 
-// Exit runs whatever is currently on screen backwards - last in, first out.
-// Exactly one of `badge` / `lanjut` is ever mounted (the panel is the
-// narration running, the CTA is the narration finished), so the two orders
-// below are the only two shapes this Screen can exit in.
-type Piece = 'lanjut' | 'badge' | 'sound' | 'back' | 'home';
-const EXIT_ORDER_LISTENING: Piece[] = ['badge', 'sound', 'back', 'home'];
-const EXIT_ORDER_READY: Piece[] = ['lanjut', 'sound', 'back', 'home'];
+type Piece = 'lanjut' | 'sound' | 'back' | 'home';
+const EXIT_ORDER: Piece[] = ['lanjut', 'sound', 'back', 'home'];
 
 // Top bar geometry from the revised Figma frame 20:1296, which puts home at
 // x=47.974, back at x=146.103 and the sound toggle at x=1803.486, all 72.78px
@@ -82,15 +75,13 @@ const srOnly: CSSProperties = {
 // monitor - headline, photo and both body paragraphs - so the Screen has no
 // reveal interaction left: the "Baca Selengkapnya" button and the separate
 // "Berita Terkini" card (frame 29:1297, now marked unused in Figma) are gone,
-// along with their art. What paces the Screen instead is audio: the hook
-// narration plays on mount over a ducked BGM, its panel marks it as running,
-// and the one CTA appears when it ends.
+// along with their art. Narration plays without blocking navigation.
 export function CasePage() {
   const { goTo, goBack } = useNavigation();
   const [audioOn, setAudioOn] = useState(isAudioEnabled());
   const [narrationDone, setNarrationDone] = useState(false);
+  const [narrationBlocked, setNarrationBlocked] = useState(false);
   const [narrationTime, setNarrationTime] = useState(0);
-  const [narrationDuration, setNarrationDuration] = useState(0);
   const [mouthFrame, setMouthFrame] = useState(0);
   const [exiting, setExiting] = useState(false);
   const clickAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -114,18 +105,6 @@ export function CasePage() {
     return () => window.clearInterval(timer);
   }, [exiting, narrationDone]);
 
-  // Duck the global loop for as long as this Screen is mounted and restore it
-  // on the way out - the cleanup covers every exit (home, back, CTA) instead
-  // of each handler having to remember to undo it.
-  useEffect(() => {
-    duckGlobalBgm();
-    return () => restoreGlobalBgm();
-  }, []);
-
-  // The narration runs whether or not sound is on, and mirrors the toggle via
-  // `muted`. Gating playback on the setting instead would make the CTA's
-  // arrival depend on it: the Analyst would either wait out a silent 50
-  // seconds with no way to know why, or skip the beat entirely.
   useEffect(() => {
     const el = narrationRef.current;
     if (!el) return;
@@ -135,28 +114,20 @@ export function CasePage() {
     // play() rejection lands - which is exactly the case this flag exists to
     // recognise.
     let cancelled = false;
+    stoppedByUsRef.current = false;
+    const release = coordinateVoice(el, () => { cancelled = true; stoppedByUsRef.current = true; });
     el.muted = !isAudioEnabled();
     void el.play().catch(() => {
-      // A play() promise also rejects when *we* pause the element, and
-      // pausing is what the cleanup below (and leaveTo) does. Only a
-      // rejection we did not cause is a real failure: autoplay refused, or
-      // the browser cannot decode Ogg Opus. Then, rather than strand the
-      // Analyst behind a gate that will never open, hand over the CTA and
-      // leave the transcript as the content path.
       if (cancelled || stoppedByUsRef.current) return;
-      setNarrationDone(true);
-    });
-    const stop = onAudioEnabledChange((enabled) => {
-      el.muted = !enabled;
+      setNarrationBlocked(true);
     });
     return () => {
       cancelled = true;
-      stop();
-      el.pause();
+      release();
     };
   }, []);
 
-  const exitOrder = narrationDone ? EXIT_ORDER_READY : EXIT_ORDER_LISTENING;
+  const exitOrder = EXIT_ORDER;
   const exitDelay = (piece: Piece) => Math.max(0, exitOrder.indexOf(piece)) * STAGGER_MS;
   const exitTotalMs = (exitOrder.length - 1) * STAGGER_MS + BUBBLE_MS;
   const bubbleClass = exiting ? 'sterilab-bubble-out' : 'sterilab-bubble-in';
@@ -182,7 +153,7 @@ export function CasePage() {
     if (exiting) return;
     playClick();
     stoppedByUsRef.current = true;
-    narrationRef.current?.pause();
+    stopVoiceOver();
     if (prefersReducedMotion()) {
       navigate();
       return;
@@ -207,24 +178,18 @@ export function CasePage() {
         />
       }
     >
-      {/* Real element rather than a detached `new Audio()`: it makes the one
-          thing that paces this Screen inspectable (duration, currentTime,
-          ended) instead of hidden inside a closure. */}
       <audio
         ref={narrationRef}
-        src={hookNarrationUrl}
+        src={voiceSources.hook}
         preload="auto"
         data-testid="case-narration"
-        onLoadedMetadata={(event) => setNarrationDuration(event.currentTarget.duration)}
-        onTimeUpdate={(event) => setNarrationTime(event.currentTarget.currentTime)}
-        onEnded={(event) => {
-          setNarrationTime(event.currentTarget.duration);
-          setNarrationDone(true);
-        }}
-        onError={() => setNarrationDone(true)}
+        onTimeUpdate={(event) => { if (!stoppedByUsRef.current) setNarrationTime(event.currentTarget.currentTime); }}
+        onEnded={() => { if (!stoppedByUsRef.current) setNarrationDone(true); }}
+        onError={() => { if (!stoppedByUsRef.current) setNarrationDone(true); }}
       />
 
       <h1 style={srOnly}>Studi Kasus: Dugaan Keracunan Makanan pada Kegiatan Sekolah</h1>
+      {narrationBlocked && !exiting && <button type="button" style={{ position: 'absolute', zIndex: 5, top: '15%', left: '40%' }} onClick={() => { void narrationRef.current?.play().then(() => { if (!stoppedByUsRef.current) setNarrationBlocked(false); }).catch(() => {}); }}>Putar narasi</button>}
       <p style={srOnly}>{NARRATION_TRANSCRIPT}</p>
 
       {/* Top bar: home / back / sound - reused 01_reusable button art, DOM
@@ -251,6 +216,7 @@ export function CasePage() {
         animationDelayMs={exiting ? exitDelay('back') : ENTER_DELAY_MS.back}
         onClick={() => leaveTo(goBack)}
       />
+      <AboutButton exiting={exiting} delayMs={exiting ? exitDelay('sound') : ENTER_DELAY_MS.sound} onClick={() => leaveTo(() => goTo('about'))} />
       <IconButton
         src={audioOn ? bgmOnBtnUrl : bgmOffBtnUrl}
         alt={audioOn ? 'Matikan suara' : 'Nyalakan suara'}
@@ -269,14 +235,12 @@ export function CasePage() {
         {!narrationDone && (
           <NarrationPanel
             exiting={exiting}
-            exitDelayMs={exitDelay('badge')}
+            exitDelayMs={0}
             currentTime={narrationTime}
-            duration={narrationDuration}
           />
         )}
       </div>
 
-      {narrationDone && (
         <PulseButton
           src={lanjutBriefingBtnUrl}
           alt="Lanjut Briefing"
@@ -299,7 +263,7 @@ export function CasePage() {
             aspectRatio: '434 / 79',
           }}
         />
-      )}
+      <AiDisclosureBadge exiting={exiting} />
     </Stage>
   );
 }
@@ -318,23 +282,15 @@ function Scientist({ mouthSrc, narrationDone }: { mouthSrc: string, narrationDon
   );
 }
 
-function formatTime(seconds: number) {
-  const wholeSeconds = Math.max(0, Math.floor(seconds));
-  return `${String(Math.floor(wholeSeconds / 60)).padStart(2, '0')}:${String(wholeSeconds % 60).padStart(2, '0')}`;
-}
-
 function NarrationPanel({
   exiting,
   exitDelayMs,
   currentTime,
-  duration,
 }: {
   exiting: boolean;
   exitDelayMs: number;
   currentTime: number;
-  duration: number;
 }) {
-  const progress = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
   const dialogue = NARRATION_LINES[currentTime < 9 ? 0 : currentTime < 21 ? 1 : currentTime < 27 ? 2 : 3];
 
   return (
@@ -378,46 +334,6 @@ function NarrationPanel({
         </p>
       </section>
 
-      <section
-        aria-label={`Narasi berlangsung, ${formatTime(currentTime)} dari ${formatTime(duration)}`}
-        className={exiting ? 'sterilab-fade-out' : 'sterilab-rise-in-offscreen'}
-        style={{
-          position: 'absolute',
-          zIndex: 2,
-          left: '25%',
-          bottom: '3.2%',
-          width: 'min(38%, 730px)',
-          minWidth: 'min(300px, 53%)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'max(9px, 0.8cqw)',
-          padding: 'max(10px, 0.85cqw) max(14px, 1.15cqw)',
-          border: '1px solid #3187df',
-          borderRadius: 999,
-          background: 'rgba(255, 255, 255, 0.95)',
-          color: palette.deepBlue,
-          boxShadow: '0 5px 12px rgba(7, 49, 105, 0.14)',
-          animationDelay: `${exiting ? exitDelayMs : ENTER_DELAY_MS.badge}ms`,
-        }}
-      >
-        <span aria-hidden="true" style={{ color: '#0668c9', fontSize: 'max(18px, 1.8cqw)', lineHeight: 1 }}>
-          &#128266;
-        </span>
-        <span style={{ whiteSpace: 'nowrap', fontSize: 'max(10px, 0.95cqw)', fontWeight: 700 }}>Narasi berlangsung...</span>
-        <div
-          role="progressbar"
-          aria-label="Kemajuan narasi"
-          aria-valuemin={0}
-          aria-valuemax={Math.round(duration)}
-          aria-valuenow={Math.round(currentTime)}
-          style={{ flex: 1, minWidth: 'max(58px, 6cqw)', height: 'max(8px, 0.75cqw)', overflow: 'hidden', borderRadius: 999, background: '#dceafb' }}
-        >
-          <span style={{ display: 'block', width: `${progress}%`, height: '100%', borderRadius: 'inherit', background: '#0873df' }} />
-        </div>
-        <time style={{ whiteSpace: 'nowrap', fontSize: 'max(10px, 0.95cqw)', fontWeight: 700 }}>
-          {formatTime(currentTime)} / {formatTime(duration)}
-        </time>
-      </section>
     </>
   );
 }

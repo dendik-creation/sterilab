@@ -16,11 +16,14 @@ import clickSfxUrl from '../../../assets/sounds/01_reusable/short/click.webm';
 import { useNavigation } from '../../app/navigation';
 import type { ScreenId, ScreenParams } from '../../app/navigation';
 import { isAudioEnabled, toggleAudioEnabled } from '../../core/audio/audioSettings';
+import { stopVoiceOver, useVoiceOver } from '../../core/audio/voiceOver';
 import { prefersReducedMotion } from '../../core/a11y/motion';
 import { getCompletedLevelCount, levelStatusFor, onLevelProgressChange } from '../../core/progress/levelProgress';
 import type { LevelStatus } from '../../core/progress/levelProgress';
 import { Stage } from '../components/Stage';
+import { AiDisclosureBadge } from '../components/AiDisclosureBadge';
 import { IconButton } from '../components/IconButton';
+import { AboutButton } from '../components/AboutButton';
 
 // Screen 5 - Missions, the lab dashboard the Analyst navigates from. Figma
 // "Sterilab-APHP" node 29:2435 "Scene 03: Navigasi (Menu Utama)", frame 42:36
@@ -101,7 +104,7 @@ const CARD_TOP = '39%';
 const PILL_TOP = '85.25%';
 
 // Bottom note card (Figma group 42:677, x=617.487 y=962.149, asset 688x96).
-const NOTE_LEFT = '32.161%';
+const NOTE_LEFT = '2.5%';
 const NOTE_TOP = '89.088%';
 const NOTE_WIDTH = '35.833%';
 
@@ -146,6 +149,7 @@ const srOnly: CSSProperties = {
 };
 
 export function MissionsPage() {
+  useVoiceOver('dashboard');
   const { goTo, goBack } = useNavigation();
   const [audioOn, setAudioOn] = useState(isAudioEnabled());
   const [completed, setCompleted] = useState(getCompletedLevelCount);
@@ -182,6 +186,7 @@ export function MissionsPage() {
   // reverse-stagger only ever plays for one of the three exits.
   const leaveTo = (navigate: () => void) => {
     if (exiting) return;
+    stopVoiceOver();
     playClick();
     if (prefersReducedMotion()) {
       navigate();
@@ -230,6 +235,7 @@ export function MissionsPage() {
         animationDelayMs={exiting ? exitDelay(0) : enterDelay(0)}
         onClick={() => leaveTo(goBack)}
       />
+      <AboutButton exiting={exiting} delayMs={exiting ? exitDelay(0) : enterDelay(0)} onClick={() => leaveTo(() => goTo('about'))} />
       <IconButton
         src={audioOn ? bgmOnBtnUrl : bgmOffBtnUrl}
         alt={audioOn ? 'Matikan suara' : 'Nyalakan suara'}
@@ -269,6 +275,7 @@ export function MissionsPage() {
           style={{ width: '100%', display: 'block', aspectRatio: '688 / 96' }}
         />
       </div>
+      <AiDisclosureBadge exiting={exiting} />
     </Stage>
   );
 }

@@ -14,7 +14,7 @@ let started = false;
 // the way out). Volume is a separate axis from `muted`: the sound on/off
 // button owns `muted`, a Screen owns the duck, and neither clobbers the other.
 const FULL_VOLUME = 1;
-const DUCKED_VOLUME = 0.10;
+const DUCKED_VOLUME = FULL_VOLUME * 0.25;
 const RAMP_MS = 400;
 
 function ensureAudio(): HTMLAudioElement {

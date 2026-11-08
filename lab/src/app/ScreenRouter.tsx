@@ -1,5 +1,7 @@
 import { useNavigation } from './navigation';
 import { SplashPage } from '../presentation/pages/SplashPage';
+import { AboutPage } from '../presentation/pages/about/AboutPage';
+import { ObjectivesPage } from '../presentation/pages/ObjectivesPage';
 import { CasePage } from '../presentation/pages/CasePage';
 import { BriefingPage } from '../presentation/pages/BriefingPage';
 import { GuidePage } from '../presentation/pages/GuidePage';
@@ -23,6 +25,10 @@ export function ScreenRouter() {
   switch (screen) {
     case 'splash':
       return <SplashPage />;
+    case 'about':
+      return <AboutPage />;
+    case 'objectives':
+      return <ObjectivesPage />;
     case 'case':
       return <CasePage />;
     case 'briefing':
